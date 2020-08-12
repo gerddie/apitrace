@@ -31,7 +31,6 @@ struct StateImpl {
    void Begin(PCall call);
    void BindProgram(PCall call);
    void CallList(PCall call);
-   void Clear(PCall call);
    void DeleteLists(PCall call);
    void Disable(PCall call);
    void Enable(PCall call);
@@ -53,7 +52,8 @@ struct StateImpl {
    void Translate(PCall call);
    void Vertex(PCall call);
    void Viewport(PCall call);
-   void glx_swap_buffers(PCall call);
+
+   void history_ignore(PCall call);
 
    void record_required_call(PCall call);
    void write(trace::Writer& writer);
@@ -198,11 +198,6 @@ void StateImpl::CallList(PCall call)
       assert(list != m_display_lists.end());
       list->second->append_calls_to(m_required_calls);
    }
-}
-
-void StateImpl::Clear(PCall call)
-{
-
 }
 
 void StateImpl::DeleteLists(PCall call)
@@ -351,9 +346,9 @@ void StateImpl::record_required_call(PCall call)
       m_required_calls.push_back(call);
 }
 
-void StateImpl::glx_swap_buffers(PCall call)
+void StateImpl::history_ignore(PCall call)
 {
-
+   (void)call;
 }
 
 void StateImpl::write(trace::Writer& writer)
@@ -375,7 +370,7 @@ void StateImpl::register_callbacks()
    MAP(glBegin, Begin);
    MAP(glBindProgram, BindProgram);
    MAP(glCallList, CallList);
-   MAP(glClear, Clear);
+   MAP(glClear, history_ignore);
    MAP(glDeleteLists, DeleteLists);
    MAP(glDisable, Disable);
    MAP(glEnable, Enable);
@@ -404,7 +399,7 @@ void StateImpl::register_callbacks()
    MAP(glXGetSwapIntervalMESA, record_required_call);
    MAP(glXQueryExtensionsString, record_required_call);
    MAP(glXMakeCurrent, record_required_call);
-   MAP(glXSwapBuffers, glx_swap_buffers);
+   MAP(glXSwapBuffers, history_ignore);
    MAP(glXGetProcAddress, record_required_call);
 
 
