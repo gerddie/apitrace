@@ -37,6 +37,7 @@
 #include "trace_parser.hpp"
 #include "trace_writer.hpp"
 
+using namespace frametrim;
 
 struct trim_options {
    /* Frames to be included in trace. */
@@ -46,7 +47,7 @@ struct trim_options {
    std::string output;
 };
 
-static int trim_frame(const char *filename, , struct trim_options *options)
+static int trim_frame(const char *filename, struct trim_options *options)
 {
 
    trace::Parser p;
@@ -65,15 +66,15 @@ static int trim_frame(const char *filename, , struct trim_options *options)
        options->output = std::string(base.str()) + std::string("-trim.trace");
    }
 
+   State appstate;
+
    frame = 0;
-   bool in_target_frame = false;
-   trace::Call *call;
-   while ((call = p.parse_call())) {
+   std::shared_ptr<trace::Call> call(p.parse_call());
+   while (call) {
 
        /* There's no use doing any work past the last call and frame
         * requested by the user. */
        if (frame > options->frames.getLast()) {
-          delete call;
           break;
        }
 
@@ -81,20 +82,17 @@ static int trim_frame(const char *filename, , struct trim_options *options)
         * then require it (and all dependencies) in the trimmed
         * output. */
        if (options->frames.contains(frame, call->flags))
+         appstate.target_frame_started();
 
-
-
-
+       appstate.call(call);
 
 
        if (call->flags & trace::CALL_FLAG_END_FRAME) {
           frame++;
        }
 
-       delete call;
+       call.reset(p.parse_call());
    }
-
-
 
    return 0;
 }
@@ -104,6 +102,3 @@ int main(int argc, const char **args)
 
    return 0;
 }
-
-
-};

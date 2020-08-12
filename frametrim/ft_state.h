@@ -9,7 +9,7 @@
 namespace frametrim {
 
 
-using ft_callback = std::function<void(trace::Call&)>;
+using ft_callback = std::function<void(PCall)>;
 
 class State
 {
@@ -19,7 +19,7 @@ public:
 
    void target_frame_started();
 
-   void call(trace::Call& call);
+   void call(PCall call);
 
 private:
    struct StateImpl *impl;

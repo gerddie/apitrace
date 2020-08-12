@@ -8,12 +8,12 @@ ObjectState::ObjectState(GLint glID):
 {
 }
 
-void ObjectState::append_calls_to(std::vector<trace::Call *>& list) const
+void ObjectState::append_calls_to(std::vector<PCall>& list) const
 {
    list.insert(list.end(), m_calls.begin(), m_calls.end());
 }
 
-void ObjectState::append_call(trace::Call *call)
+void ObjectState::append_call(PCall call)
 {
    m_calls.push_back(call);
 }

@@ -9,16 +9,18 @@
 
 namespace frametrim {
 
+using PCall=std::shared_ptr<trace::Call>;
+
 class ObjectState
 {
 public:
    ObjectState(GLint glID);
 
-   void append_call(trace::Call *call);
+   void append_call(PCall call);
    void set_required();
    void set_active(bool active);
 
-   void append_calls_to(std::vector<trace::Call *>& list) const;
+   void append_calls_to(std::vector<PCall>& list) const;
 
    bool required() const;
    bool active() const;
@@ -29,7 +31,7 @@ private:
    uint64_t m_goid;
 
    /* Call chain that leads to the current state of this object */
-   std::vector<trace::Call *> m_calls;
+   std::vector<PCall> m_calls;
    bool m_required;
    bool m_active;
 

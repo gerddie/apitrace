@@ -2,6 +2,7 @@
 
 #include <unordered_set>
 #include <iostream>
+#include <cstring>
 
 namespace frametrim {
 
@@ -13,57 +14,61 @@ struct StateImpl {
 
    StateImpl();
 
-   void call(trace::Call& call);
+   void call(PCall call);
    void register_callbacks();
 
    /* OpenGL calls */
-   void Begin(trace::Call& call);
-   void BindProgram(trace::Call& call);
-   void CallList(trace::Call& call);
-   void Clear(trace::Call& call);
-   void DeleteLists(trace::Call& call);
-   void Disable(trace::Call& call);
-   void Enable(trace::Call& call);
-   void End(trace::Call& call);
-   void EndList(trace::Call& call);
-   void Frustum(trace::Call& call);
-   void GenLists(trace::Call& call);
-   void Light(trace::Call& call);
-   void LoadIdentity(trace::Call& call);
-   void Material(trace::Call& call);
-   void MatrixMode(trace::Call& call);
-   void NewList(trace::Call& call);
-   void Normal(trace::Call& call);
-   void PopMatrix(trace::Call& call);
-   void PushMatrix(trace::Call& call);
-   void Rotate(trace::Call& call);
-   void Scissor(trace::Call& call);
-   void ShadeModel(trace::Call& call);
-   void Translate(trace::Call& call);
-   void Vertex(trace::Call& call);
-   void Viewport(trace::Call& call);
+   void Begin(PCall call);
+   void BindProgram(PCall call);
+   void CallList(PCall call);
+   void Clear(PCall call);
+   void DeleteLists(PCall call);
+   void Disable(PCall call);
+   void Enable(PCall call);
+   void End(PCall call);
+   void EndList(PCall call);
+   void Frustum(PCall call);
+   void GenLists(PCall call);
+   void Light(PCall call);
+   void LoadIdentity(PCall call);
+   void Material(PCall call);
+   void MatrixMode(PCall call);
+   void NewList(PCall call);
+   void Normal(PCall call);
+   void PopMatrix(PCall call);
+   void PushMatrix(PCall call);
+   void Rotate(PCall call);
+   void Scissor(PCall call);
+   void ShadeModel(PCall call);
+   void Translate(PCall call);
+   void Vertex(PCall call);
+   void Viewport(PCall call);
+
+   void record_required_call(PCall call);
 
    std::map<const char*, ft_callback> m_call_table;
    std::unordered_map<GLint, PObjectState> m_programs;
    PObjectState m_active_program;
-   std::vector<trace::Call *> m_calls;
+   std::vector<PCall > m_calls;
 
-   std::unordered_map<GLenum, trace::Call *> m_enables;
+   std::unordered_map<GLenum, PCall > m_enables;
 
    std::unordered_map<GLint, PObjectState> m_display_lists;
    PObjectState m_active_display_list;
 
-   std::unordered_map<uint64_t, trace::Call *> m_last_lights;
-   trace::Call *m_last_viewport;
+   std::unordered_map<uint64_t, PCall> m_last_lights;
+   PCall m_last_viewport;
+   PCall m_last_frustum;
+   PCall m_last_scissor;
 
-   bool m_target_frame_started;
+   bool m_in_target_frame;
 
-   std::vector<trace::Call *> m_required_calls;
+   std::vector<PCall > m_required_calls;
 
 };
 
 
-void State::call(trace::Call& call)
+void State::call(PCall call)
 {
    impl->call(call);
 }
@@ -82,39 +87,43 @@ State::~State()
 
 void State::target_frame_started()
 {
-   impl->m_target_frame_started = true;
+   if (impl->m_in_target_frame)
+      return;
+
+   impl->m_in_target_frame = true;
 }
 
 StateImpl::StateImpl():
-   m_last_viewport(nullptr),
-   m_target_frame_started(false)
+   m_in_target_frame(false)
 {
 }
 
-void StateImpl::call(trace::Call& call)
+void StateImpl::call(PCall call)
 {
-   auto cb = m_call_table.find(call.name());
+   auto cb = m_call_table.lower_bound(call->name());
 
-   if (cb != m_call_table.end())
-      cb->second(call);
-   else {
-      std::cerr << "Unahandled call " << call.name() << "\n";
+   if (cb != m_call_table.end() &&
+       !strncmp(cb->first, call->name(), strlen(cb->first))) {
+         cb->second(call);
+   } else {
+      /* This should be some debug output only, because we might
+       * not handle some calls deliberately */
+      std::cerr << "Unahandled call " << call->name() << "\n";
    }
-   if (m_target_frame_started)
-      m_required_calls.push_back(&call);
 
-
+   if (m_in_target_frame)
+      m_required_calls.push_back(call);
 }
 
-void StateImpl::Begin(trace::Call& call)
+void StateImpl::Begin(PCall call)
 {
    if (m_active_display_list)
-      m_active_display_list->append_call(&call);
+      m_active_display_list->append_call(call);
 }
 
-void StateImpl::BindProgram(trace::Call& call)
+void StateImpl::BindProgram(PCall call)
 {
-   GLint program_id = call.arg(0).toSInt();
+   GLint program_id = call->arg(0).toSInt();
 
    if (program_id > 0) {
       auto prog = m_programs.find(program_id);
@@ -124,144 +133,148 @@ void StateImpl::BindProgram(trace::Call& call)
       m_active_program = nullptr;
 }
 
-
-void StateImpl::CallList(trace::Call& call)
+void StateImpl::CallList(PCall call)
 {
-   if (m_target_frame_started) {
-      auto list  = m_display_lists.find(call.arg(0).toUInt());
+   if (m_in_target_frame) {
+      auto list  = m_display_lists.find(call->arg(0).toUInt());
       assert(list != m_display_lists.end());
       list->second->append_calls_to(m_required_calls);
    }
 }
 
-void StateImpl::Clear(trace::Call& call)
+void StateImpl::Clear(PCall call)
 {
 
 }
 
-void StateImpl::DeleteLists(trace::Call& call)
+void StateImpl::DeleteLists(PCall call)
 {
-   GLint value = call.arg(0).toUInt();
-   GLint value_end = call.arg(1).toUInt() + value;
+   GLint value = call->arg(0).toUInt();
+   GLint value_end = call->arg(1).toUInt() + value;
    for(unsigned i = value; i < value_end; ++i) {
-      auto list  = m_display_lists.find(call.arg(0).toUInt());
+      auto list  = m_display_lists.find(call->arg(0).toUInt());
       assert(list != m_display_lists.end());
       m_display_lists.erase(list);
    }
 }
 
-void StateImpl::Disable(trace::Call& call)
+void StateImpl::Disable(PCall call)
 {
-   GLenum value = call.arg(0).toUInt();
-   m_enables[value] = &call;
+   GLenum value = call->arg(0).toUInt();
+   m_enables[value] = call;
 }
 
-void StateImpl::Enable(trace::Call& call)
+void StateImpl::Enable(PCall call)
 {
-   GLenum value = call.arg(0).toUInt();
-   m_enables[value] = &call;
+   GLenum value = call->arg(0).toUInt();
+   m_enables[value] = call;
 }
 
-void StateImpl::End(trace::Call& call)
+void StateImpl::End(PCall call)
 {
    if (m_active_display_list)
-      m_active_display_list->append_call(&call);
+      m_active_display_list->append_call(call);
 }
 
-void StateImpl::EndList(trace::Call& call)
+void StateImpl::EndList(PCall call)
 {
    m_active_display_list = nullptr;
 }
 
-void StateImpl::Frustum(trace::Call& call)
+void StateImpl::Frustum(PCall call)
 {
-
+   m_last_frustum = call;
 }
 
-void StateImpl::GenLists(trace::Call& call)
+void StateImpl::GenLists(PCall call)
 {
-   unsigned nlists = call.arg(0).toUInt();
-   GLuint origResult = (*call.ret).toUInt();
+   unsigned nlists = call->arg(0).toUInt();
+   GLuint origResult = (*call->ret).toUInt();
    for (unsigned i = 0; i < nlists; ++i)
       m_display_lists[i + origResult] = PObjectState(new ObjectState(i + origResult));
 }
 
-void StateImpl::Light(trace::Call& call)
+void StateImpl::Light(PCall call)
 {
-   auto light_id = call.arg(0).toUInt();
-   m_last_lights[light_id] = &call;
+   auto light_id = call->arg(0).toUInt();
+   m_last_lights[light_id] = call;
 }
 
-void StateImpl::LoadIdentity(trace::Call& call)
+void StateImpl::LoadIdentity(PCall call)
 {
 
 }
 
-void StateImpl::Material(trace::Call& call)
+void StateImpl::Material(PCall call)
 {
    if (m_active_display_list)
-      m_active_display_list->append_call(&call);
+      m_active_display_list->append_call(call);
 }
 
-void StateImpl::MatrixMode(trace::Call& call)
+void StateImpl::MatrixMode(PCall call)
 {
 
 }
 
-void StateImpl::NewList(trace::Call& call)
+void StateImpl::NewList(PCall call)
 {
    assert(!m_active_display_list);
-   auto list  = m_display_lists.find(call.arg(0).toUInt());
+   auto list  = m_display_lists.find(call->arg(0).toUInt());
    assert(list != m_display_lists.end());
    m_active_display_list = list->second;
 }
 
-void StateImpl::Normal(trace::Call& call)
+void StateImpl::Normal(PCall call)
 {
    if (m_active_display_list)
-      m_active_display_list->append_call(&call);
+      m_active_display_list->append_call(call);
 }
 
-void StateImpl::PopMatrix(trace::Call& call)
+void StateImpl::PopMatrix(PCall call)
 {
 
 }
 
-void StateImpl::PushMatrix(trace::Call& call)
+void StateImpl::PushMatrix(PCall call)
 {
 
 }
 
-void StateImpl::Rotate(trace::Call& call)
+void StateImpl::Rotate(PCall call)
 {
 
 }
 
-void StateImpl::Scissor(trace::Call& call)
+void StateImpl::Scissor(PCall call)
 {
-
+   m_last_scissor = call;
 }
 
-void StateImpl::ShadeModel(trace::Call& call)
-{
-   if (m_active_display_list)
-      m_active_display_list->append_call(&call);
-}
-
-void StateImpl::Translate(trace::Call& call)
-{
-
-}
-
-void StateImpl::Vertex(trace::Call& call)
+void StateImpl::ShadeModel(PCall call)
 {
    if (m_active_display_list)
-      m_active_display_list->append_call(&call);
+      m_active_display_list->append_call(call);
 }
 
-void StateImpl::Viewport(trace::Call& call)
+void StateImpl::Translate(PCall call)
 {
-   m_last_viewport = &call;
+
+}
+
+void StateImpl::Vertex(PCall call)
+{
+   if (m_active_display_list)
+      m_active_display_list->append_call(call);
+}
+
+void StateImpl::Viewport(PCall call)
+{
+   m_last_viewport = call;
+}
+
+void StateImpl::record_required_call(PCall call)
+{
+   m_required_calls.push_back(call);
 }
 
 void StateImpl::register_callbacks()
@@ -294,6 +307,13 @@ void StateImpl::register_callbacks()
    MAP(glTranslate, Translate);
    MAP(glVertex, Vertex);
    MAP(glViewport, Viewport);
+
+   MAP(glXChooseVisual, record_required_call);
+   MAP(glXCreateContext, record_required_call);
+   MAP(glXDestroyContext, record_required_call);
+   MAP(glXGetSwapIntervalMESA, record_required_call);
+   MAP(glXMakeCurrent, record_required_call);
+   MAP(glXSwapBuffers, record_required_call);
 
 #undef MAP
 }
