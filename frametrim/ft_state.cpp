@@ -1,13 +1,23 @@
 #include "ft_state.h"
+#include "trace_writer.hpp"
 
 #include <unordered_set>
 #include <iostream>
+#include <algorithm>
 #include <cstring>
 
 namespace frametrim {
 
 using std::bind;
 using std::placeholders::_1;
+
+struct string_part_less {
+   bool operator () (const char *lhs, const char *rhs)
+   {
+      int len = std::min(strlen(lhs), strlen(rhs));
+      return strncmp(lhs, rhs, len) < 0;
+   }
+};
 
 
 struct StateImpl {
@@ -45,11 +55,14 @@ struct StateImpl {
    void Viewport(PCall call);
 
    void record_required_call(PCall call);
+   void write(trace::Writer& writer);
+   void start_target_farme();
 
-   std::map<const char*, ft_callback> m_call_table;
+   using CallTable = std::multimap<const char *, ft_callback, string_part_less>;
+   CallTable m_call_table;
+
    std::unordered_map<GLint, PObjectState> m_programs;
    PObjectState m_active_program;
-   std::vector<PCall > m_calls;
 
    std::unordered_map<GLenum, PCall > m_enables;
 
@@ -73,6 +86,11 @@ void State::call(PCall call)
    impl->call(call);
 }
 
+void State::write(trace::Writer& writer)
+{
+   impl->write(writer);
+}
+
 State::State()
 {
    impl = new StateImpl;
@@ -91,6 +109,21 @@ void State::target_frame_started()
       return;
 
    impl->m_in_target_frame = true;
+   impl->start_target_farme();
+}
+
+void StateImpl::start_target_farme()
+{
+   //record_required_call(m_last_frustum);
+   //record_required_call(m_last_viewport);
+   record_required_call(m_last_scissor);
+
+
+   for(auto& cap: m_enables)
+      record_required_call(cap.second);
+
+   for (auto& l: m_last_lights)
+      record_required_call(l.second);
 }
 
 StateImpl::StateImpl():
@@ -98,17 +131,41 @@ StateImpl::StateImpl():
 {
 }
 
+unsigned equal_chars(const char *l, const char *r)
+{
+   unsigned retval = 0;
+   while (*l && *r && *l == *r) {
+      ++retval;
+      ++l; ++r;
+   }
+   return retval;
+}
+
 void StateImpl::call(PCall call)
 {
-   auto cb = m_call_table.lower_bound(call->name());
+   auto cb_range = m_call_table.equal_range(call->name());
 
-   if (cb != m_call_table.end() &&
-       !strncmp(cb->first, call->name(), strlen(cb->first))) {
-         cb->second(call);
+   if (cb_range.first != m_call_table.end()) {
+      CallTable::const_iterator cb = cb_range.first;
+      CallTable::const_iterator i = cb_range.first;
+      ++i;
+
+      unsigned max_equal = equal_chars(cb->first, call->name());
+
+      while (i != cb_range.second) {
+         auto n = equal_chars(i->first, call->name());
+         if (n > max_equal) {
+            max_equal = n;
+            cb = i;
+         }
+         ++i;
+      }
+
+      cb->second(call);
    } else {
       /* This should be some debug output only, because we might
        * not handle some calls deliberately */
-      std::cerr << "Unahandled call " << call->name() << "\n";
+      std::cerr << call->name() << " unhandled\n";
    }
 
    if (m_in_target_frame)
@@ -178,12 +235,16 @@ void StateImpl::End(PCall call)
 
 void StateImpl::EndList(PCall call)
 {
+   if (!m_in_target_frame)
+      m_active_display_list->append_call(call);
+
    m_active_display_list = nullptr;
 }
 
 void StateImpl::Frustum(PCall call)
 {
-   m_last_frustum = call;
+   if (!m_in_target_frame)
+      m_required_calls.push_back(call);
 }
 
 void StateImpl::GenLists(PCall call)
@@ -192,6 +253,9 @@ void StateImpl::GenLists(PCall call)
    GLuint origResult = (*call->ret).toUInt();
    for (unsigned i = 0; i < nlists; ++i)
       m_display_lists[i + origResult] = PObjectState(new ObjectState(i + origResult));
+
+   if (!m_in_target_frame)
+      m_display_lists[origResult]->append_call(call);
 }
 
 void StateImpl::Light(PCall call)
@@ -202,7 +266,7 @@ void StateImpl::Light(PCall call)
 
 void StateImpl::LoadIdentity(PCall call)
 {
-
+   m_required_calls.push_back(call);
 }
 
 void StateImpl::Material(PCall call)
@@ -213,7 +277,8 @@ void StateImpl::Material(PCall call)
 
 void StateImpl::MatrixMode(PCall call)
 {
-
+   if (!m_in_target_frame)
+      m_required_calls.push_back(call);
 }
 
 void StateImpl::NewList(PCall call)
@@ -222,6 +287,9 @@ void StateImpl::NewList(PCall call)
    auto list  = m_display_lists.find(call->arg(0).toUInt());
    assert(list != m_display_lists.end());
    m_active_display_list = list->second;
+
+   if (!m_in_target_frame)
+      m_active_display_list->append_call(call);
 }
 
 void StateImpl::Normal(PCall call)
@@ -232,17 +300,20 @@ void StateImpl::Normal(PCall call)
 
 void StateImpl::PopMatrix(PCall call)
 {
-
+   if (!m_in_target_frame)
+      m_required_calls.push_back(call);
 }
 
 void StateImpl::PushMatrix(PCall call)
 {
-
+   if (!m_in_target_frame)
+      m_required_calls.push_back(call);
 }
 
 void StateImpl::Rotate(PCall call)
 {
-
+   if (!m_in_target_frame)
+      m_required_calls.push_back(call);
 }
 
 void StateImpl::Scissor(PCall call)
@@ -258,7 +329,8 @@ void StateImpl::ShadeModel(PCall call)
 
 void StateImpl::Translate(PCall call)
 {
-
+   if (!m_in_target_frame)
+      m_required_calls.push_back(call);
 }
 
 void StateImpl::Vertex(PCall call)
@@ -269,7 +341,9 @@ void StateImpl::Vertex(PCall call)
 
 void StateImpl::Viewport(PCall call)
 {
-   m_last_viewport = call;
+   //m_last_viewport = call;
+
+   m_required_calls.push_back(call);
 }
 
 void StateImpl::record_required_call(PCall call)
@@ -277,9 +351,20 @@ void StateImpl::record_required_call(PCall call)
    m_required_calls.push_back(call);
 }
 
+void StateImpl::write(trace::Writer& writer)
+{
+   std::sort(m_required_calls.begin(), m_required_calls.end(),
+             [](PCall rhs, PCall lhs) {
+      return rhs->no < lhs->no;
+   });
+
+   for(auto& call: m_required_calls)
+      writer.writeCall(call.get());
+}
+
 void StateImpl::register_callbacks()
 {
-#define MAP(name, call) m_call_table[#name] = bind(&StateImpl:: call, this, _1)
+#define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&StateImpl:: call, this, _1)))
 
 
    MAP(glBegin, Begin);
@@ -312,10 +397,18 @@ void StateImpl::register_callbacks()
    MAP(glXCreateContext, record_required_call);
    MAP(glXDestroyContext, record_required_call);
    MAP(glXGetSwapIntervalMESA, record_required_call);
+   MAP(glXQueryExtensionsString, record_required_call);
    MAP(glXMakeCurrent, record_required_call);
    MAP(glXSwapBuffers, record_required_call);
+   MAP(glXGetProcAddress, record_required_call);
+
 
 #undef MAP
+
+   for(auto& x: m_call_table) {
+      std::cerr << "Mapped " << x.first << "\n";
+   }
+
 }
 
 } // namespace frametrim

@@ -1,5 +1,6 @@
 include_directories (
     ${CMAKE_CURRENT_SOURCE_DIR}
+    ${CMAKE_SOURCE_DIR}/cli
     ${CMAKE_SOURCE_DIR}/lib/highlight
     ${CMAKE_SOURCE_DIR}/helpers
     ${CMAKE_SOURCE_DIR}/retrace
@@ -19,7 +20,7 @@ add_executable(glxtrim
    ft_state.cpp
    )
 
-target_link_libraries (glretrace
+target_link_libraries (glxtrim
     retrace_common
     glretrace_common
 )

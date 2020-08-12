@@ -37,6 +37,9 @@
 #include "trace_parser.hpp"
 #include "trace_writer.hpp"
 
+#include <limits.h> // for CHAR_MAX
+#include <getopt.h>
+
 using namespace frametrim;
 
 struct trim_options {
@@ -47,7 +50,39 @@ struct trim_options {
    std::string output;
 };
 
-static int trim_frame(const char *filename, struct trim_options *options)
+static const char *synopsis = "Create a new, retracable trace containing only one frame.";
+
+static void
+usage(void)
+{
+    std::cout
+        << "usage: frametrim [OPTIONS] TRACE_FILE...\n"
+        << synopsis << "\n"
+        "\n"
+        "    -h, --help               Show detailed help for trim options and exit\n"
+        "        --frame=FRAME        Frame the trace should be reduced to.\n"
+        "    -o, --output=TRACE_FILE  Output trace file\n"
+    ;
+}
+
+
+enum {
+    FRAMES_OPT = CHAR_MAX + 1
+};
+
+const static char *
+shortOptions = "aho:x";
+
+const static struct option
+longOptions[] = {
+    {"help", no_argument, 0, 'h'},
+    {"frames", required_argument, 0, FRAMES_OPT},
+    {"output", required_argument, 0, 'o'},
+    {0, 0, 0, 0}
+};
+
+static int trim_to_frame(const char *filename,
+                         const struct trim_options& options)
 {
 
    trace::Parser p;
@@ -58,12 +93,14 @@ static int trim_frame(const char *filename, struct trim_options *options)
        return 1;
    }
 
+   auto out_filename = options.output;
+
    /* Prepare output file and writer for output. */
-   if (options->output.empty()) {
+   if (options.output.empty()) {
        os::String base(filename);
        base.trimExtension();
 
-       options->output = std::string(base.str()) + std::string("-trim.trace");
+       out_filename = std::string(base.str()) + std::string("-trim.trace");
    }
 
    State appstate;
@@ -74,14 +111,14 @@ static int trim_frame(const char *filename, struct trim_options *options)
 
        /* There's no use doing any work past the last call and frame
         * requested by the user. */
-       if (frame > options->frames.getLast()) {
+       if (frame > options.frames.getLast()) {
           break;
        }
 
        /* If this call is included in the user-specified call set,
         * then require it (and all dependencies) in the trimmed
         * output. */
-       if (options->frames.contains(frame, call->flags))
+       if (options.frames.contains(frame, call->flags))
          appstate.target_frame_started();
 
        appstate.call(call);
@@ -94,11 +131,65 @@ static int trim_frame(const char *filename, struct trim_options *options)
        call.reset(p.parse_call());
    }
 
+   trace::Writer writer;
+   if (!writer.open(out_filename.c_str(), p.getVersion(), p.getProperties())) {
+       std::cerr << "error: failed to create " << out_filename << "\n";
+       return 2;
+   }
+
+   appstate.write(writer);
+
+
    return 0;
 }
 
-int main(int argc, const char **args)
-{
 
-   return 0;
+
+
+int main(int argc, char **argv)
+{
+   struct trim_options options;
+   options.frames = trace::CallSet(trace::FREQUENCY_NONE);
+
+   int opt;
+   while ((opt = getopt_long(argc, argv, shortOptions, longOptions, NULL)) != -1) {
+       switch (opt) {
+       case 'h':
+           usage();
+           return 0;
+       case FRAMES_OPT:
+           options.frames.merge(optarg);
+           break;
+       case 'o':
+           options.output = optarg;
+           break;
+       default:
+           std::cerr << "error: unexpected option `" << (char)opt << "`\n";
+           usage();
+           return 1;
+       }
+   }
+
+   if (options.frames.getFirst() != options.frames.getLast())  {
+      std::cerr << "error: Must give exactly one frame\n";
+      return 1;
+   }
+
+   if (optind >= argc) {
+       std::cerr << "error: apitrace trim requires a trace file as an argument.\n";
+       usage();
+       return 1;
+   }
+
+   if (argc > optind + 1) {
+       std::cerr << "error: extraneous arguments:";
+       for (int i = optind + 1; i < argc; i++) {
+           std::cerr << " " << argv[i];
+       }
+       std::cerr << "\n";
+       usage();
+       return 1;
+   }
+
+   return trim_to_frame(argv[optind], options);
 }

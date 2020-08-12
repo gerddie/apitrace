@@ -6,8 +6,11 @@
 #include <unordered_map>
 #include <functional>
 
-namespace frametrim {
+namespace  trace {
+class Writer;
+};
 
+namespace frametrim {
 
 using ft_callback = std::function<void(PCall)>;
 
@@ -20,6 +23,8 @@ public:
    void target_frame_started();
 
    void call(PCall call);
+
+   void write(trace::Writer& writer);
 
 private:
    struct StateImpl *impl;
