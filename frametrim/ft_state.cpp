@@ -53,6 +53,7 @@ struct StateImpl {
    void Translate(PCall call);
    void Vertex(PCall call);
    void Viewport(PCall call);
+   void glx_swap_buffers(PCall call);
 
    void record_required_call(PCall call);
    void write(trace::Writer& writer);
@@ -114,8 +115,8 @@ void State::target_frame_started()
 
 void StateImpl::start_target_farme()
 {
-   //record_required_call(m_last_frustum);
-   //record_required_call(m_last_viewport);
+   record_required_call(m_last_frustum);
+   record_required_call(m_last_viewport);
    record_required_call(m_last_scissor);
 
 
@@ -243,8 +244,7 @@ void StateImpl::EndList(PCall call)
 
 void StateImpl::Frustum(PCall call)
 {
-   if (!m_in_target_frame)
-      m_required_calls.push_back(call);
+   m_last_frustum = call;
 }
 
 void StateImpl::GenLists(PCall call)
@@ -266,7 +266,8 @@ void StateImpl::Light(PCall call)
 
 void StateImpl::LoadIdentity(PCall call)
 {
-   m_required_calls.push_back(call);
+   if (!m_in_target_frame)
+      m_required_calls.push_back(call);
 }
 
 void StateImpl::Material(PCall call)
@@ -341,14 +342,18 @@ void StateImpl::Vertex(PCall call)
 
 void StateImpl::Viewport(PCall call)
 {
-   //m_last_viewport = call;
-
-   m_required_calls.push_back(call);
+   m_last_viewport = call;
 }
 
 void StateImpl::record_required_call(PCall call)
 {
-   m_required_calls.push_back(call);
+   if (call)
+      m_required_calls.push_back(call);
+}
+
+void StateImpl::glx_swap_buffers(PCall call)
+{
+
 }
 
 void StateImpl::write(trace::Writer& writer)
@@ -399,7 +404,7 @@ void StateImpl::register_callbacks()
    MAP(glXGetSwapIntervalMESA, record_required_call);
    MAP(glXQueryExtensionsString, record_required_call);
    MAP(glXMakeCurrent, record_required_call);
-   MAP(glXSwapBuffers, record_required_call);
+   MAP(glXSwapBuffers, glx_swap_buffers);
    MAP(glXGetProcAddress, record_required_call);
 
 
