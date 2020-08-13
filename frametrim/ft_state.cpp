@@ -1,15 +1,18 @@
 #include "ft_state.h"
+#include "ft_matrixstate.hpp"
 #include "trace_writer.hpp"
 
 #include <unordered_set>
 #include <iostream>
 #include <algorithm>
 #include <cstring>
+#include <stack>
 
 namespace frametrim {
 
 using std::bind;
 using std::placeholders::_1;
+using std::make_shared;
 
 struct string_part_less {
    bool operator () (const char *lhs, const char *rhs)
@@ -76,6 +79,14 @@ struct StateImpl {
 
    std::vector<PCall > m_required_calls;
 
+   std::stack<PMatrixState> m_mv_matrix;
+   std::stack<PMatrixState> m_proj_matrix;
+   std::stack<PMatrixState> m_texture_matrix;
+   std::stack<PMatrixState> m_color_matrix;
+
+   PMatrixState m_current_matrix;
+   std::stack<PMatrixState> *m_current_matrix_stack;
+
 };
 
 
@@ -120,11 +131,26 @@ void StateImpl::start_target_farme()
 
    for (auto& l: m_last_lights)
       record_required_call(l.second);
+
+   if (!m_mv_matrix.empty())
+      m_mv_matrix.top()->append_calls_to(m_required_calls);
+
+   if (!m_proj_matrix.empty())
+      m_proj_matrix.top()->append_calls_to(m_required_calls);
+
+   if (!m_texture_matrix.empty())
+      m_texture_matrix.top()->append_calls_to(m_required_calls);
+
+   if (!m_color_matrix.empty())
+      m_color_matrix.top()->append_calls_to(m_required_calls);
 }
 
 StateImpl::StateImpl():
    m_in_target_frame(false)
 {
+   m_mv_matrix.push(make_shared<MatrixState>(nullptr));
+   m_current_matrix = m_mv_matrix.top();
+   m_current_matrix_stack = &m_mv_matrix;
 }
 
 unsigned equal_chars(const char *l, const char *r)
@@ -251,8 +277,7 @@ void StateImpl::Light(PCall call)
 
 void StateImpl::LoadIdentity(PCall call)
 {
-   if (!m_in_target_frame)
-      m_required_calls.push_back(call);
+   m_current_matrix->identity(call);
 }
 
 void StateImpl::Material(PCall call)
@@ -263,8 +288,28 @@ void StateImpl::Material(PCall call)
 
 void StateImpl::MatrixMode(PCall call)
 {
-   if (!m_in_target_frame)
-      m_required_calls.push_back(call);
+   switch (call->arg(0).toUInt()) {
+   case GL_MODELVIEW:
+      m_current_matrix_stack = &m_mv_matrix;
+      break;
+   case GL_PROJECTION:
+      m_current_matrix_stack = &m_proj_matrix;
+      break;
+   case GL_TEXTURE:
+      m_current_matrix_stack = &m_texture_matrix;
+      break;
+   case GL_COLOR:
+      m_current_matrix_stack = &m_color_matrix;
+      break;
+   default:
+      assert(0 && "Unknown matrix mode");
+   }
+
+   if (m_current_matrix_stack->empty())
+      m_current_matrix_stack->push(make_shared<MatrixState>(nullptr));
+
+   m_current_matrix = m_current_matrix_stack->top();
+   m_current_matrix->append_call(call);
 }
 
 void StateImpl::NewList(PCall call)
@@ -286,20 +331,23 @@ void StateImpl::Normal(PCall call)
 
 void StateImpl::PopMatrix(PCall call)
 {
-   if (!m_in_target_frame)
-      m_required_calls.push_back(call);
+   m_current_matrix->append_call(call);
+   m_current_matrix_stack->pop();
+   assert(!m_current_matrix_stack->empty());
+   m_current_matrix = m_current_matrix_stack->top();
+
 }
 
 void StateImpl::PushMatrix(PCall call)
 {
-   if (!m_in_target_frame)
-      m_required_calls.push_back(call);
+   m_current_matrix = make_shared<MatrixState>(m_current_matrix);
+   m_current_matrix_stack->push(m_current_matrix);
+   m_current_matrix->append_call(call);
 }
 
 void StateImpl::Rotate(PCall call)
 {
-   if (!m_in_target_frame)
-      m_required_calls.push_back(call);
+   m_current_matrix->append_call(call);
 }
 
 void StateImpl::ShadeModel(PCall call)
@@ -310,8 +358,7 @@ void StateImpl::ShadeModel(PCall call)
 
 void StateImpl::Translate(PCall call)
 {
-   if (!m_in_target_frame)
-      m_required_calls.push_back(call);
+   m_current_matrix->append_call(call);
 }
 
 void StateImpl::Vertex(PCall call)

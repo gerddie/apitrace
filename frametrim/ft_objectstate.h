@@ -25,7 +25,12 @@ public:
    bool required() const;
    bool active() const;
 
+protected:
+   void write_calls_to(std::vector<PCall>& list) const;
 private:
+
+   virtual void do_append_calls_to(std::vector<PCall>& list) const;
+
    GLint m_glID;
 
    uint64_t m_goid;
