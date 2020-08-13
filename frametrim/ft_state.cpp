@@ -41,8 +41,6 @@ struct StateImpl {
    void CreateShader(PCall call);
    void CreateProgram(PCall call);
    void DeleteLists(PCall call);
-   void Disable(PCall call);
-   void Enable(PCall call);
    void End(PCall call);
    void EndList(PCall call);
    void GenBuffers(PCall call);
@@ -66,6 +64,9 @@ struct StateImpl {
 
    void history_ignore(PCall call);
 
+   void record_enable(PCall call);
+   void record_va_enables(PCall call);
+
    void record_state_call(PCall call);
    void record_required_call(PCall call);
    void write(trace::Writer& writer);
@@ -80,7 +81,9 @@ struct StateImpl {
    std::unordered_map<GLint, PProgramState> m_programs;
    PProgramState m_active_program;
 
-   std::unordered_map<GLenum, PCall > m_enables;
+   std::unordered_map<GLenum, PCall> m_enables;
+   std::unordered_map<GLint, PCall> m_va_enables;
+
 
    std::unordered_map<GLint, PObjectState> m_display_lists;
    PObjectState m_active_display_list;
@@ -105,6 +108,8 @@ struct StateImpl {
 
    PMatrixState m_current_matrix;
    std::stack<PMatrixState> *m_current_matrix_stack;
+
+
 
 };
 
@@ -278,13 +283,12 @@ void StateImpl::DeleteLists(PCall call)
    }
 }
 
-void StateImpl::Disable(PCall call)
+void StateImpl::record_va_enables(PCall call)
 {
-   GLenum value = call->arg(0).toUInt();
-   m_enables[value] = call;
+   m_va_enables[call->arg(0).toUInt()] = call;
 }
 
-void StateImpl::Enable(PCall call)
+void StateImpl::record_enable(PCall call)
 {
    GLenum value = call->arg(0).toUInt();
    m_enables[value] = call;
@@ -453,7 +457,6 @@ void StateImpl::UseProgram(PCall call)
    }
 }
 
-
 void StateImpl::Vertex(PCall call)
 {
    if (m_active_display_list)
@@ -523,12 +526,12 @@ void StateImpl::register_callbacks()
    MAP(glDeleteVertexArrays, history_ignore);
 
    MAP(glDetachShader, history_ignore);
-   MAP(glDisableVertexAttribArray, history_ignore);
+   MAP(glDisableVertexAttribArray, record_va_enables);
    MAP(glDrawArrays, history_ignore);
-   MAP(glEnableVertexAttribArray, history_ignore);
+   MAP(glEnableVertexAttribArray, record_va_enables);
 
-   MAP(glDisable, Disable);
-   MAP(glEnable, Enable);
+   MAP(glDisable, record_enable);
+   MAP(glEnable, record_enable);
    MAP(glEnd, End);
    MAP(glEndList, EndList);
    MAP(glFrustum, record_state_call);
