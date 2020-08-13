@@ -45,8 +45,11 @@ struct StateImpl {
    void Enable(PCall call);
    void End(PCall call);
    void EndList(PCall call);
+   void GenBuffers(PCall call);
    void GenLists(PCall call);
+   void GenVertexArrays(PCall call);
    void Light(PCall call);
+   void LinkProgram(PCall call);
    void LoadIdentity(PCall call);
    void Material(PCall call);
    void MatrixMode(PCall call);
@@ -58,6 +61,7 @@ struct StateImpl {
    void ShadeModel(PCall call);
    void shader_call(PCall call);
    void Translate(PCall call);
+   void UseProgram(PCall call);
    void Vertex(PCall call);
 
    void history_ignore(PCall call);
@@ -80,6 +84,11 @@ struct StateImpl {
 
    std::unordered_map<GLint, PObjectState> m_display_lists;
    PObjectState m_active_display_list;
+
+   std::unordered_map<GLint, PObjectState> m_buffers;
+   PObjectState m_bound_buffer;
+
+   std::unordered_map<GLint, PObjectState> m_vertex_arrays;
 
    std::unordered_map<uint64_t, PCall> m_last_lights;
 
@@ -295,6 +304,16 @@ void StateImpl::EndList(PCall call)
    m_active_display_list = nullptr;
 }
 
+void StateImpl::GenBuffers(PCall call)
+{
+   const auto ids = std::unique_ptr<trace::Array>((call->arg(1)).toArray());
+   for (auto& v : ids->values) {
+      auto obj = PObjectState(new ObjectState(v->toUInt()));
+      obj->append_call(call);
+      m_buffers[v->toUInt()] = obj;
+   }
+}
+
 void StateImpl::GenLists(PCall call)
 {
    unsigned nlists = call->arg(0).toUInt();
@@ -306,10 +325,26 @@ void StateImpl::GenLists(PCall call)
       m_display_lists[origResult]->append_call(call);
 }
 
+void StateImpl::GenVertexArrays(PCall call)
+{
+   const auto ids = std::unique_ptr<trace::Array>((call->arg(1)).toArray());
+   for (auto& v : ids->values) {
+      auto obj = PObjectState(new ObjectState(v->toUInt()));
+      obj->append_call(call);
+      m_vertex_arrays[v->toUInt()] = obj;
+   }
+}
+
 void StateImpl::Light(PCall call)
 {
    auto light_id = call->arg(0).toUInt();
    m_last_lights[light_id] = call;
+}
+
+void StateImpl::LinkProgram(PCall call)
+{
+   unsigned progid = call->arg(0).toUInt();
+   m_programs[progid]->append_call(call);
 }
 
 void StateImpl::LoadIdentity(PCall call)
@@ -404,6 +439,21 @@ void StateImpl::Translate(PCall call)
    m_current_matrix->append_call(call);
 }
 
+void StateImpl::UseProgram(PCall call)
+{
+   unsigned progid = call->arg(0).toUInt();
+   m_active_program = progid > 0 ? m_programs[progid] : nullptr;
+
+   if (m_active_program) {
+      m_active_program->append_call(call);
+
+      if (m_in_target_frame) {
+         m_active_program->append_calls_to(m_required_calls);
+      }
+   }
+}
+
+
 void StateImpl::Vertex(PCall call)
 {
    if (m_active_display_list)
@@ -442,23 +492,54 @@ void StateImpl::register_callbacks()
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&StateImpl:: call, this, _1)))
 
 
+
+
+
+
+
+
+
    MAP(glAttachShader, AttachShader);
    MAP(glAttachObject, AttachShader);
    MAP(glBegin, Begin);
+   MAP(glBindAttribLocation, history_ignore);
+   MAP(glBindBuffer, history_ignore);
+   MAP(glBindVertexArray, history_ignore);
+
    MAP(glBindProgram, BindProgram);
+   MAP(glBufferData, BindProgram);
+
    MAP(glCallList, CallList);
    MAP(glClear, history_ignore);
+   MAP(glClearColor, record_state_call);
+
    MAP(glCreateShader, CreateShader);
    MAP(glCreateProgram, CreateProgram);
    MAP(glCompileShader, shader_call);
    MAP(glDeleteLists, DeleteLists);
+   MAP(glDeleteBuffers, history_ignore);
+   MAP(glDeleteProgram, history_ignore);
+   MAP(glDeleteShader, history_ignore);
+   MAP(glDeleteVertexArrays, history_ignore);
+
+   MAP(glDetachShader, history_ignore);
+   MAP(glDisableVertexAttribArray, history_ignore);
+   MAP(glDrawArrays, history_ignore);
+   MAP(glEnableVertexAttribArray, history_ignore);
+
    MAP(glDisable, Disable);
    MAP(glEnable, Enable);
    MAP(glEnd, End);
    MAP(glEndList, EndList);
    MAP(glFrustum, record_state_call);
+   MAP(glGenBuffers, GenBuffers);
+
    MAP(glGenLists, GenLists);
+   MAP(glGenVertexArrays, GenVertexArrays);
    MAP(glLight, Light);
+   MAP(glLinkProgram, LinkProgram);
+   MAP(glUseProgram, UseProgram);
+   MAP(glVertexAttribPointer, history_ignore);
    MAP(glLoadIdentity, LoadIdentity);
    MAP(glMaterial, Material);
    MAP(glMatrixMode, MatrixMode);
