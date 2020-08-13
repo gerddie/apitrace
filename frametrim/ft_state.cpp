@@ -36,7 +36,6 @@ struct StateImpl {
    void Enable(PCall call);
    void End(PCall call);
    void EndList(PCall call);
-   void Frustum(PCall call);
    void GenLists(PCall call);
    void Light(PCall call);
    void LoadIdentity(PCall call);
@@ -47,14 +46,13 @@ struct StateImpl {
    void PopMatrix(PCall call);
    void PushMatrix(PCall call);
    void Rotate(PCall call);
-   void Scissor(PCall call);
    void ShadeModel(PCall call);
    void Translate(PCall call);
    void Vertex(PCall call);
-   void Viewport(PCall call);
 
    void history_ignore(PCall call);
 
+   void record_state_call(PCall call);
    void record_required_call(PCall call);
    void write(trace::Writer& writer);
    void start_target_farme();
@@ -71,9 +69,8 @@ struct StateImpl {
    PObjectState m_active_display_list;
 
    std::unordered_map<uint64_t, PCall> m_last_lights;
-   PCall m_last_viewport;
-   PCall m_last_frustum;
-   PCall m_last_scissor;
+
+   std::unordered_map<std::string, PCall> m_state_calls;
 
    bool m_in_target_frame;
 
@@ -115,10 +112,8 @@ void State::target_frame_started()
 
 void StateImpl::start_target_farme()
 {
-   record_required_call(m_last_frustum);
-   record_required_call(m_last_viewport);
-   record_required_call(m_last_scissor);
-
+   for(auto& a : m_state_calls)
+      record_required_call(a.second);
 
    for(auto& cap: m_enables)
       record_required_call(cap.second);
@@ -237,11 +232,6 @@ void StateImpl::EndList(PCall call)
    m_active_display_list = nullptr;
 }
 
-void StateImpl::Frustum(PCall call)
-{
-   m_last_frustum = call;
-}
-
 void StateImpl::GenLists(PCall call)
 {
    unsigned nlists = call->arg(0).toUInt();
@@ -312,11 +302,6 @@ void StateImpl::Rotate(PCall call)
       m_required_calls.push_back(call);
 }
 
-void StateImpl::Scissor(PCall call)
-{
-   m_last_scissor = call;
-}
-
 void StateImpl::ShadeModel(PCall call)
 {
    if (m_active_display_list)
@@ -335,9 +320,9 @@ void StateImpl::Vertex(PCall call)
       m_active_display_list->append_call(call);
 }
 
-void StateImpl::Viewport(PCall call)
+void StateImpl::record_state_call(PCall call)
 {
-   m_last_viewport = call;
+   m_state_calls[call->name()] = call;
 }
 
 void StateImpl::record_required_call(PCall call)
@@ -376,7 +361,7 @@ void StateImpl::register_callbacks()
    MAP(glEnable, Enable);
    MAP(glEnd, End);
    MAP(glEndList, EndList);
-   MAP(glFrustum, Frustum);
+   MAP(glFrustum, record_state_call);
    MAP(glGenLists, GenLists);
    MAP(glLight, Light);
    MAP(glLoadIdentity, LoadIdentity);
@@ -387,11 +372,11 @@ void StateImpl::register_callbacks()
    MAP(glPopMatrix, PopMatrix);
    MAP(glPushMatrix, PushMatrix);
    MAP(glRotate, Rotate);
-   MAP(glScissor, Scissor);
+   MAP(glScissor, record_state_call);
    MAP(glShadeModel, ShadeModel);
    MAP(glTranslate, Translate);
    MAP(glVertex, Vertex);
-   MAP(glViewport, Viewport);
+   MAP(glViewport, record_state_call);
 
    MAP(glXChooseVisual, record_required_call);
    MAP(glXCreateContext, record_required_call);
