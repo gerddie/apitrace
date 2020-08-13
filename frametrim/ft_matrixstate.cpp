@@ -23,7 +23,6 @@ void MatrixState::do_append_calls_to(std::vector<PCall>& list) const
 {
    if (m_parent)
       m_parent->append_calls_to(list);
-   write_calls_to(list);
 }
 
 }

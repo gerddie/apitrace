@@ -1,6 +1,9 @@
 #include "ft_state.h"
 #include "ft_matrixstate.hpp"
+#include "ft_programstate.hpp"
+
 #include "trace_writer.hpp"
+
 
 #include <unordered_set>
 #include <iostream>
@@ -31,9 +34,12 @@ struct StateImpl {
    void register_callbacks();
 
    /* OpenGL calls */
+   void AttachShader(PCall call);
    void Begin(PCall call);
    void BindProgram(PCall call);
    void CallList(PCall call);
+   void CreateShader(PCall call);
+   void CreateProgram(PCall call);
    void DeleteLists(PCall call);
    void Disable(PCall call);
    void Enable(PCall call);
@@ -50,6 +56,7 @@ struct StateImpl {
    void PushMatrix(PCall call);
    void Rotate(PCall call);
    void ShadeModel(PCall call);
+   void shader_call(PCall call);
    void Translate(PCall call);
    void Vertex(PCall call);
 
@@ -63,8 +70,11 @@ struct StateImpl {
    using CallTable = std::multimap<const char *, ft_callback, string_part_less>;
    CallTable m_call_table;
 
-   std::unordered_map<GLint, PObjectState> m_programs;
-   PObjectState m_active_program;
+   std::unordered_map<GLint, PShaderState> m_shaders;
+   PShaderState m_active_shader;
+
+   std::unordered_map<GLint, PProgramState> m_programs;
+   PProgramState m_active_program;
 
    std::unordered_map<GLenum, PCall > m_enables;
 
@@ -194,6 +204,18 @@ void StateImpl::call(PCall call)
       m_required_calls.push_back(call);
 }
 
+void StateImpl::AttachShader(PCall call)
+{
+   auto program = m_programs[call->arg(0).toUInt()];
+   assert(program);
+
+   auto shader = m_shaders[call->arg(1).toUInt()];
+   assert(shader);
+
+   program->attach_shader(shader);
+
+}
+
 void StateImpl::Begin(PCall call)
 {
    if (m_active_display_list)
@@ -219,6 +241,21 @@ void StateImpl::CallList(PCall call)
       assert(list != m_display_lists.end());
       list->second->append_calls_to(m_required_calls);
    }
+}
+
+void StateImpl::CreateShader(PCall call)
+{
+   GLint shader_id = call->ret->toUInt();
+   GLint stage = call->arg(0).toUInt();
+   m_active_shader = make_shared<ShaderState>(shader_id, stage);
+   m_shaders[shader_id] = m_active_shader;
+}
+
+void StateImpl::CreateProgram(PCall call)
+{
+   GLint shader_id = call->ret->toUInt();
+   m_active_program = make_shared<ProgramState>(shader_id);
+   m_programs[shader_id] = m_active_program;
 }
 
 void StateImpl::DeleteLists(PCall call)
@@ -356,6 +393,12 @@ void StateImpl::ShadeModel(PCall call)
       m_active_display_list->append_call(call);
 }
 
+void StateImpl::shader_call(PCall call)
+{
+   assert(m_active_shader);
+   m_active_shader->append_call(call);
+}
+
 void StateImpl::Translate(PCall call)
 {
    m_current_matrix->append_call(call);
@@ -399,10 +442,15 @@ void StateImpl::register_callbacks()
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&StateImpl:: call, this, _1)))
 
 
+   MAP(glAttachShader, AttachShader);
+   MAP(glAttachObject, AttachShader);
    MAP(glBegin, Begin);
    MAP(glBindProgram, BindProgram);
    MAP(glCallList, CallList);
    MAP(glClear, history_ignore);
+   MAP(glCreateShader, CreateShader);
+   MAP(glCreateProgram, CreateProgram);
+   MAP(glCompileShader, shader_call);
    MAP(glDeleteLists, DeleteLists);
    MAP(glDisable, Disable);
    MAP(glEnable, Enable);
@@ -421,6 +469,7 @@ void StateImpl::register_callbacks()
    MAP(glRotate, Rotate);
    MAP(glScissor, record_state_call);
    MAP(glShadeModel, ShadeModel);
+   MAP(glShaderSource, shader_call);
    MAP(glTranslate, Translate);
    MAP(glVertex, Vertex);
    MAP(glViewport, record_state_call);

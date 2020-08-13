@@ -18,6 +18,7 @@ add_executable(glxtrim
    ft_main.cpp
    ft_matrixstate.cpp
    ft_objectstate.cpp
+   ft_programstate.cpp
    ft_state.cpp
    )
 
