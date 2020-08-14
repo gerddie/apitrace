@@ -10,6 +10,7 @@
 #include <algorithm>
 #include <cstring>
 #include <stack>
+#include <set>
 
 namespace frametrim {
 
@@ -36,6 +37,9 @@ struct StateImpl {
    /* OpenGL calls */
    void AttachShader(PCall call);
    void Begin(PCall call);
+   void BindAttribLocation(PCall call);
+   void BindBuffer(PCall call);
+   void BufferData(PCall call);
    void BindProgram(PCall call);
    void CallList(PCall call);
    void CreateShader(PCall call);
@@ -61,8 +65,11 @@ struct StateImpl {
    void Translate(PCall call);
    void UseProgram(PCall call);
    void Vertex(PCall call);
+   void VertexAttribPointer(PCall call);
 
    void history_ignore(PCall call);
+   void todo(PCall call);
+
 
    void record_enable(PCall call);
    void record_va_enables(PCall call);
@@ -76,8 +83,6 @@ struct StateImpl {
    CallTable m_call_table;
 
    std::unordered_map<GLint, PShaderState> m_shaders;
-   PShaderState m_active_shader;
-
    std::unordered_map<GLint, PProgramState> m_programs;
    PProgramState m_active_program;
 
@@ -89,9 +94,10 @@ struct StateImpl {
    PObjectState m_active_display_list;
 
    std::unordered_map<GLint, PObjectState> m_buffers;
-   PObjectState m_bound_buffer;
+   std::unordered_map<GLint, PObjectState> m_bound_buffers;
 
    std::unordered_map<GLint, PObjectState> m_vertex_arrays;
+   std::unordered_map<GLint, PCall> m_vertex_attr_pointer;
 
    std::unordered_map<uint64_t, PCall> m_last_lights;
 
@@ -99,7 +105,7 @@ struct StateImpl {
 
    bool m_in_target_frame;
 
-   std::vector<PCall > m_required_calls;
+   CallSet m_required_calls;
 
    std::stack<PMatrixState> m_mv_matrix;
    std::stack<PMatrixState> m_proj_matrix;
@@ -108,9 +114,6 @@ struct StateImpl {
 
    PMatrixState m_current_matrix;
    std::stack<PMatrixState> *m_current_matrix_stack;
-
-
-
 };
 
 
@@ -167,6 +170,25 @@ void StateImpl::start_target_farme()
 
    if (!m_color_matrix.empty())
       m_color_matrix.top()->append_calls_to(m_required_calls);
+
+   /* Set vertex attribute array pointers only if they are enabled */
+   for(auto& va : m_vertex_attr_pointer) {
+      auto vae = m_va_enables.find(va.first);
+      if (vae != m_va_enables.end() &&
+          !strcmp(vae->second->name(), "glEnableVertexAttribArray")) {
+         m_required_calls.insert(va.second);
+         m_required_calls.insert(vae->second);
+      }
+   }
+
+   for (auto& va: m_vertex_arrays)
+      va.second->append_calls_to(m_required_calls);
+
+   for (auto& buf: m_bound_buffers)
+      buf.second->append_calls_to(m_required_calls);
+
+   if (m_active_program)
+      m_active_program->append_calls_to(m_required_calls);
 }
 
 StateImpl::StateImpl():
@@ -198,7 +220,7 @@ void StateImpl::call(PCall call)
 
       unsigned max_equal = equal_chars(cb->first, call->name());
 
-      while (i != cb_range.second) {
+      while (i != cb_range.second && i != m_call_table.end()) {
          auto n = equal_chars(i->first, call->name());
          if (n > max_equal) {
             max_equal = n;
@@ -215,7 +237,7 @@ void StateImpl::call(PCall call)
    }
 
    if (m_in_target_frame)
-      m_required_calls.push_back(call);
+      m_required_calls.insert(call);
 }
 
 void StateImpl::AttachShader(PCall call)
@@ -226,14 +248,44 @@ void StateImpl::AttachShader(PCall call)
    auto shader = m_shaders[call->arg(1).toUInt()];
    assert(shader);
 
-   program->attach_shader(shader);
+   std::cerr << "Attach shader " << call->arg(1).toUInt()
+             << " to program " << call->arg(0).toUInt() << "\n";
 
+   program->attach_shader(shader);
+   program->append_call(call);
 }
 
 void StateImpl::Begin(PCall call)
 {
    if (m_active_display_list)
       m_active_display_list->append_call(call);
+}
+
+void StateImpl::BindAttribLocation(PCall call)
+{
+   GLint program_id = call->arg(0).toSInt();
+   auto prog = m_programs.find(program_id);
+   assert(prog != m_programs.end());
+   prog->second->append_call(call);
+}
+
+void StateImpl::BindBuffer(PCall call)
+{
+   unsigned target = call->arg(0).toUInt();
+   unsigned id = call->arg(1).toUInt();
+
+   if (id) {
+      auto buf = m_buffers[id];
+      m_bound_buffers[target] = buf;
+      buf->append_call(call);
+   } else
+      m_bound_buffers.erase(target);
+}
+
+void StateImpl::BufferData(PCall call)
+{
+   unsigned target = call->arg(0).toUInt();
+   m_bound_buffers[target]->append_call(call);
 }
 
 void StateImpl::BindProgram(PCall call)
@@ -244,6 +296,7 @@ void StateImpl::BindProgram(PCall call)
       auto prog = m_programs.find(program_id);
       assert(prog != m_programs.end());
       m_active_program = prog->second;
+      m_active_program->append_call(call);
    } else
       m_active_program = nullptr;
 }
@@ -261,15 +314,19 @@ void StateImpl::CreateShader(PCall call)
 {
    GLint shader_id = call->ret->toUInt();
    GLint stage = call->arg(0).toUInt();
-   m_active_shader = make_shared<ShaderState>(shader_id, stage);
-   m_shaders[shader_id] = m_active_shader;
+   auto shader = make_shared<ShaderState>(shader_id, stage);
+   m_shaders[shader_id] = shader;
+   shader->append_call(call);
 }
 
 void StateImpl::CreateProgram(PCall call)
 {
    GLint shader_id = call->ret->toUInt();
+   std::cerr << "Create program with id = " <<  shader_id << "\n";
+
    m_active_program = make_shared<ProgramState>(shader_id);
    m_programs[shader_id] = m_active_program;
+   m_active_program->append_call(call);
 }
 
 void StateImpl::DeleteLists(PCall call)
@@ -310,7 +367,7 @@ void StateImpl::EndList(PCall call)
 
 void StateImpl::GenBuffers(PCall call)
 {
-   const auto ids = std::unique_ptr<trace::Array>((call->arg(1)).toArray());
+   const auto ids = (call->arg(1)).toArray();
    for (auto& v : ids->values) {
       auto obj = PObjectState(new ObjectState(v->toUInt()));
       obj->append_call(call);
@@ -331,7 +388,7 @@ void StateImpl::GenLists(PCall call)
 
 void StateImpl::GenVertexArrays(PCall call)
 {
-   const auto ids = std::unique_ptr<trace::Array>((call->arg(1)).toArray());
+   const auto ids = (call->arg(1)).toArray();
    for (auto& v : ids->values) {
       auto obj = PObjectState(new ObjectState(v->toUInt()));
       obj->append_call(call);
@@ -434,8 +491,8 @@ void StateImpl::ShadeModel(PCall call)
 
 void StateImpl::shader_call(PCall call)
 {
-   assert(m_active_shader);
-   m_active_shader->append_call(call);
+   auto shader = m_shaders[call->arg(0).toUInt()];
+   shader->append_call(call);
 }
 
 void StateImpl::Translate(PCall call)
@@ -446,9 +503,19 @@ void StateImpl::Translate(PCall call)
 void StateImpl::UseProgram(PCall call)
 {
    unsigned progid = call->arg(0).toUInt();
-   m_active_program = progid > 0 ? m_programs[progid] : nullptr;
+   bool new_program = false;
+   if (!m_active_program ||
+       m_active_program->id() != progid) {
 
-   if (m_active_program) {
+      std::cerr << "Old program " << m_active_program->id() << " New program " << progid << " and active\n";
+
+      m_active_program = progid > 0 ? m_programs[progid] : nullptr;
+      new_program = true;
+   }
+
+   if (new_program && m_active_program) {
+
+
       m_active_program->append_call(call);
 
       if (m_in_target_frame) {
@@ -463,6 +530,11 @@ void StateImpl::Vertex(PCall call)
       m_active_display_list->append_call(call);
 }
 
+void StateImpl::VertexAttribPointer(PCall call)
+{
+   m_vertex_attr_pointer[call->arg(0).toUInt()] = call;
+}
+
 void StateImpl::record_state_call(PCall call)
 {
    m_state_calls[call->name()] = call;
@@ -471,7 +543,7 @@ void StateImpl::record_state_call(PCall call)
 void StateImpl::record_required_call(PCall call)
 {
    if (call)
-      m_required_calls.push_back(call);
+      m_required_calls.insert(call);
 }
 
 void StateImpl::history_ignore(PCall call)
@@ -479,38 +551,42 @@ void StateImpl::history_ignore(PCall call)
    (void)call;
 }
 
+void StateImpl::todo(PCall call)
+{
+   std::cerr << "TODO:" << call->name() << "\n";
+}
+
 void StateImpl::write(trace::Writer& writer)
 {
-   std::sort(m_required_calls.begin(), m_required_calls.end(),
-             [](PCall rhs, PCall lhs) {
-      return rhs->no < lhs->no;
-   });
+   std::vector<PCall> sorted_calls(m_required_calls.begin(),
+                                   m_required_calls.end());
 
-   for(auto& call: m_required_calls)
-      writer.writeCall(call.get());
+   std::sort(sorted_calls.begin(), sorted_calls.end(),
+             [](PCall lhs, PCall rhs) {return lhs->no < rhs->no;});
+
+   for(auto& call: sorted_calls) {
+      if (call) {
+         std::cerr << "Write call " << call->no << "\n";
+         writer.writeCall(call.get());
+      }
+      else
+         std::cerr << "NULL call in callset\n";
+   }
 }
 
 void StateImpl::register_callbacks()
 {
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&StateImpl:: call, this, _1)))
 
-
-
-
-
-
-
-
-
    MAP(glAttachShader, AttachShader);
    MAP(glAttachObject, AttachShader);
    MAP(glBegin, Begin);
-   MAP(glBindAttribLocation, history_ignore);
-   MAP(glBindBuffer, history_ignore);
-   MAP(glBindVertexArray, history_ignore);
+   MAP(glBindAttribLocation, BindAttribLocation);
+   MAP(glBindBuffer, BindBuffer);
+   MAP(glBindVertexArray, record_state_call);
 
    MAP(glBindProgram, BindProgram);
-   MAP(glBufferData, BindProgram);
+   MAP(glBufferData, BufferData);
 
    MAP(glCallList, CallList);
    MAP(glClear, history_ignore);
@@ -542,7 +618,7 @@ void StateImpl::register_callbacks()
    MAP(glLight, Light);
    MAP(glLinkProgram, LinkProgram);
    MAP(glUseProgram, UseProgram);
-   MAP(glVertexAttribPointer, history_ignore);
+   MAP(glVertexAttribPointer, VertexAttribPointer);
    MAP(glLoadIdentity, LoadIdentity);
    MAP(glMaterial, Material);
    MAP(glMatrixMode, MatrixMode);
@@ -569,10 +645,10 @@ void StateImpl::register_callbacks()
 
 
 #undef MAP
-
+/*
    for(auto& x: m_call_table) {
       std::cerr << "Mapped " << x.first << "\n";
-   }
+   }*/
 
 }
 

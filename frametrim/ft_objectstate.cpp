@@ -8,10 +8,15 @@ ObjectState::ObjectState(GLint glID):
 {
 }
 
-void ObjectState::append_calls_to(std::vector<PCall>& list) const
+unsigned ObjectState::id() const
+{
+   return m_glID;
+}
+
+void ObjectState::append_calls_to(CallSet& list) const
 {
    do_append_calls_to(list);
-   list.insert(list.end(), m_calls.begin(), m_calls.end());
+   list.insert(m_calls.begin(), m_calls.end());
 }
 
 void ObjectState::append_call(PCall call)
@@ -39,8 +44,9 @@ bool ObjectState::active() const
    return m_active;
 }
 
-void ObjectState::do_append_calls_to(std::vector<PCall>& list) const
+void ObjectState::do_append_calls_to(CallSet &list) const
 {
+   (void)list;
 }
 
 uint64_t ObjectState::g_next_object_id = 0;

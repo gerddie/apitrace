@@ -28,7 +28,7 @@ public:
 
 private:
 
-   void write_calls_to(std::vector<PCall>& list) const;
+   void do_append_calls_to(CallSet& list) const override;
 
    std::unordered_map<unsigned, PShaderState> m_shaders;
 

@@ -15,7 +15,7 @@ public:
 
 private:
 
-   void do_append_calls_to(std::vector<PCall>& list) const override;
+   void do_append_calls_to(CallSet& list) const override;
 
    Pointer m_parent;
 };

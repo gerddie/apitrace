@@ -6,10 +6,20 @@
 #include <GL/gl.h>
 #include <vector>
 #include <memory>
+#include <set>
 
 namespace frametrim {
 
 using PCall=std::shared_ptr<trace::Call>;
+
+struct pcall_less {
+   bool operator () (PCall lhs, PCall rhs)
+   {
+      return lhs->no < rhs->no;
+   }
+};
+
+using CallSet = std::set<PCall>;
 
 class ObjectState
 {
@@ -20,14 +30,16 @@ public:
    void set_required();
    void set_active(bool active);
 
-   void append_calls_to(std::vector<PCall>& list) const;
+   void append_calls_to(CallSet& list) const;
 
    bool required() const;
    bool active() const;
 
+   unsigned id() const;
+
 private:
 
-   virtual void do_append_calls_to(std::vector<PCall>& list) const;
+   virtual void do_append_calls_to(CallSet& list) const;
 
    GLint m_glID;
 

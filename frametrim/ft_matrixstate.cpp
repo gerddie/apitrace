@@ -19,7 +19,7 @@ void MatrixState::identity(PCall call)
    append_call(call);
 }
 
-void MatrixState::do_append_calls_to(std::vector<PCall>& list) const
+void MatrixState::do_append_calls_to(CallSet& list) const
 {
    if (m_parent)
       m_parent->append_calls_to(list);
