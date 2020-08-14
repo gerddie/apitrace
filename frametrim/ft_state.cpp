@@ -248,9 +248,6 @@ void StateImpl::AttachShader(PCall call)
    auto shader = m_shaders[call->arg(1).toUInt()];
    assert(shader);
 
-   std::cerr << "Attach shader " << call->arg(1).toUInt()
-             << " to program " << call->arg(0).toUInt() << "\n";
-
    program->attach_shader(shader);
    program->append_call(call);
 }
@@ -325,8 +322,6 @@ void StateImpl::CreateShader(PCall call)
 void StateImpl::CreateProgram(PCall call)
 {
    GLint shader_id = call->ret->toUInt();
-   std::cerr << "Create program with id = " <<  shader_id << "\n";
-
    m_active_program = make_shared<ProgramState>(shader_id);
    m_programs[shader_id] = m_active_program;
    m_active_program->append_call(call);
@@ -509,9 +504,6 @@ void StateImpl::UseProgram(PCall call)
    bool new_program = false;
    if (!m_active_program ||
        m_active_program->id() != progid) {
-
-      std::cerr << "Old program " << m_active_program->id() << " New program " << progid << " and active\n";
-
       m_active_program = progid > 0 ? m_programs[progid] : nullptr;
       new_program = true;
    }
@@ -569,7 +561,6 @@ void StateImpl::write(trace::Writer& writer)
 
    for(auto& call: sorted_calls) {
       if (call) {
-         std::cerr << "Write call " << call->no << "\n";
          writer.writeCall(call.get());
       }
       else
@@ -637,6 +628,7 @@ void StateImpl::register_callbacks()
    MAP(glVertex, Vertex);
    MAP(glViewport, record_state_call);
 
+   MAP(glXGetFBConfigAttrib, history_ignore);
    MAP(glXChooseVisual, record_required_call);
    MAP(glXCreateContext, record_required_call);
    MAP(glXDestroyContext, record_required_call);
