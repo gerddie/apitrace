@@ -276,8 +276,11 @@ void StateImpl::BindBuffer(PCall call)
 
    if (id) {
       auto buf = m_buffers[id];
-      m_bound_buffers[target] = buf;
-      buf->append_call(call);
+      if (!m_bound_buffers[target] ||
+          m_bound_buffers[target]->id() != id) {
+         m_bound_buffers[target] = buf;
+         buf->append_call(call);
+      }
    } else
       m_bound_buffers.erase(target);
 }
