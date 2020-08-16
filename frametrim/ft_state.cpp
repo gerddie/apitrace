@@ -11,6 +11,9 @@
 #include <cstring>
 #include <stack>
 #include <set>
+#include <sstream>
+
+#include <GL/glext.h>
 
 namespace frametrim {
 
@@ -39,6 +42,7 @@ struct StateImpl {
    void Begin(PCall call);
    void BindAttribLocation(PCall call);
    void BindBuffer(PCall call);
+   void BindTexture(PCall call);
    void BufferData(PCall call);
    void BindProgram(PCall call);
    void CallList(PCall call);
@@ -49,9 +53,10 @@ struct StateImpl {
    void EndList(PCall call);
    void GenBuffers(PCall call);
    void GenLists(PCall call);
+   void GenTextures(PCall call);
    void GenVertexArrays(PCall call);
    void Light(PCall call);
-   void LinkProgram(PCall call);
+   void program_call(PCall call);
    void LoadIdentity(PCall call);
    void Material(PCall call);
    void MatrixMode(PCall call);
@@ -63,6 +68,7 @@ struct StateImpl {
    void ShadeModel(PCall call);
    void shader_call(PCall call);
    void Translate(PCall call);
+   void Uniform(PCall call);
    void UseProgram(PCall call);
    void Vertex(PCall call);
    void VertexAttribPointer(PCall call);
@@ -75,9 +81,11 @@ struct StateImpl {
    void record_va_enables(PCall call);
 
    void record_state_call(PCall call);
+   void record_state_call_ex(PCall call);
    void record_required_call(PCall call);
    void write(trace::Writer& writer);
    void start_target_farme();
+   void texture_call(PCall call);
 
    using CallTable = std::multimap<const char *, ft_callback, string_part_less>;
    CallTable m_call_table;
@@ -95,6 +103,10 @@ struct StateImpl {
 
    std::unordered_map<GLint, PObjectState> m_buffers;
    std::unordered_map<GLint, PObjectState> m_bound_buffers;
+
+   // TODO: multitexture support
+   std::unordered_map<GLint, PObjectState> m_textures;
+   std::unordered_map<GLint, PObjectState> m_bound_texture;
 
    std::unordered_map<GLint, PObjectState> m_vertex_arrays;
    std::unordered_map<GLint, PCall> m_vertex_attr_pointer;
@@ -187,6 +199,9 @@ void StateImpl::start_target_farme()
    for (auto& buf: m_bound_buffers)
       buf.second->append_calls_to(m_required_calls);
 
+   for (auto& tex: m_bound_texture)
+      tex.second->append_calls_to(m_required_calls);
+
    if (m_active_program)
       m_active_program->append_calls_to(m_required_calls);
 }
@@ -212,8 +227,9 @@ unsigned equal_chars(const char *l, const char *r)
 void StateImpl::call(PCall call)
 {
    auto cb_range = m_call_table.equal_range(call->name());
+   if (cb_range.first != m_call_table.end() &&
+       std::distance(cb_range.first, cb_range.second) > 0) {
 
-   if (cb_range.first != m_call_table.end()) {
       CallTable::const_iterator cb = cb_range.first;
       CallTable::const_iterator i = cb_range.first;
       ++i;
@@ -272,14 +288,29 @@ void StateImpl::BindBuffer(PCall call)
    unsigned id = call->arg(1).toUInt();
 
    if (id) {
-      auto buf = m_buffers[id];
       if (!m_bound_buffers[target] ||
           m_bound_buffers[target]->id() != id) {
-         m_bound_buffers[target] = buf;
-         buf->append_call(call);
+         m_bound_buffers[target] = m_buffers[id];
+         m_bound_buffers[target] ->append_call(call);
       }
    } else
       m_bound_buffers.erase(target);
+}
+
+void StateImpl::BindTexture(PCall call)
+{
+   unsigned target = call->arg(0).toUInt();
+   unsigned id = call->arg(1).toUInt();
+
+   if (id) {
+      auto buf = m_textures[id];
+      if (!m_bound_texture[target] ||
+          m_bound_texture[target]->id() != id) {
+         m_bound_texture[target] = buf;
+         buf->append_call(call);
+      }
+   } else
+      m_bound_texture.erase(target);
 }
 
 void StateImpl::BufferData(PCall call)
@@ -322,9 +353,9 @@ void StateImpl::CreateShader(PCall call)
 void StateImpl::CreateProgram(PCall call)
 {
    GLint shader_id = call->ret->toUInt();
-   m_active_program = make_shared<ProgramState>(shader_id);
-   m_programs[shader_id] = m_active_program;
-   m_active_program->append_call(call);
+   auto program = make_shared<ProgramState>(shader_id);
+   m_programs[shader_id] = program;
+   program->append_call(call);
 }
 
 void StateImpl::DeleteLists(PCall call)
@@ -373,6 +404,16 @@ void StateImpl::GenBuffers(PCall call)
    }
 }
 
+void StateImpl::GenTextures(PCall call)
+{
+   const auto ids = (call->arg(1)).toArray();
+   for (auto& v : ids->values) {
+      auto obj = PObjectState(new ObjectState(v->toUInt()));
+      obj->append_call(call);
+      m_textures[v->toUInt()] = obj;
+   }
+}
+
 void StateImpl::GenLists(PCall call)
 {
    unsigned nlists = call->arg(0).toUInt();
@@ -400,9 +441,10 @@ void StateImpl::Light(PCall call)
    m_last_lights[light_id] = call;
 }
 
-void StateImpl::LinkProgram(PCall call)
+void StateImpl::program_call(PCall call)
 {
    unsigned progid = call->arg(0).toUInt();
+   assert(m_programs[progid]);
    m_programs[progid]->append_call(call);
 }
 
@@ -493,6 +535,13 @@ void StateImpl::shader_call(PCall call)
    shader->append_call(call);
 }
 
+void StateImpl::texture_call(PCall call)
+{
+   auto texture = m_bound_texture[call->arg(0).toUInt()];
+   assert(texture);
+   texture->append_call(call);
+}
+
 void StateImpl::Translate(PCall call)
 {
    m_current_matrix->append_call(call);
@@ -502,6 +551,7 @@ void StateImpl::UseProgram(PCall call)
 {
    unsigned progid = call->arg(0).toUInt();
    bool new_program = false;
+
    if (!m_active_program ||
        m_active_program->id() != progid) {
       m_active_program = progid > 0 ? m_programs[progid] : nullptr;
@@ -509,8 +559,6 @@ void StateImpl::UseProgram(PCall call)
    }
 
    if (new_program && m_active_program) {
-
-
       m_active_program->append_call(call);
 
       if (m_in_target_frame) {
@@ -518,6 +566,12 @@ void StateImpl::UseProgram(PCall call)
       }
    }
 }
+
+ void StateImpl::Uniform(PCall call)
+ {
+    assert(m_active_program);
+    m_active_program->append_call(call);
+ }
 
 void StateImpl::Vertex(PCall call)
 {
@@ -527,12 +581,24 @@ void StateImpl::Vertex(PCall call)
 
 void StateImpl::VertexAttribPointer(PCall call)
 {
+   m_active_program->append_call(call);
    m_vertex_attr_pointer[call->arg(0).toUInt()] = call;
+
+   auto buf = m_bound_buffers[GL_ARRAY_BUFFER];
+   if (buf)
+      buf->append_calls_to(m_active_program->calls());
 }
 
 void StateImpl::record_state_call(PCall call)
 {
    m_state_calls[call->name()] = call;
+}
+
+void StateImpl::record_state_call_ex(PCall call)
+{
+   std::stringstream s;
+   s << call->name() << call->arg(0).toUInt();
+   m_state_calls[s.str()] = call;
 }
 
 void StateImpl::record_required_call(PCall call)
@@ -572,11 +638,14 @@ void StateImpl::register_callbacks()
 {
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&StateImpl:: call, this, _1)))
 
+   MAP(glActiveTexture, history_ignore);
+
    MAP(glAttachShader, AttachShader);
    MAP(glAttachObject, AttachShader);
    MAP(glBegin, Begin);
    MAP(glBindAttribLocation, BindAttribLocation);
    MAP(glBindBuffer, BindBuffer);
+   MAP(glBindTexture, BindTexture);
    MAP(glBindVertexArray, record_state_call);
 
    MAP(glBindProgram, BindProgram);
@@ -595,6 +664,10 @@ void StateImpl::register_callbacks()
    MAP(glDeleteShader, history_ignore);
    MAP(glDeleteVertexArrays, history_ignore);
 
+   MAP(glCompressedTexImage2D, texture_call);
+
+   MAP(glDepthFunc, record_state_call);
+
    MAP(glDetachShader, history_ignore);
    MAP(glDisableVertexAttribArray, record_va_enables);
    MAP(glDrawArrays, history_ignore);
@@ -606,11 +679,19 @@ void StateImpl::register_callbacks()
    MAP(glEndList, EndList);
    MAP(glFrustum, record_state_call);
    MAP(glGenBuffers, GenBuffers);
+   MAP(glGenTexture, GenTextures);
 
    MAP(glGenLists, GenLists);
    MAP(glGenVertexArrays, GenVertexArrays);
+   MAP(glGetUniformLocation, program_call);
+
+   MAP(glGetInteger, history_ignore);
+   MAP(glGetProgram, history_ignore);
+   MAP(glGetShader, history_ignore);
+   MAP(glGetString, history_ignore);
+
    MAP(glLight, Light);
-   MAP(glLinkProgram, LinkProgram);
+   MAP(glLinkProgram, program_call);
    MAP(glUseProgram, UseProgram);
    MAP(glVertexAttribPointer, VertexAttribPointer);
    MAP(glLoadIdentity, LoadIdentity);
@@ -618,6 +699,7 @@ void StateImpl::register_callbacks()
    MAP(glMatrixMode, MatrixMode);
    MAP(glNewList, NewList);
    MAP(glNormal, Normal);
+   MAP(glPixelStorei, record_state_call_ex);
    MAP(glPopMatrix, PopMatrix);
    MAP(glPushMatrix, PushMatrix);
    MAP(glRotate, Rotate);
@@ -625,6 +707,7 @@ void StateImpl::register_callbacks()
    MAP(glShadeModel, ShadeModel);
    MAP(glShaderSource, shader_call);
    MAP(glTranslate, Translate);
+   MAP(glUniform, Uniform);
    MAP(glVertex, Vertex);
    MAP(glViewport, record_state_call);
 
@@ -637,7 +720,11 @@ void StateImpl::register_callbacks()
    MAP(glXMakeCurrent, record_required_call);
    MAP(glXSwapBuffers, history_ignore);
    MAP(glXGetProcAddress, record_required_call);
-
+   MAP(glXQueryVersion, history_ignore);
+   MAP(glXGetClientString, history_ignore);
+   MAP(glXGetFBConfigs, history_ignore);
+   MAP(glXGetVisualFromFBConfig, history_ignore);
+   MAP(glXGetCurrentDisplay, history_ignore);
 
 #undef MAP
 /*

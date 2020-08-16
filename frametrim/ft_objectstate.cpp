@@ -21,7 +21,7 @@ void ObjectState::append_calls_to(CallSet& list) const
 
 void ObjectState::append_call(PCall call)
 {
-   m_calls.push_back(call);
+   m_calls.insert(call);
 }
 
 void ObjectState::set_required()
@@ -42,6 +42,11 @@ bool ObjectState::required() const
 bool ObjectState::active() const
 {
    return m_active;
+}
+
+CallSet& ObjectState::calls()
+{
+   return m_calls;
 }
 
 void ObjectState::do_append_calls_to(CallSet &list) const

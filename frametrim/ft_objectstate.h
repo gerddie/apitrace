@@ -37,6 +37,8 @@ public:
 
    unsigned id() const;
 
+   CallSet& calls();
+
 private:
 
    virtual void do_append_calls_to(CallSet& list) const;
@@ -46,7 +48,7 @@ private:
    uint64_t m_goid;
 
    /* Call chain that leads to the current state of this object */
-   std::vector<PCall> m_calls;
+   CallSet m_calls;
    bool m_required;
    bool m_active;
 
