@@ -1,4 +1,5 @@
 #include "ft_state.h"
+#include "ft_bufferstate.hpp"
 #include "ft_matrixstate.hpp"
 #include "ft_programstate.hpp"
 
@@ -101,8 +102,8 @@ struct StateImpl {
    std::unordered_map<GLint, PObjectState> m_display_lists;
    PObjectState m_active_display_list;
 
-   std::unordered_map<GLint, PObjectState> m_buffers;
-   std::unordered_map<GLint, PObjectState> m_bound_buffers;
+   std::unordered_map<GLint, PBufferState> m_buffers;
+   std::unordered_map<GLint, PBufferState> m_bound_buffers;
 
    // TODO: multitexture support
    std::unordered_map<GLint, PObjectState> m_textures;
@@ -165,8 +166,10 @@ void StateImpl::start_target_farme()
    for(auto& a : m_state_calls)
       record_required_call(a.second);
 
-   for(auto& cap: m_enables)
+   for(auto& cap: m_enables) {
+      std::cerr <<  cap.second->name() << " " << cap.second->arg(0).toUInt() << "\n";
       record_required_call(cap.second);
+   }
 
    for (auto& l: m_last_lights)
       record_required_call(l.second);
@@ -221,6 +224,9 @@ unsigned equal_chars(const char *l, const char *r)
       ++retval;
       ++l; ++r;
    }
+   if (!*l && !*r)
+      ++retval;
+
    return retval;
 }
 
@@ -244,6 +250,8 @@ void StateImpl::call(PCall call)
          }
          ++i;
       }
+
+      std::cerr << "Handle " << call->name() << " as " << cb->first << "\n";
 
       cb->second(call);
    } else {
@@ -291,7 +299,7 @@ void StateImpl::BindBuffer(PCall call)
       if (!m_bound_buffers[target] ||
           m_bound_buffers[target]->id() != id) {
          m_bound_buffers[target] = m_buffers[id];
-         m_bound_buffers[target] ->append_call(call);
+         m_bound_buffers[target] ->bind(call);
       }
    } else
       m_bound_buffers.erase(target);
@@ -316,7 +324,7 @@ void StateImpl::BindTexture(PCall call)
 void StateImpl::BufferData(PCall call)
 {
    unsigned target = call->arg(0).toUInt();
-   m_bound_buffers[target]->append_call(call);
+   m_bound_buffers[target]->data(call);
 }
 
 void StateImpl::BindProgram(PCall call)
@@ -398,8 +406,7 @@ void StateImpl::GenBuffers(PCall call)
 {
    const auto ids = (call->arg(1)).toArray();
    for (auto& v : ids->values) {
-      auto obj = PObjectState(new ObjectState(v->toUInt()));
-      obj->append_call(call);
+      auto obj = make_shared<BufferState>(v->toUInt(), call);
       m_buffers[v->toUInt()] = obj;
    }
 }
@@ -570,7 +577,7 @@ void StateImpl::UseProgram(PCall call)
  void StateImpl::Uniform(PCall call)
  {
     assert(m_active_program);
-    m_active_program->append_call(call);
+    m_active_program->set_uniform(call);
  }
 
 void StateImpl::Vertex(PCall call)
@@ -581,12 +588,12 @@ void StateImpl::Vertex(PCall call)
 
 void StateImpl::VertexAttribPointer(PCall call)
 {
-   m_active_program->append_call(call);
-   m_vertex_attr_pointer[call->arg(0).toUInt()] = call;
-
    auto buf = m_bound_buffers[GL_ARRAY_BUFFER];
-   if (buf)
-      buf->append_calls_to(m_active_program->calls());
+   if (buf) {
+      buf->use(call);
+      m_active_program->set_va(call->arg(0).toUInt(), buf);
+   } else
+      std::cerr << "Calling VertexAttribPointer without bound ARRAY_BUFFER, ignored\n";
 }
 
 void StateImpl::record_state_call(PCall call)

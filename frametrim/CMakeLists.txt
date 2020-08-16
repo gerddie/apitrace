@@ -15,6 +15,7 @@ include_directories (
 cmake_policy(SET CMP0079 NEW)
 
 add_executable(glxtrim
+   ft_bufferstate.cpp
    ft_main.cpp
    ft_matrixstate.cpp
    ft_objectstate.cpp

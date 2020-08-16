@@ -26,6 +26,10 @@ class ObjectState
 public:
    ObjectState(GLint glID);
 
+   void set_gen_call(PCall call);
+   void append_gen_call(PCall call);
+   void set_call(PCall call);
+
    void append_call(PCall call);
    void set_required();
    void set_active(bool active);
@@ -46,6 +50,8 @@ private:
    GLint m_glID;
 
    uint64_t m_goid;
+
+   CallSet m_gen_calls;
 
    /* Call chain that leads to the current state of this object */
    CallSet m_calls;

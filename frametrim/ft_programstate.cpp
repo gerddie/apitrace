@@ -26,12 +26,28 @@ ProgramState::ProgramState(unsigned id):
 void ProgramState::attach_shader(PShaderState shader)
 {
    m_shaders[shader->stage()] = shader;
-} 
+}
+
+void ProgramState::set_uniform(PCall call)
+{
+   m_uniforms[call->arg(0).toUInt()] = call;
+}
+
+void ProgramState::set_va(unsigned id, PObjectState va)
+{
+   m_va[id] = va;
+}
 
 void ProgramState::do_append_calls_to(CallSet& list) const
 {
    for(auto& s : m_shaders)
       s.second->append_calls_to(list);
+
+   for (auto& s: m_uniforms)
+      list.insert(s.second);
+
+   for (auto& va: m_va)
+      va.second->append_calls_to(list);
 }
 
 }
