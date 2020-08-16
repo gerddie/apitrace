@@ -50,6 +50,7 @@ struct StateImpl {
    void CreateShader(PCall call);
    void CreateProgram(PCall call);
    void DeleteLists(PCall call);
+   void DrawElements(PCall call);
    void End(PCall call);
    void EndList(PCall call);
    void GenBuffers(PCall call);
@@ -166,10 +167,8 @@ void StateImpl::start_target_farme()
    for(auto& a : m_state_calls)
       record_required_call(a.second);
 
-   for(auto& cap: m_enables) {
-      std::cerr <<  cap.second->name() << " " << cap.second->arg(0).toUInt() << "\n";
+   for(auto& cap: m_enables)
       record_required_call(cap.second);
-   }
 
    for (auto& l: m_last_lights)
       record_required_call(l.second);
@@ -250,9 +249,6 @@ void StateImpl::call(PCall call)
          }
          ++i;
       }
-
-      std::cerr << "Handle " << call->name() << " as " << cb->first << "\n";
-
       cb->second(call);
    } else {
       /* This should be some debug output only, because we might
@@ -301,8 +297,9 @@ void StateImpl::BindBuffer(PCall call)
          m_bound_buffers[target] = m_buffers[id];
          m_bound_buffers[target] ->bind(call);
       }
-   } else
+   } else {
       m_bound_buffers.erase(target);
+   }
 }
 
 void StateImpl::BindTexture(PCall call)
@@ -374,6 +371,16 @@ void StateImpl::DeleteLists(PCall call)
       auto list  = m_display_lists.find(call->arg(0).toUInt());
       assert(list != m_display_lists.end());
       m_display_lists.erase(list);
+   }
+}
+
+void StateImpl::DrawElements(PCall call)
+{
+   auto buf = m_bound_buffers[GL_ELEMENT_ARRAY_BUFFER];
+   if (buf) {
+      buf->use(call);
+      if (m_in_target_frame)
+         buf->append_calls_to(m_required_calls);
    }
 }
 
@@ -656,6 +663,8 @@ void StateImpl::register_callbacks()
    MAP(glBindVertexArray, record_state_call);
 
    MAP(glBindProgram, BindProgram);
+   MAP(glBlendFunc, record_state_call);
+
    MAP(glBufferData, BufferData);
 
    MAP(glCallList, CallList);
@@ -679,6 +688,8 @@ void StateImpl::register_callbacks()
    MAP(glDisableVertexAttribArray, record_va_enables);
    MAP(glDrawArrays, history_ignore);
    MAP(glEnableVertexAttribArray, record_va_enables);
+
+   MAP(glDrawElements, DrawElements);
 
    MAP(glDisable, record_enable);
    MAP(glEnable, record_enable);
