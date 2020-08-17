@@ -327,6 +327,10 @@ void StateImpl::BindTexture(PCall call)
           m_bound_texture[target_unit]->id() != id) {
          m_bound_texture[target_unit] = tex;
          tex->bind_unit(call, m_active_texture_unit_call);
+
+         if (m_in_target_frame) {
+            tex->append_calls_to(m_required_calls);
+         }
       }
    } else
       m_bound_texture.erase(target_unit);
@@ -587,12 +591,14 @@ void StateImpl::UseProgram(PCall call)
       new_program = true;
    }
 
-   if (new_program && m_active_program) {
-      m_active_program->append_call(call);
+   if (m_active_program && new_program)
+         m_active_program->bind(call);
 
-      if (m_in_target_frame) {
+   if (m_in_target_frame) {
+      if (m_active_program)
          m_active_program->append_calls_to(m_required_calls);
-      }
+      else
+         m_required_calls.insert(call);
    }
 }
 

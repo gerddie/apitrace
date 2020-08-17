@@ -38,8 +38,19 @@ void ProgramState::set_va(unsigned id, PObjectState va)
    m_va[id] = va;
 }
 
+void ProgramState::bind(PCall call)
+{
+   m_last_bind = call;
+   std::cerr << "Set Program bind call\n";
+
+}
+
+
 void ProgramState::do_append_calls_to(CallSet& list) const
 {
+   if (m_last_bind)
+      list.insert(m_last_bind);
+
    for(auto& s : m_shaders)
       s.second->append_calls_to(list);
 

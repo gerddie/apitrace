@@ -28,6 +28,8 @@ public:
    void set_uniform(PCall call);
    void set_va(unsigned id, PObjectState va);
 
+   void bind(PCall call);
+
 private:
 
    void do_append_calls_to(CallSet& list) const override;
@@ -36,6 +38,8 @@ private:
 
    std::unordered_map<unsigned, PCall> m_uniforms;
    std::unordered_map<unsigned, PObjectState> m_va;
+
+   PCall m_last_bind;
 
 };
 
