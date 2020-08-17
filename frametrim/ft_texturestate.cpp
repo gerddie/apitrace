@@ -34,7 +34,7 @@ void TextureState::use(PCall call)
 
 void TextureState::do_append_calls_to(CallSet& list) const
 {
-   if (!m_data_use_set.empty()) {
+   if (!m_data_use_set.empty() || m_last_bind_call) {
       list.insert(m_gen_call);
       list.insert(m_data_upload_set.begin(), m_data_upload_set.end());
       list.insert(m_data_use_set.begin(), m_data_use_set.end());
