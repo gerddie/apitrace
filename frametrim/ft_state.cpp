@@ -62,6 +62,7 @@ struct StateImpl {
    void Light(PCall call);
    void program_call(PCall call);
    void LoadIdentity(PCall call);
+   void LoadMatrix(PCall call);
    void Material(PCall call);
    void MatrixMode(PCall call);
    void NewList(PCall call);
@@ -485,6 +486,11 @@ void StateImpl::LoadIdentity(PCall call)
    m_current_matrix->identity(call);
 }
 
+void StateImpl::LoadMatrix(PCall call)
+{
+   m_current_matrix->identity(call);
+}
+
 void StateImpl::Material(PCall call)
 {
    if (m_active_display_list)
@@ -704,9 +710,11 @@ void StateImpl::register_callbacks()
    MAP(glDeleteVertexArrays, history_ignore);
 
    MAP(glCompressedTexImage2D, texture_call);
-   MAP(TexImage1D, texture_call);
-   MAP(TexImage2D, texture_call);
-   MAP(TexImage3D, texture_call);
+   MAP(glTexImage1D, texture_call);
+   MAP(glTexImage2D, texture_call);
+   MAP(glTexImage3D, texture_call);
+   MAP(glTexParameter, texture_call);
+   MAP(glGenerateMipmap, texture_call);
 
    MAP(glDepthFunc, record_state_call);
 
@@ -740,6 +748,7 @@ void StateImpl::register_callbacks()
    MAP(glVertexAttribPointer, VertexAttribPointer);
    MAP(glLoadIdentity, LoadIdentity);
    MAP(glMaterial, Material);
+   MAP(glLoadMatrix, LoadMatrix);
    MAP(glMatrixMode, MatrixMode);
    MAP(glNewList, NewList);
    MAP(glNormal, Normal);
@@ -752,10 +761,12 @@ void StateImpl::register_callbacks()
    MAP(glShaderSource, shader_call);
    MAP(glTranslate, Translate);
    MAP(glUniform, Uniform);
-   MAP(glVertex, Vertex);
    MAP(glVertex2, Vertex);
    MAP(glVertex3, Vertex);
    MAP(glVertex4, Vertex);
+   MAP(glColor2, Vertex);
+   MAP(glColor3, Vertex);
+   MAP(glColor4, Vertex);
 
    MAP(glViewport, record_state_call);
 

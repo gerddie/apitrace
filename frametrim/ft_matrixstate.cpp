@@ -13,7 +13,8 @@ MatrixState::MatrixState(MatrixState::Pointer parent):
 
 void MatrixState::identity(PCall call)
 {
-   assert(!strcmp(call->name(), "glLoadIdentity"));
+   assert(!strcmp(call->name(), "glLoadIdentity") ||
+          !strncmp(call->name(), "glLoadMatrix", 12));
 
    m_parent = nullptr;
    append_call(call);
