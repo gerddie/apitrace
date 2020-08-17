@@ -660,6 +660,8 @@ void StateImpl::write(trace::Writer& writer)
    std::sort(sorted_calls.begin(), sorted_calls.end(),
              [](PCall lhs, PCall rhs) {return lhs->no < rhs->no;});
 
+   auto last_call = *sorted_calls.rbegin();
+   std::cerr << "Last call flags = "<< last_call->flags << "\n";
    for(auto& call: sorted_calls) {
       if (call) {
          writer.writeCall(call.get());
