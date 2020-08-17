@@ -26,7 +26,7 @@
  *********************************************************************/
 
 
-#include "ft_state.h"
+#include "ft_state.hpp"
 
 #include "os_time.hpp"
 #include "trace_parser.hpp"

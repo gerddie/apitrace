@@ -21,6 +21,7 @@ add_executable(glxtrim
    ft_objectstate.cpp
    ft_programstate.cpp
    ft_state.cpp
+   ft_texturestate.cpp
    )
 
 target_link_libraries (glxtrim

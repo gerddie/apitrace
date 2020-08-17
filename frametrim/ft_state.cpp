@@ -1,7 +1,8 @@
-#include "ft_state.h"
+#include "ft_state.hpp"
 #include "ft_bufferstate.hpp"
 #include "ft_matrixstate.hpp"
 #include "ft_programstate.hpp"
+#include "ft_texturestate.hpp"
 
 #include "trace_writer.hpp"
 
@@ -39,6 +40,7 @@ struct StateImpl {
    void register_callbacks();
 
    /* OpenGL calls */
+   void ActiveTexture(PCall call);
    void AttachShader(PCall call);
    void Begin(PCall call);
    void BindAttribLocation(PCall call);
@@ -107,8 +109,10 @@ struct StateImpl {
    std::unordered_map<GLint, PBufferState> m_bound_buffers;
 
    // TODO: multitexture support
-   std::unordered_map<GLint, PObjectState> m_textures;
-   std::unordered_map<GLint, PObjectState> m_bound_texture;
+   std::unordered_map<GLint, PTextureState> m_textures;
+   std::unordered_map<GLint, PTextureState> m_bound_texture;
+   unsigned m_active_texture_unit;
+   PCall m_active_texture_unit_call;
 
    std::unordered_map<GLint, PObjectState> m_vertex_arrays;
    std::unordered_map<GLint, PCall> m_vertex_attr_pointer;
@@ -209,6 +213,7 @@ void StateImpl::start_target_farme()
 }
 
 StateImpl::StateImpl():
+   m_active_texture_unit(0),
    m_in_target_frame(false)
 {
    m_mv_matrix.push(make_shared<MatrixState>(nullptr));
@@ -260,6 +265,12 @@ void StateImpl::call(PCall call)
       m_required_calls.insert(call);
 }
 
+void StateImpl::ActiveTexture(PCall call)
+{
+   m_active_texture_unit = call->arg(0).toUInt();
+   m_active_texture_unit_call = call;
+}
+
 void StateImpl::AttachShader(PCall call)
 {
    auto program = m_programs[call->arg(0).toUInt()];
@@ -308,11 +319,13 @@ void StateImpl::BindTexture(PCall call)
    unsigned id = call->arg(1).toUInt();
 
    if (id) {
-      auto buf = m_textures[id];
-      if (!m_bound_texture[target] ||
-          m_bound_texture[target]->id() != id) {
-         m_bound_texture[target] = buf;
-         buf->append_call(call);
+      auto tex = m_textures[id];
+      unsigned target_unit = (target << 16) | m_active_texture_unit;
+
+      if (!m_bound_texture[target_unit] ||
+          m_bound_texture[target_unit]->id() != id) {
+         m_bound_texture[target_unit] = tex;
+         tex->bind_unit(call, m_active_texture_unit_call);
       }
    } else
       m_bound_texture.erase(target);
@@ -422,7 +435,7 @@ void StateImpl::GenTextures(PCall call)
 {
    const auto ids = (call->arg(1)).toArray();
    for (auto& v : ids->values) {
-      auto obj = PObjectState(new ObjectState(v->toUInt()));
+      auto obj = make_shared<TextureState>(v->toUInt(), call);
       obj->append_call(call);
       m_textures[v->toUInt()] = obj;
    }
@@ -551,9 +564,10 @@ void StateImpl::shader_call(PCall call)
 
 void StateImpl::texture_call(PCall call)
 {
-   auto texture = m_bound_texture[call->arg(0).toUInt()];
+   auto texture = m_bound_texture[(call->arg(0).toUInt() << 16) |
+                  m_active_texture_unit];
    assert(texture);
-   texture->append_call(call);
+   texture->data(call);
 }
 
 void StateImpl::Translate(PCall call)
@@ -652,7 +666,7 @@ void StateImpl::register_callbacks()
 {
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&StateImpl:: call, this, _1)))
 
-   MAP(glActiveTexture, history_ignore);
+   MAP(glActiveTexture, ActiveTexture);
 
    MAP(glAttachShader, AttachShader);
    MAP(glAttachObject, AttachShader);
@@ -681,6 +695,9 @@ void StateImpl::register_callbacks()
    MAP(glDeleteVertexArrays, history_ignore);
 
    MAP(glCompressedTexImage2D, texture_call);
+   MAP(TexImage1D, texture_call);
+   MAP(TexImage2D, texture_call);
+   MAP(TexImage3D, texture_call);
 
    MAP(glDepthFunc, record_state_call);
 

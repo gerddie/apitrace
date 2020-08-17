@@ -1,7 +1,7 @@
 #ifndef MATRIXSTATE_HPP
 #define MATRIXSTATE_HPP
 
-#include "ft_objectstate.h"
+#include "ft_objectstate.hpp"
 
 namespace frametrim {
 

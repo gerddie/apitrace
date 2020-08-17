@@ -2,7 +2,7 @@
 #define STATE_H
 
 
-#include "ft_objectstate.h"
+#include "ft_objectstate.hpp"
 #include <unordered_map>
 #include <functional>
 

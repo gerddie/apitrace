@@ -1,7 +1,7 @@
 #ifndef PROGRAMSTATE_HPP
 #define PROGRAMSTATE_HPP
 
-#include "ft_objectstate.h"
+#include "ft_objectstate.hpp"
 
 #include <unordered_map>
 
