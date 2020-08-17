@@ -11,8 +11,8 @@ orig_img=$5
 echo "Run tests $trace" 
 
 ${trim} "${datadir}/${trace}" --frames ${frame} -o trim-${trace}
-${apitrace} replay "${datadir}/${trace}" --snapshot=${orig_img} --snapshot-prefix=orig 
-${apitrace} replay trim-${trace} --snapshot=frame --snapshot-prefix=${trace} 
+${apitrace} replay --headless "${datadir}/${trace}" --snapshot=${orig_img} --snapshot-prefix=orig 
+${apitrace} replay --headless trim-${trace} --snapshot=frame --snapshot-prefix=${trace} 
 
 orig=$(printf "orig%010d.png" ${orig_img})
 trim=$(ls ${trace}0*.png)
