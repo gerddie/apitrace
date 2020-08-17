@@ -16,6 +16,7 @@ cmake_policy(SET CMP0079 NEW)
 
 add_executable(glxtrim
    ft_bufferstate.cpp
+   ft_framebufferstate.cpp
    ft_genobjectstate.cpp
    ft_matrixstate.cpp
    ft_main.cpp

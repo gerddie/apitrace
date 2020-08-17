@@ -1,5 +1,6 @@
 #include "ft_state.hpp"
 #include "ft_bufferstate.hpp"
+#include "ft_framebufferstate.hpp"
 #include "ft_matrixstate.hpp"
 #include "ft_programstate.hpp"
 #include "ft_texturestate.hpp"
@@ -45,6 +46,7 @@ struct StateImpl {
    void Begin(PCall call);
    void BindAttribLocation(PCall call);
    void BindBuffer(PCall call);
+   void BindFramebuffer(PCall call);
    void BindTexture(PCall call);
    void BufferData(PCall call);
    void BindProgram(PCall call);
@@ -56,6 +58,7 @@ struct StateImpl {
    void End(PCall call);
    void EndList(PCall call);
    void GenBuffers(PCall call);
+   void GenFramebuffer(PCall call);
    void GenLists(PCall call);
    void GenTextures(PCall call);
    void GenVertexArrays(PCall call);
@@ -117,6 +120,12 @@ struct StateImpl {
 
    std::unordered_map<GLint, PObjectState> m_vertex_arrays;
    std::unordered_map<GLint, PCall> m_vertex_attr_pointer;
+
+   std::unordered_map<GLint, PFramebufferState> m_framebuffers;
+   PFramebufferState m_draw_framebuffer;
+   PFramebufferState m_read_framebuffer;
+   PCall m_draw_framebuffer_call;
+   PCall m_read_framebuffer_call;
 
    std::unordered_map<uint64_t, PCall> m_last_lights;
 
@@ -211,6 +220,11 @@ void StateImpl::start_target_farme()
 
    if (m_active_program)
       m_active_program->append_calls_to(m_required_calls);
+
+   if (m_draw_framebuffer_call)
+      m_required_calls.insert(m_draw_framebuffer_call);
+   if (m_read_framebuffer_call)
+      m_required_calls.insert(m_read_framebuffer_call);
 }
 
 StateImpl::StateImpl():
@@ -313,6 +327,53 @@ void StateImpl::BindBuffer(PCall call)
       }
    } else {
       m_bound_buffers.erase(target);
+   }
+}
+
+void StateImpl::BindFramebuffer(PCall call)
+{
+   unsigned target = call->arg(0).toUInt();
+   unsigned id = call->arg(1).toUInt();
+
+   if (id)  {
+
+      if ((target == GL_DRAW_FRAMEBUFFER ||
+           target == GL_FRAMEBUFFER) &&
+          (!m_draw_framebuffer ||
+           m_draw_framebuffer->id() != id)) {
+         m_draw_framebuffer = m_framebuffers[id];
+         m_draw_framebuffer->bind(call);
+         m_draw_framebuffer_call = call;
+
+         /* TODO: Create a copy of the current state and record all
+          * calls in the framebuffer until it is un-bound
+          * attach the framebuffer to any texture that might be
+          * attached as render target */
+      }
+
+      if ((target == GL_READ_FRAMEBUFFER ||
+          target == GL_FRAMEBUFFER) &&
+          (!m_read_framebuffer ||
+           m_read_framebuffer->id() != id)) {
+         m_read_framebuffer = m_framebuffers[id];
+         m_read_framebuffer->bind(call);
+         m_read_framebuffer_call = call;
+      }
+
+   } else {
+
+      if (target == GL_DRAW_FRAMEBUFFER ||
+          target == GL_FRAMEBUFFER) {
+         m_draw_framebuffer = nullptr;
+         m_draw_framebuffer_call = call;
+      }
+
+      if (target == GL_READ_FRAMEBUFFER ||
+          target == GL_FRAMEBUFFER) {
+         m_read_framebuffer = nullptr;
+         m_read_framebuffer_call = call;
+      }
+
    }
 }
 
@@ -434,6 +495,15 @@ void StateImpl::GenBuffers(PCall call)
    for (auto& v : ids->values) {
       auto obj = make_shared<BufferState>(v->toUInt(), call);
       m_buffers[v->toUInt()] = obj;
+   }
+}
+
+void StateImpl::GenFramebuffer(PCall call)
+{
+   const auto ids = (call->arg(1)).toArray();
+   for (auto& v : ids->values) {
+      auto obj = make_shared<FramebufferState>(v->toUInt(), call);
+      m_framebuffers[v->toUInt()] = obj;
    }
 }
 
@@ -688,6 +758,7 @@ void StateImpl::register_callbacks()
    MAP(glBegin, Begin);
    MAP(glBindAttribLocation, BindAttribLocation);
    MAP(glBindBuffer, BindBuffer);
+   MAP(glBindFramebuffer, BindFramebuffer);
    MAP(glBindTexture, BindTexture);
    MAP(glBindVertexArray, record_state_call);
 
@@ -731,6 +802,7 @@ void StateImpl::register_callbacks()
    MAP(glEndList, EndList);
    MAP(glFrustum, record_state_call);
    MAP(glGenBuffers, GenBuffers);
+   MAP(glGenFramebuffer, GenFramebuffer);
    MAP(glGenTexture, GenTextures);
 
    MAP(glGenLists, GenLists);

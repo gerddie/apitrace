@@ -2,9 +2,9 @@
 
 namespace frametrim {
 
-FramebufferState::FramebufferState()
+void FramebufferState::bind(PCall call)
 {
-
+   m_bind_call = call;
 }
 
 }
