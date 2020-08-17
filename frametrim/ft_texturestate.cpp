@@ -16,7 +16,7 @@ void TextureState::bind_unit(PCall b, PCall unit)
 
 void TextureState::data(PCall call)
 {
-   m_data_upload_set.clear();
+   //m_data_upload_set.clear();
    if (m_last_unit_call)
       m_data_upload_set.insert(m_last_unit_call);
    m_data_upload_set.insert(m_last_bind_call);
