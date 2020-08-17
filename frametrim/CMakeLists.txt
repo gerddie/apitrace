@@ -27,4 +27,6 @@ add_executable(glxtrim
 target_link_libraries (glxtrim
     retrace_common
     glretrace_common
-)
+    )
+
+add_subdirectory (tests)

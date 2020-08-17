@@ -254,6 +254,8 @@ void StateImpl::call(PCall call)
          }
          ++i;
       }
+
+      std::cerr << "Handle " << call->name() << " as " << cb->first << "\n";
       cb->second(call);
    } else {
       /* This should be some debug output only, because we might
@@ -744,6 +746,10 @@ void StateImpl::register_callbacks()
    MAP(glTranslate, Translate);
    MAP(glUniform, Uniform);
    MAP(glVertex, Vertex);
+   MAP(glVertex2, Vertex);
+   MAP(glVertex3, Vertex);
+   MAP(glVertex4, Vertex);
+
    MAP(glViewport, record_state_call);
 
    MAP(glXGetFBConfigAttrib, history_ignore);
