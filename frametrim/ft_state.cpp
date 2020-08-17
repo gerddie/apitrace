@@ -255,7 +255,7 @@ void StateImpl::call(PCall call)
          ++i;
       }
 
-      std::cerr << "Handle " << call->name() << " as " << cb->first << "\n";
+      //std::cerr << "Handle " << call->name() << " as " << cb->first << "\n";
       cb->second(call);
    } else {
       /* This should be some debug output only, because we might
