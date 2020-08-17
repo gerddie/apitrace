@@ -573,7 +573,7 @@ void StateImpl::shader_call(PCall call)
    shader->append_call(call);
 }
 
-void StateImpl::texture_call(PCall call)
+void StateImpl:: texture_call(PCall call)
 {
    auto texture = m_bound_texture[(call->arg(0).toUInt() << 16) |
                   m_active_texture_unit];

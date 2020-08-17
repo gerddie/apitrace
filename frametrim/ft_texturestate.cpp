@@ -2,12 +2,6 @@
 
 namespace frametrim {
 
-TextureState::TextureState(GLint glID, PCall gen_call):
-   ObjectState(glID),
-   m_gen_call(gen_call)
-{
-}
-
 void TextureState::bind_unit(PCall b, PCall unit)
 {
    m_last_bind_call = b;
@@ -34,7 +28,7 @@ void TextureState::use(PCall call)
 void TextureState::do_append_calls_to(CallSet& list) const
 {
    if (!m_data_use_set.empty() || m_last_bind_call) {
-      list.insert(m_gen_call);
+      emit_gen_call(list);
       list.insert(m_data_upload_set.begin(), m_data_upload_set.end());
       list.insert(m_data_use_set.begin(), m_data_use_set.end());
    }

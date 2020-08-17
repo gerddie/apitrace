@@ -1,14 +1,14 @@
 #ifndef BUFFERSTATE_HPP
 #define BUFFERSTATE_HPP
 
-#include "ft_objectstate.hpp"
+#include "ft_genobjectstate.hpp"
 
 namespace frametrim {
 
-class BufferState : public ObjectState
+class BufferState : public GenObjectState
 {
 public:
-   BufferState(GLint glID, PCall gen_call);
+   using GenObjectState::GenObjectState;
 
    void bind(PCall call);
    void data(PCall call);
@@ -17,7 +17,6 @@ public:
 private:
    virtual void do_append_calls_to(CallSet& list) const;
 
-   PCall m_gen_call;
    PCall m_last_bind_call;
    CallSet m_data_upload_set;
    CallSet m_data_use_set;
