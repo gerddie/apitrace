@@ -319,18 +319,17 @@ void StateImpl::BindTexture(PCall call)
 {
    unsigned target = call->arg(0).toUInt();
    unsigned id = call->arg(1).toUInt();
+   unsigned target_unit = (target << 16) | m_active_texture_unit;
 
    if (id) {
       auto tex = m_textures[id];
-      unsigned target_unit = (target << 16) | m_active_texture_unit;
-
       if (!m_bound_texture[target_unit] ||
           m_bound_texture[target_unit]->id() != id) {
          m_bound_texture[target_unit] = tex;
          tex->bind_unit(call, m_active_texture_unit_call);
       }
    } else
-      m_bound_texture.erase(target);
+      m_bound_texture.erase(target_unit);
 }
 
 void StateImpl::BufferData(PCall call)
