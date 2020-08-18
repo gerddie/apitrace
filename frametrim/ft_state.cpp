@@ -938,6 +938,7 @@ void StateImpl::register_callbacks()
    MAP(glFramebufferRenderbuffer, FramebufferRenderbuffer);
    MAP(glFramebufferTexture, FramebufferTexture);
 
+   MAP(glDrawBuffers, record_state_call);
    MAP(glDrawElements, DrawElements);
 
    MAP(glDisable, record_enable);
