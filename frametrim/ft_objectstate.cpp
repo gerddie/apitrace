@@ -16,9 +16,13 @@ unsigned ObjectState::id() const
 
 void ObjectState::append_calls_to(CallSet& list) const
 {
-   do_append_calls_to(list);
-   list.insert(m_gen_calls.begin(), m_gen_calls.end());
-   list.insert(m_calls.begin(), m_calls.end());
+   if (!m_submitted) {
+      m_submitted = true;
+      do_append_calls_to(list);
+      list.insert(m_gen_calls.begin(), m_gen_calls.end());
+      list.insert(m_calls.begin(), m_calls.end());
+      m_submitted = false;
+   }
 }
 
 void ObjectState::append_gen_call(PCall call)
