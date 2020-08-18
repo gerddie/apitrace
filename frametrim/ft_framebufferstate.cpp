@@ -1,5 +1,6 @@
 #include "ft_framebufferstate.hpp"
 #include <GL/glext.h>
+#include <cstring>
 
 namespace frametrim {
 
@@ -47,6 +48,11 @@ void FramebufferState::attach(unsigned attachemnt, PCall call,
          }
       }
    }
+}
+
+void FramebufferState::draw(PCall call)
+{
+   m_draw.insert(call);
 }
 
 void FramebufferState::set_viewport(PCall call)

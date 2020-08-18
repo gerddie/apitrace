@@ -52,6 +52,7 @@ struct StateImpl {
    void BufferData(PCall call);
    void BindProgram(PCall call);
    void CallList(PCall call);
+   void Clear(PCall call);
    void CreateShader(PCall call);
    void CreateProgram(PCall call);
    void DeleteLists(PCall call);
@@ -87,6 +88,7 @@ struct StateImpl {
    void Uniform(PCall call);
    void UseProgram(PCall call);
    void Vertex(PCall call);
+   void Viewport(PCall call);
    void VertexAttribPointer(PCall call);
 
    void history_ignore(PCall call);
@@ -102,6 +104,8 @@ struct StateImpl {
    void write(trace::Writer& writer);
    void start_target_farme();
    void texture_call(PCall call);
+
+   void collect_state_calls(CallSet& lisr) const;
 
    using CallTable = std::multimap<const char *, ft_callback, string_part_less>;
    CallTable m_call_table;
@@ -188,55 +192,61 @@ void State::target_frame_started()
    impl->start_target_farme();
 }
 
-void StateImpl::start_target_farme()
+void StateImpl::collect_state_calls(CallSet& list) const
 {
    for(auto& a : m_state_calls)
-      record_required_call(a.second);
+      list.insert(a.second);
 
    for(auto& cap: m_enables)
-      record_required_call(cap.second);
+      list.insert(cap.second);
 
    for (auto& l: m_last_lights)
-      record_required_call(l.second);
+      list.insert(l.second);
 
    if (!m_mv_matrix.empty())
-      m_mv_matrix.top()->append_calls_to(m_required_calls);
+      m_mv_matrix.top()->append_calls_to(list);
 
    if (!m_proj_matrix.empty())
-      m_proj_matrix.top()->append_calls_to(m_required_calls);
+      m_proj_matrix.top()->append_calls_to(list);
 
    if (!m_texture_matrix.empty())
-      m_texture_matrix.top()->append_calls_to(m_required_calls);
+      m_texture_matrix.top()->append_calls_to(list);
 
    if (!m_color_matrix.empty())
-      m_color_matrix.top()->append_calls_to(m_required_calls);
+      m_color_matrix.top()->append_calls_to(list);
 
    /* Set vertex attribute array pointers only if they are enabled */
    for(auto& va : m_vertex_attr_pointer) {
       auto vae = m_va_enables.find(va.first);
       if (vae != m_va_enables.end() &&
           !strcmp(vae->second->name(), "glEnableVertexAttribArray")) {
-         m_required_calls.insert(va.second);
-         m_required_calls.insert(vae->second);
+         list.insert(va.second);
+         list.insert(vae->second);
       }
    }
 
    for (auto& va: m_vertex_arrays)
-      va.second->append_calls_to(m_required_calls);
+      va.second->append_calls_to(list);
 
    for (auto& buf: m_bound_buffers)
-      buf.second->append_calls_to(m_required_calls);
+      buf.second->append_calls_to(list);
 
    for (auto& tex: m_bound_texture)
-      tex.second->append_calls_to(m_required_calls);
+      tex.second->append_calls_to(list);
 
    if (m_active_program)
-      m_active_program->append_calls_to(m_required_calls);
+      m_active_program->append_calls_to(list);
 
    if (m_draw_framebuffer_call)
-      m_required_calls.insert(m_draw_framebuffer_call);
+      list.insert(m_draw_framebuffer_call);
+
    if (m_read_framebuffer_call)
-      m_required_calls.insert(m_read_framebuffer_call);
+      list.insert(m_read_framebuffer_call);
+}
+
+void StateImpl::start_target_farme()
+{
+   collect_state_calls(m_required_calls);
 }
 
 StateImpl::StateImpl():
@@ -292,6 +302,9 @@ void StateImpl::call(PCall call)
 
    if (m_in_target_frame)
       m_required_calls.insert(call);
+
+   if (m_draw_framebuffer)
+      m_draw_framebuffer->draw(call);
 }
 
 void StateImpl::ActiveTexture(PCall call)
@@ -361,6 +374,8 @@ void StateImpl::BindFramebuffer(PCall call)
           * calls in the framebuffer until it is un-bound
           * attach the framebuffer to any texture that might be
           * attached as render target */
+
+         collect_state_calls(m_draw_framebuffer->calls());
       }
 
       if ((target == GL_READ_FRAMEBUFFER ||
@@ -449,6 +464,12 @@ void StateImpl::CallList(PCall call)
       assert(list != m_display_lists.end());
       list->second->append_calls_to(m_required_calls);
    }
+}
+
+void StateImpl::Clear(PCall call)
+{
+   if (m_draw_framebuffer)
+      m_draw_framebuffer->clear(call);
 }
 
 void StateImpl::CreateShader(PCall call)
@@ -779,6 +800,13 @@ void StateImpl::UseProgram(PCall call)
       else
          m_required_calls.insert(call);
    }
+
+   if (m_draw_framebuffer) {
+      if (m_active_program)
+         m_active_program->append_calls_to(m_draw_framebuffer->calls());
+      else
+         m_draw_framebuffer->draw(call);
+   }
 }
 
  void StateImpl::Uniform(PCall call)
@@ -801,6 +829,13 @@ void StateImpl::VertexAttribPointer(PCall call)
       m_active_program->set_va(call->arg(0).toUInt(), buf);
    } else
       std::cerr << "Calling VertexAttribPointer without bound ARRAY_BUFFER, ignored\n";
+}
+
+void StateImpl::Viewport(PCall call)
+{
+   record_state_call(call);
+   if (m_draw_framebuffer)
+      m_draw_framebuffer->set_viewport(call);
 }
 
 void StateImpl::record_state_call(PCall call)
@@ -949,7 +984,7 @@ void StateImpl::register_callbacks()
    MAP(glColor3, Vertex);
    MAP(glColor4, Vertex);
 
-   MAP(glViewport, record_state_call);
+   MAP(glViewport, Viewport);
 
    MAP(glXGetFBConfigAttrib, history_ignore);
    MAP(glXChooseVisual, record_required_call);
