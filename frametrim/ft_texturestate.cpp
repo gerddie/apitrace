@@ -38,9 +38,9 @@ void TextureState::use(PCall call)
    m_data_use_set.insert(call);
 }
 
-void TextureState::rendertarget_of(PFramebufferState fbo)
+void TextureState::rendertarget_of(unsigned layer, PFramebufferState fbo)
 {
-   m_fbo = fbo;
+   m_fbo[layer] = fbo;
 }
 
 void TextureState::do_append_calls_to(CallSet& list) const
@@ -53,8 +53,8 @@ void TextureState::do_append_calls_to(CallSet& list) const
       /* This is a somewhat lazy approach, but we assume that if the texture
        * was attached to a draw FBO then this was done to create the contents
        * of the texture, so we need to record all calls used in the fbo */
-      if (m_fbo)
-         m_fbo->append_calls_to(list);
+      for (auto& f : m_fbo)
+         f.second->append_calls_to(list);
    }
 }
 

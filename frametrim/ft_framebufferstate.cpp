@@ -24,6 +24,7 @@ void FramebufferState::attach(unsigned attachemnt, PCall call,
 {
    m_attachments[attachemnt] = att;
    m_attachment_call[attachemnt] = call;
+   m_draw_prepare.insert(m_bind_call);
 
    m_width = att->width();
    m_height = att->height();
@@ -74,6 +75,11 @@ void FramebufferState::clear(PCall call)
 void FramebufferState::do_append_calls_to(CallSet& list) const
 {
    if (m_bind_call)  {
+      emit_gen_call(list);
+
+      list.insert(m_bind_call);
+      list.insert(m_draw_prepare.begin(), m_draw_prepare.end());
+      list.insert(m_draw.begin(), m_draw.end());
 
       for(auto& a: m_attachments)
          if (a.second)
@@ -107,6 +113,8 @@ void RenderbufferState::set_storage(PCall call)
 
 void RenderbufferState::do_append_calls_to(CallSet& list) const
 {
+   emit_gen_call(list);
+
    if (m_set_storage_call)
       list.insert(m_set_storage_call);
 

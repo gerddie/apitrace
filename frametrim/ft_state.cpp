@@ -58,6 +58,8 @@ struct StateImpl {
    void DrawElements(PCall call);
    void End(PCall call);
    void EndList(PCall call);
+   void FramebufferTexture(PCall call);
+   void FramebufferRenderbuffer(PCall call);
    void GenBuffers(PCall call);
    void GenFramebuffer(PCall call);
    void GenLists(PCall call);
@@ -75,7 +77,7 @@ struct StateImpl {
    void PopMatrix(PCall call);
    void PushMatrix(PCall call);
    void RenderbufferStorage(PCall call);
-   void FramebufferRenderbuffer(PCall call);
+
    void Rotate(PCall call);
    void ShadeModel(PCall call);
    void shader_call(PCall call);
@@ -514,7 +516,7 @@ void StateImpl::EndList(PCall call)
 
 void StateImpl::FramebufferRenderbuffer(PCall call)
 {
-   unsigned target = call->arg(1).toUInt();
+   unsigned target = call->arg(0).toUInt();
    unsigned attachment = call->arg(1).toUInt();
    unsigned rb_id = call->arg(3).toUInt();
 
@@ -534,6 +536,44 @@ void StateImpl::FramebufferRenderbuffer(PCall call)
    }
 
    rb->attach(call, read_rb, draw_fb);
+}
+
+void StateImpl::FramebufferTexture(PCall call)
+{
+   unsigned layer = 0;
+   unsigned textarget = 0;
+   unsigned has_tex_harfet = textarget  > 0;
+
+
+   std::cerr << call->name() << " with " << call->args.size() << " args\n";
+
+   unsigned target = call->arg(0).toUInt();
+   unsigned attachment = call->arg(1).toUInt();
+
+   if (has_tex_harfet)
+      textarget = call->arg(2).toUInt();
+
+   unsigned texid = call->arg(2 + has_tex_harfet).toUInt();
+   unsigned level = call->arg(3 + has_tex_harfet).toUInt();
+
+   if (!strcmp(call->name(), "glFramebufferTexture3D"))
+      layer = call->arg(5).toUInt();
+
+   assert(level < 16);
+   assert(layer < 1 << 12);
+
+   unsigned textargetid = (textarget << 16) | level << 12 | level;
+
+   auto texture = m_textures[texid];
+
+   if (target == GL_FRAMEBUFFER || target == GL_DRAW_FRAMEBUFFER) {
+      m_draw_framebuffer->attach(attachment, call, texture);
+      texture->rendertarget_of(textargetid, m_draw_framebuffer);
+   }
+
+   if (target == GL_FRAMEBUFFER || target == GL_READ_FRAMEBUFFER) {
+      m_read_framebuffer->attach(attachment, call, texture);
+   }
 }
 
 void StateImpl::GenBuffers(PCall call)
@@ -859,6 +899,7 @@ void StateImpl::register_callbacks()
    MAP(glEnableVertexAttribArray, record_va_enables);
 
    MAP(glFramebufferRenderbuffer, FramebufferRenderbuffer);
+   MAP(glFramebufferTexture, FramebufferTexture);
 
    MAP(glDrawElements, DrawElements);
 

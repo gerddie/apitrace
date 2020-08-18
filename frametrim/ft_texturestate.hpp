@@ -15,7 +15,7 @@ public:
    void data(PCall call);
    void use(PCall call);
 
-   void rendertarget_of(PFramebufferState fbo);
+   void rendertarget_of(unsigned layer, PFramebufferState fbo);
 
 private:
    virtual void do_append_calls_to(CallSet& list) const;
@@ -25,7 +25,7 @@ private:
    CallSet m_data_upload_set;
    CallSet m_data_use_set;
 
-   PFramebufferState m_fbo;
+   std::unordered_map<unsigned, PFramebufferState> m_fbo;
 };
 
 using PTextureState = std::shared_ptr<TextureState>;

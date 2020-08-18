@@ -57,6 +57,7 @@ private:
    CallSet m_calls;
    bool m_required;
    bool m_active;
+   mutable bool m_submitted;
 
    static uint64_t g_next_object_id;
 };

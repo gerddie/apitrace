@@ -4,7 +4,8 @@ namespace frametrim {
 
 ObjectState::ObjectState(GLint glID):
    m_glID(glID),
-   m_goid(g_next_object_id++)
+   m_goid(g_next_object_id++),
+   m_submitted(false)
 {
 }
 
@@ -15,10 +16,13 @@ unsigned ObjectState::id() const
 
 void ObjectState::append_calls_to(CallSet& list) const
 {
-   do_append_calls_to(list);
+   if (!m_submitted) {
+      m_submitted = true;
+      do_append_calls_to(list);
 
-   list.insert(m_gen_calls.begin(), m_gen_calls.end());
-   list.insert(m_calls.begin(), m_calls.end());
+      list.insert(m_gen_calls.begin(), m_gen_calls.end());
+      list.insert(m_calls.begin(), m_calls.end());
+   }
 }
 
 void ObjectState::append_gen_call(PCall call)
