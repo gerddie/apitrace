@@ -76,11 +76,6 @@ void FramebufferState::clear(PCall call)
     * so we can forget all older draw calls
     * FIXME: Technically it is possible that some buffer is masked out and
     * its contents should be retained from earlier draw calls. */
-
-   std::cerr << "Clear with flags " << call->arg(0).toUInt()
-             << " and attached buffer types "
-             << m_attached_buffer_types << "\n";
-
    if (m_viewport_full_size &&
        m_attached_buffer_types == call->arg(0).toUInt())
       m_draw.clear();

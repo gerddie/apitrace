@@ -567,9 +567,6 @@ void StateImpl::FramebufferTexture(PCall call)
    unsigned textarget = 0;
    unsigned has_tex_harfet = textarget  > 0;
 
-
-   std::cerr << call->name() << " with " << call->args.size() << " args\n";
-
    unsigned target = call->arg(0).toUInt();
    unsigned attachment = call->arg(1).toUInt();
 
@@ -877,7 +874,6 @@ void StateImpl::write(trace::Writer& writer)
              [](PCall lhs, PCall rhs) {return lhs->no < rhs->no;});
 
    auto last_call = *sorted_calls.rbegin();
-   std::cerr << "Last call flags = "<< last_call->flags << "\n";
    for(auto& call: sorted_calls) {
       if (call) {
          writer.writeCall(call.get());
@@ -909,6 +905,7 @@ void StateImpl::register_callbacks()
    MAP(glBufferData, BufferData);
 
    MAP(glCallList, CallList);
+   MAP(glCheckFramebufferStatus, history_ignore);
    MAP(glClear, Clear);
    MAP(glClearColor, record_state_call);
 
