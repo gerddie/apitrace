@@ -30,35 +30,9 @@ void ObjectState::append_gen_call(PCall call)
    m_gen_calls.insert(call);
 }
 
-void ObjectState::set_call(PCall call)
-{
-   m_calls.clear();
-   append_call(call);
-}
-
 void ObjectState::append_call(PCall call)
 {
    m_calls.insert(call);
-}
-
-void ObjectState::set_required()
-{
-   m_required = true;
-}
-
-void ObjectState::set_active(bool active)
-{
-   m_active = active;
-}
-
-bool ObjectState::required() const
-{
-   return m_required;
-}
-
-bool ObjectState::active() const
-{
-   return m_active;
 }
 
 CallSet& ObjectState::calls()

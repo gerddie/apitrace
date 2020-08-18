@@ -26,20 +26,14 @@ class ObjectState
 public:
    ObjectState(GLint glID);
 
-   void set_gen_call(PCall call);
-   void append_gen_call(PCall call);
-   void set_call(PCall call);
+   unsigned id() const;
 
+   void append_gen_call(PCall call);
    void append_call(PCall call);
-   void set_required();
-   void set_active(bool active);
 
    void append_calls_to(CallSet& list) const;
 
-   bool required() const;
-   bool active() const;
 
-   unsigned id() const;
 
    CallSet& calls();
 
@@ -55,8 +49,7 @@ private:
 
    /* Call chain that leads to the current state of this object */
    CallSet m_calls;
-   bool m_required;
-   bool m_active;
+
    mutable bool m_submitted;
 
    static uint64_t g_next_object_id;
