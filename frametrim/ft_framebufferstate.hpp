@@ -21,12 +21,15 @@ public:
 
    void clear(PCall call);
 
+   CallSet& state_calls();
+
 private:
 
    void do_append_calls_to(CallSet& list) const override;
 
    PCall m_bind_call;
 
+   CallSet m_attach_calls;
    CallSet m_draw_prepare;
    CallSet m_draw;
 

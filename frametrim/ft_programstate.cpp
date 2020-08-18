@@ -51,8 +51,6 @@ void ProgramState::do_append_calls_to(CallSet& list) const
       s.second->append_calls_to(list);
 
    if (m_last_bind) {
-      std::cerr << "Emit program "
-                << id() << " bind call as no " << m_last_bind->no << "\n";
       list.insert(m_last_bind);
 
       for (auto& s: m_uniforms)

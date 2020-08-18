@@ -375,7 +375,9 @@ void StateImpl::BindFramebuffer(PCall call)
           * attach the framebuffer to any texture that might be
           * attached as render target */
 
-         collect_state_calls(m_draw_framebuffer->calls());
+         auto& calls = m_draw_framebuffer->state_calls();
+         calls.clear();
+         collect_state_calls(calls);
       }
 
       if ((target == GL_READ_FRAMEBUFFER ||
@@ -803,7 +805,7 @@ void StateImpl::UseProgram(PCall call)
 
    if (m_draw_framebuffer) {
       if (m_active_program)
-         m_active_program->append_calls_to(m_draw_framebuffer->calls());
+         m_active_program->append_calls_to(m_draw_framebuffer->state_calls());
       else
          m_draw_framebuffer->draw(call);
    }
@@ -907,7 +909,7 @@ void StateImpl::register_callbacks()
    MAP(glBufferData, BufferData);
 
    MAP(glCallList, CallList);
-   MAP(glClear, history_ignore);
+   MAP(glClear, Clear);
    MAP(glClearColor, record_state_call);
 
    MAP(glCreateShader, CreateShader);

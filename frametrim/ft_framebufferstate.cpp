@@ -1,6 +1,7 @@
 #include "ft_framebufferstate.hpp"
 #include <GL/glext.h>
 #include <cstring>
+#include <iostream>
 
 namespace frametrim {
 
@@ -25,7 +26,7 @@ void FramebufferState::attach(unsigned attachemnt, PCall call,
 {
    m_attachments[attachemnt] = att;
    m_attachment_call[attachemnt] = call;
-   m_draw_prepare.insert(m_bind_call);
+   m_attach_calls.insert(m_bind_call);
 
    m_width = att->width();
    m_height = att->height();
@@ -55,6 +56,11 @@ void FramebufferState::draw(PCall call)
    m_draw.insert(call);
 }
 
+CallSet& FramebufferState::state_calls()
+{
+   return m_draw_prepare;
+}
+
 void FramebufferState::set_viewport(PCall call)
 {
    m_viewport_full_size =
@@ -70,6 +76,11 @@ void FramebufferState::clear(PCall call)
     * so we can forget all older draw calls
     * FIXME: Technically it is possible that some buffer is masked out and
     * its contents should be retained from earlier draw calls. */
+
+   std::cerr << "Clear with flags " << call->arg(0).toUInt()
+             << " and attached buffer types "
+             << m_attached_buffer_types << "\n";
+
    if (m_viewport_full_size &&
        m_attached_buffer_types == call->arg(0).toUInt())
       m_draw.clear();
@@ -84,6 +95,7 @@ void FramebufferState::do_append_calls_to(CallSet& list) const
       emit_gen_call(list);
 
       list.insert(m_bind_call);
+      list.insert(m_attach_calls.begin(), m_attach_calls.end());
       list.insert(m_draw_prepare.begin(), m_draw_prepare.end());
       list.insert(m_draw.begin(), m_draw.end());
 
