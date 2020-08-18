@@ -28,6 +28,7 @@ private:
    void do_append_calls_to(CallSet& list) const override;
 
    PCall m_bind_call;
+   PCall m_viewport_call;
 
    CallSet m_attach_calls;
    CallSet m_draw_prepare;

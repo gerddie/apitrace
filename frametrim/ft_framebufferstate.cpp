@@ -27,6 +27,7 @@ void FramebufferState::attach(unsigned attachemnt, PCall call,
    m_attachments[attachemnt] = att;
    m_attachment_call[attachemnt] = call;
    m_attach_calls.insert(m_bind_call);
+   m_attach_calls.insert(call);
 
    m_width = att->width();
    m_height = att->height();
@@ -63,6 +64,7 @@ CallSet& FramebufferState::state_calls()
 
 void FramebufferState::set_viewport(PCall call)
 {
+   m_viewport_call = call;
    m_viewport_full_size =
          call->arg(0).toUInt() == 0 &&
          call->arg(1).toUInt() == 0 &&
@@ -80,6 +82,8 @@ void FramebufferState::clear(PCall call)
        m_attached_buffer_types == call->arg(0).toUInt())
       m_draw.clear();
 
+   if(m_viewport_call)
+      m_draw.insert(m_viewport_call);
    m_draw.insert(call);
 }
 
