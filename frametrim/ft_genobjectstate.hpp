@@ -38,6 +38,7 @@ private:
 
 };
 
+using PSizedObjectState = std::shared_ptr<SizedObjectState>;
 
 
 }

@@ -75,6 +75,7 @@ struct StateImpl {
    void PopMatrix(PCall call);
    void PushMatrix(PCall call);
    void RenderbufferStorage(PCall call);
+   void FramebufferRenderbuffer(PCall call);
    void Rotate(PCall call);
    void ShadeModel(PCall call);
    void shader_call(PCall call);
@@ -511,6 +512,30 @@ void StateImpl::EndList(PCall call)
    m_active_display_list = nullptr;
 }
 
+void StateImpl::FramebufferRenderbuffer(PCall call)
+{
+   unsigned target = call->arg(1).toUInt();
+   unsigned attachment = call->arg(1).toUInt();
+   unsigned rb_id = call->arg(3).toUInt();
+
+   auto rb = rb_id ? m_renderbuffers[rb_id] : nullptr;
+
+   PFramebufferState  draw_fb;
+   bool read_rb = false;
+
+   if (target == GL_FRAMEBUFFER || target == GL_DRAW_FRAMEBUFFER) {
+      m_draw_framebuffer->attach(attachment, call, rb);
+      draw_fb = m_draw_framebuffer;
+   }
+
+   if (target == GL_FRAMEBUFFER || target == GL_READ_FRAMEBUFFER) {
+        m_read_framebuffer->attach(attachment, call, rb);
+        read_rb = true;
+   }
+
+   rb->attach(call, read_rb, draw_fb);
+}
+
 void StateImpl::GenBuffers(PCall call)
 {
    const auto ids = (call->arg(1)).toArray();
@@ -832,6 +857,8 @@ void StateImpl::register_callbacks()
    MAP(glDisableVertexAttribArray, record_va_enables);
    MAP(glDrawArrays, history_ignore);
    MAP(glEnableVertexAttribArray, record_va_enables);
+
+   MAP(glFramebufferRenderbuffer, FramebufferRenderbuffer);
 
    MAP(glDrawElements, DrawElements);
 

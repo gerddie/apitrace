@@ -9,15 +9,17 @@ namespace frametrim {
 class FramebufferState : public GenObjectState
 {
 public:
-   using GenObjectState::GenObjectState;
+   FramebufferState(GLint glID, PCall gen_call);
 
    void bind(PCall call);
 
-   void attach(unsigned attachemnt, PCall call, PGenObjectState att);
-
-
+   void attach(unsigned attachemnt, PCall call, PSizedObjectState att);
 
    void draw(PCall call);
+
+   void set_viewport(PCall call);
+
+   void clear(PCall call);
 
 private:
 
@@ -28,7 +30,11 @@ private:
    CallSet m_draw_prepare;
    CallSet m_draw;
 
-   unsigned m_sizex, m_sizey;
+   unsigned m_width, m_height;
+   bool m_viewport_full_size;
+
+   unsigned m_attached_buffer_types;
+   unsigned m_attached_color_buffer_mask;
 
    std::unordered_map<unsigned, PCall> m_attachment_call;
    std::unordered_map<unsigned, PGenObjectState> m_attachments;
