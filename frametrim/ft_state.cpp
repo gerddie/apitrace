@@ -905,6 +905,7 @@ void StateImpl::register_callbacks()
    MAP(glBufferData, BufferData);
 
    MAP(glCallList, CallList);
+   MAP(glCullFace, record_state_call);
    MAP(glCheckFramebufferStatus, history_ignore);
    MAP(glClear, Clear);
    MAP(glClearColor, record_state_call);
