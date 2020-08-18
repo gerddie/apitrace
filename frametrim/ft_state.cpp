@@ -47,6 +47,7 @@ struct StateImpl {
    void BindAttribLocation(PCall call);
    void BindBuffer(PCall call);
    void BindFramebuffer(PCall call);
+   void BindRenderbuffer(PCall call);
    void BindTexture(PCall call);
    void BufferData(PCall call);
    void BindProgram(PCall call);
@@ -62,6 +63,7 @@ struct StateImpl {
    void GenLists(PCall call);
    void GenTextures(PCall call);
    void GenVertexArrays(PCall call);
+   void GenRenderbuffer(PCall call);
    void Light(PCall call);
    void program_call(PCall call);
    void LoadIdentity(PCall call);
@@ -72,9 +74,12 @@ struct StateImpl {
    void Normal(PCall call);
    void PopMatrix(PCall call);
    void PushMatrix(PCall call);
+   void RenderbufferStorage(PCall call);
    void Rotate(PCall call);
    void ShadeModel(PCall call);
    void shader_call(PCall call);
+
+
    void Translate(PCall call);
    void Uniform(PCall call);
    void UseProgram(PCall call);
@@ -126,6 +131,10 @@ struct StateImpl {
    PFramebufferState m_read_framebuffer;
    PCall m_draw_framebuffer_call;
    PCall m_read_framebuffer_call;
+
+   std::unordered_map<GLint, PRenderbufferState> m_renderbuffers;
+   PRenderbufferState m_active_renderbuffer;
+
 
    std::unordered_map<uint64_t, PCall> m_last_lights;
 
@@ -417,6 +426,19 @@ void StateImpl::BindProgram(PCall call)
       m_active_program = nullptr;
 }
 
+void StateImpl::BindRenderbuffer(PCall call)
+{
+   assert(call->arg(0).toUInt() == GL_RENDERBUFFER);
+
+   auto id = call->arg(1).toUInt();
+
+   if (!m_active_renderbuffer || m_active_renderbuffer->id() != id) {
+      m_active_renderbuffer = m_renderbuffers[id];
+      m_active_renderbuffer->append_call(call);
+   }
+}
+
+
 void StateImpl::CallList(PCall call)
 {
    if (m_in_target_frame) {
@@ -506,6 +528,16 @@ void StateImpl::GenFramebuffer(PCall call)
       m_framebuffers[v->toUInt()] = obj;
    }
 }
+
+void StateImpl::GenRenderbuffer(PCall call)
+{
+   const auto ids = (call->arg(1)).toArray();
+   for (auto& v : ids->values) {
+      auto obj = make_shared<RenderbufferState>(v->toUInt(), call);
+      m_renderbuffers[v->toUInt()] = obj;
+   }
+}
+
 
 void StateImpl::GenTextures(PCall call)
 {
@@ -626,6 +658,12 @@ void StateImpl::PushMatrix(PCall call)
    m_current_matrix->append_call(call);
 }
 
+void StateImpl::RenderbufferStorage(PCall call)
+{
+   assert(m_active_renderbuffer);
+   m_active_renderbuffer->set_storage(call);
+}
+
 void StateImpl::Rotate(PCall call)
 {
    m_current_matrix->append_call(call);
@@ -643,7 +681,7 @@ void StateImpl::shader_call(PCall call)
    shader->append_call(call);
 }
 
-void StateImpl:: texture_call(PCall call)
+void StateImpl::texture_call(PCall call)
 {
    auto texture = m_bound_texture[(call->arg(0).toUInt() << 16) |
                   m_active_texture_unit];
@@ -763,6 +801,7 @@ void StateImpl::register_callbacks()
    MAP(glBindVertexArray, record_state_call);
 
    MAP(glBindProgram, BindProgram);
+   MAP(glBindRenderbuffer, BindRenderbuffer);
    MAP(glBlendFunc, record_state_call);
 
    MAP(glBufferData, BufferData);
@@ -806,6 +845,7 @@ void StateImpl::register_callbacks()
    MAP(glGenTexture, GenTextures);
 
    MAP(glGenLists, GenLists);
+   MAP(glGenRenderbuffer, GenRenderbuffer);
    MAP(glGenVertexArrays, GenVertexArrays);
    MAP(glGetUniformLocation, program_call);
 
@@ -827,6 +867,7 @@ void StateImpl::register_callbacks()
    MAP(glPixelStorei, record_state_call_ex);
    MAP(glPopMatrix, PopMatrix);
    MAP(glPushMatrix, PushMatrix);
+   MAP(glRenderbufferStorage, RenderbufferStorage);
    MAP(glRotate, Rotate);
    MAP(glScissor, record_state_call);
    MAP(glShadeModel, ShadeModel);

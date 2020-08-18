@@ -17,4 +17,26 @@ void GenObjectState::emit_gen_call(CallSet& list) const
    list.insert(m_gen_call);
 }
 
+SizedObjectState::SizedObjectState(GLint glID, PCall gen_call):
+   GenObjectState(glID, gen_call),
+   m_size(16) // this should be enough
+{
+}
+
+unsigned SizedObjectState::width(unsigned level) const
+{
+   return m_size[level].first;
+}
+
+unsigned SizedObjectState::height(unsigned level) const
+{
+   return m_size[level].second;
+}
+
+void SizedObjectState::set_size(unsigned level, unsigned w, unsigned h)
+{
+   assert(level < m_size.size());
+   m_size[level] = std::make_pair(w, h);
+}
+
 }
