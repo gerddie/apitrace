@@ -509,16 +509,17 @@ void StateImpl::DeleteLists(PCall call)
 
 void StateImpl::DrawElements(PCall call)
 {
+   (void)call;
+
    auto buf = m_bound_buffers[GL_ELEMENT_ARRAY_BUFFER];
    if (buf) {
       if (m_in_target_frame)
          buf->emit_calls_to_list(m_required_calls);
 
-		if (m_draw_framebuffer)
-			buf->emit_calls_to_list(m_draw_framebuffer->state_calls());
-
-		buf->use(call);
-	}
+      if (m_draw_framebuffer)
+         buf->emit_calls_to_list(m_draw_framebuffer->state_calls());
+      buf->use();
+   }
 }
 
 void StateImpl::record_va_enables(PCall call)
@@ -833,11 +834,11 @@ void StateImpl::VertexAttribPointer(PCall call)
    auto buf = m_bound_buffers[GL_ARRAY_BUFFER];
    if (buf) {
       m_active_program->set_va(call->arg(0).toUInt(), buf);
-		if (m_in_target_frame)
-			buf->emit_calls_to_list(m_required_calls);
-		else if (m_draw_framebuffer)
-			buf->emit_calls_to_list(m_draw_framebuffer->state_calls());
-		buf->use(call);
+      if (m_in_target_frame)
+         buf->emit_calls_to_list(m_required_calls);
+      else if (m_draw_framebuffer)
+         buf->emit_calls_to_list(m_draw_framebuffer->state_calls());
+      buf->use(call);
    } else
       std::cerr << "Calling VertexAttribPointer without bound ARRAY_BUFFER, ignored\n";
 }

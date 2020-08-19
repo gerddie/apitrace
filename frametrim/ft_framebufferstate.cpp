@@ -58,7 +58,7 @@ void FramebufferState::attach(unsigned attachment, PCall call,
 
 void FramebufferState::draw(PCall call)
 {
-   m_draw.insert(call);
+   append_call(call);
 }
 
 CallSet& FramebufferState::state_calls()
@@ -87,26 +87,25 @@ void FramebufferState::clear(PCall call)
    unsigned flags = m_attached_buffer_types & ~call->arg(0).toUInt();
 
    if (m_viewport_full_size && !flags)
-      m_draw.clear();
+      reset_callset();
 
-   m_draw.insert(m_bind_call);
+   append_call(m_bind_call);
 
-   m_draw.insert(call);
+   append_call(call);
 }
 
 
 void FramebufferState::do_emit_calls_to_list(CallSet& list) const
 {
    if (m_bind_call)  {
-		if (list.m_debug)
-			std::cerr << "Emit calls for FBO " << id() << "\n";
+      if (list.m_debug)
+         std::cerr << "Emit calls for FBO " << id() << "\n";
 
       emit_gen_call(list);
 
       list.insert(m_bind_call);
       list.insert(m_attach_calls);
       list.insert(m_draw_prepare);
-      list.insert(m_draw);
 
       for(auto& a: m_attachments)
          if (a.second)

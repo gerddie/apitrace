@@ -18,7 +18,8 @@ void BufferState::use(PCall call)
 {
    m_data_use_set.clear();
    m_data_use_set.insert(m_last_bind_call);
-   m_data_use_set.insert(call);
+   if (call)
+      m_data_use_set.insert(call);
 }
 
 void BufferState::do_emit_calls_to_list(CallSet& list) const

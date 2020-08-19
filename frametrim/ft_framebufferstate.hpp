@@ -32,7 +32,6 @@ private:
 
    CallSet m_attach_calls;
    CallSet m_draw_prepare;
-   CallSet m_draw;
 
    unsigned m_width, m_height;
    bool m_viewport_full_size;
