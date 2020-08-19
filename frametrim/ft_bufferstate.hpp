@@ -8,7 +8,7 @@ namespace frametrim {
 class BufferState : public GenObjectState
 {
 public:
-   using GenObjectState::GenObjectState;
+   BufferState(GLint glID, PCall gen_call);
 
    void bind(PCall call);
    void data(PCall call);

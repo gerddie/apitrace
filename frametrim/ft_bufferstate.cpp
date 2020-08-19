@@ -2,6 +2,13 @@
 
 namespace frametrim {
 
+BufferState::BufferState(GLint glID, PCall gen_call):
+   GenObjectState(glID, gen_call),
+   m_last_bind_call_dirty(false)
+{
+
+}
+
 void BufferState::bind(PCall call)
 {
    m_last_bind_call = call;
@@ -13,6 +20,7 @@ void BufferState::data(PCall call)
    m_data_upload_set.clear();
 
    m_data_upload_set.insert(m_last_bind_call);
+   m_last_bind_call_dirty = false;
    m_data_upload_set.insert(call);
 }
 
