@@ -25,7 +25,7 @@ public:
 
 private:
 
-   void do_append_calls_to(CallSet& list) const override;
+   void do_emit_calls_to_list(CallSet& list) const override;
 
    PCall m_bind_call;
    PCall m_viewport_call;
@@ -60,7 +60,7 @@ public:
 
 private:
 
-   void do_append_calls_to(CallSet& list) const override;
+   void do_emit_calls_to_list(CallSet& list) const override;
 
    PCall m_set_storage_call;
 

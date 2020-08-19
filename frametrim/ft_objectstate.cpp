@@ -14,11 +14,11 @@ unsigned ObjectState::id() const
    return m_glID;
 }
 
-void ObjectState::append_calls_to(CallSet& list) const
+void ObjectState::emit_calls_to_list(CallSet& list) const
 {
    if (!m_submitted) {
       m_submitted = true;
-      do_append_calls_to(list);
+      do_emit_calls_to_list(list);
       list.insert(m_gen_calls.begin(), m_gen_calls.end());
       list.insert(m_calls.begin(), m_calls.end());
       m_submitted = false;
@@ -40,7 +40,7 @@ CallSet& ObjectState::calls()
    return m_calls;
 }
 
-void ObjectState::do_append_calls_to(CallSet &list) const
+void ObjectState::do_emit_calls_to_list(CallSet &list) const
 {
    (void)list;
 }

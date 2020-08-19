@@ -45,10 +45,10 @@ void ProgramState::bind(PCall call)
 }
 
 
-void ProgramState::do_append_calls_to(CallSet& list) const
+void ProgramState::do_emit_calls_to_list(CallSet& list) const
 {
    for(auto& s : m_shaders)
-      s.second->append_calls_to(list);
+      s.second->emit_calls_to_list(list);
 
    if (m_last_bind) {
       list.insert(m_last_bind);
@@ -57,7 +57,7 @@ void ProgramState::do_append_calls_to(CallSet& list) const
          list.insert(s.second);
 
       for (auto& va: m_va)
-         va.second->append_calls_to(list);
+         va.second->emit_calls_to_list(list);
    }
 }
 

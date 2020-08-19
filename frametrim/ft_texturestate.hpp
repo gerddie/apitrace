@@ -18,7 +18,7 @@ public:
    void rendertarget_of(unsigned layer, PFramebufferState fbo);
 
 private:
-   virtual void do_append_calls_to(CallSet& list) const;
+   virtual void do_emit_calls_to_list(CallSet& list) const;
 
    PCall m_last_unit_call;
    PCall m_last_bind_call;

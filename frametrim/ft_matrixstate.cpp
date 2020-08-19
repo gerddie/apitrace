@@ -20,10 +20,10 @@ void MatrixState::identity(PCall call)
    append_call(call);
 }
 
-void MatrixState::do_append_calls_to(CallSet& list) const
+void MatrixState::do_emit_calls_to_list(CallSet& list) const
 {
    if (m_parent)
-      m_parent->append_calls_to(list);
+      m_parent->emit_calls_to_list(list);
 }
 
 }

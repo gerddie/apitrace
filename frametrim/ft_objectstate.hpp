@@ -29,17 +29,16 @@ public:
    unsigned id() const;
 
    void append_gen_call(PCall call);
+
    void append_call(PCall call);
 
-   void append_calls_to(CallSet& list) const;
-
-
+   void emit_calls_to_list(CallSet& list) const;
 
    CallSet& calls();
 
 private:
 
-   virtual void do_append_calls_to(CallSet& list) const;
+   virtual void do_emit_calls_to_list(CallSet& list) const;
 
    GLint m_glID;
 

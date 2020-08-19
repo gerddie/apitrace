@@ -88,7 +88,7 @@ void FramebufferState::clear(PCall call)
 }
 
 
-void FramebufferState::do_append_calls_to(CallSet& list) const
+void FramebufferState::do_emit_calls_to_list(CallSet& list) const
 {
    if (m_bind_call)  {
       emit_gen_call(list);
@@ -100,7 +100,7 @@ void FramebufferState::do_append_calls_to(CallSet& list) const
 
       for(auto& a: m_attachments)
          if (a.second)
-            a.second->append_calls_to(list);
+            a.second->emit_calls_to_list(list);
    }
 }
 
@@ -128,7 +128,7 @@ void RenderbufferState::set_storage(PCall call)
    set_size(0, w, h);
 }
 
-void RenderbufferState::do_append_calls_to(CallSet& list) const
+void RenderbufferState::do_emit_calls_to_list(CallSet& list) const
 {
    emit_gen_call(list);
 
@@ -143,7 +143,7 @@ void RenderbufferState::do_append_calls_to(CallSet& list) const
 
    if (m_is_blit_source) {
       assert(m_data_source);
-      m_data_source->append_calls_to(list);
+      m_data_source->emit_calls_to_list(list);
    }
 }
 

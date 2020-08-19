@@ -21,7 +21,7 @@ void BufferState::use(PCall call)
    m_data_use_set.insert(call);
 }
 
-void BufferState::do_append_calls_to(CallSet& list) const
+void BufferState::do_emit_calls_to_list(CallSet& list) const
 {
    if (!m_data_use_set.empty()) {
       emit_gen_call(list);

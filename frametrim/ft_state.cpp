@@ -204,16 +204,16 @@ void StateImpl::collect_state_calls(CallSet& list) const
       list.insert(l.second);
 
    if (!m_mv_matrix.empty())
-      m_mv_matrix.top()->append_calls_to(list);
+      m_mv_matrix.top()->emit_calls_to_list(list);
 
    if (!m_proj_matrix.empty())
-      m_proj_matrix.top()->append_calls_to(list);
+      m_proj_matrix.top()->emit_calls_to_list(list);
 
    if (!m_texture_matrix.empty())
-      m_texture_matrix.top()->append_calls_to(list);
+      m_texture_matrix.top()->emit_calls_to_list(list);
 
    if (!m_color_matrix.empty())
-      m_color_matrix.top()->append_calls_to(list);
+      m_color_matrix.top()->emit_calls_to_list(list);
 
    /* Set vertex attribute array pointers only if they are enabled */
    for(auto& va : m_vertex_attr_pointer) {
@@ -226,16 +226,16 @@ void StateImpl::collect_state_calls(CallSet& list) const
    }
 
    for (auto& va: m_vertex_arrays)
-      va.second->append_calls_to(list);
+      va.second->emit_calls_to_list(list);
 
    for (auto& buf: m_bound_buffers)
-      buf.second->append_calls_to(list);
+      buf.second->emit_calls_to_list(list);
 
    for (auto& tex: m_bound_texture)
-      tex.second->append_calls_to(list);
+      tex.second->emit_calls_to_list(list);
 
    if (m_active_program)
-      m_active_program->append_calls_to(list);
+      m_active_program->emit_calls_to_list(list);
 
    if (m_draw_framebuffer_call)
       list.insert(m_draw_framebuffer_call);
@@ -420,7 +420,7 @@ void StateImpl::BindTexture(PCall call)
          tex->bind_unit(call, m_active_texture_unit_call);
 
          if (m_in_target_frame) {
-            tex->append_calls_to(m_required_calls);
+            tex->emit_calls_to_list(m_required_calls);
          }
       }
    } else
@@ -464,7 +464,7 @@ void StateImpl::CallList(PCall call)
    if (m_in_target_frame) {
       auto list  = m_display_lists.find(call->arg(0).toUInt());
       assert(list != m_display_lists.end());
-      list->second->append_calls_to(m_required_calls);
+      list->second->emit_calls_to_list(m_required_calls);
    }
 }
 
@@ -508,7 +508,7 @@ void StateImpl::DrawElements(PCall call)
    if (buf) {
       buf->use(call);
       if (m_in_target_frame)
-         buf->append_calls_to(m_required_calls);
+         buf->emit_calls_to_list(m_required_calls);
    }
 }
 
@@ -795,14 +795,14 @@ void StateImpl::UseProgram(PCall call)
 
    if (m_in_target_frame) {
       if (m_active_program)
-         m_active_program->append_calls_to(m_required_calls);
+         m_active_program->emit_calls_to_list(m_required_calls);
       else
          m_required_calls.insert(call);
    }
 
    if (m_draw_framebuffer) {
       if (m_active_program)
-         m_active_program->append_calls_to(m_draw_framebuffer->state_calls());
+         m_active_program->emit_calls_to_list(m_draw_framebuffer->state_calls());
       else
          m_draw_framebuffer->draw(call);
    }
