@@ -68,6 +68,8 @@ CallSet& FramebufferState::state_calls()
 
 void FramebufferState::set_viewport(PCall call)
 {
+	std::cerr << "FBO " << id() << " set viewport\n";
+
    m_viewport_call = call;
    m_viewport_full_size =
          call->arg(0).toUInt() == 0 &&
@@ -98,6 +100,9 @@ void FramebufferState::clear(PCall call)
 void FramebufferState::do_emit_calls_to_list(CallSet& list) const
 {
    if (m_bind_call)  {
+		if (list.m_debug)
+			std::cerr << "Emit calls for FBO " << id() << "\n";
+
       emit_gen_call(list);
 
       list.insert(m_bind_call);
@@ -108,7 +113,11 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
       for(auto& a: m_attachments)
          if (a.second)
             a.second->emit_calls_to_list(list);
-   }
+
+		if (list.m_debug)
+			std::cerr << "Done FBO " << id() << "\n";
+	}
+
 }
 
 RenderbufferState::RenderbufferState(GLint glID, PCall gen_call):

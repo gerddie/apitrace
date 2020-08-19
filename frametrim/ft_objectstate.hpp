@@ -8,6 +8,8 @@
 #include <memory>
 #include <set>
 
+#include <iostream>
+
 namespace frametrim {
 
 using PCall=std::shared_ptr<trace::Call>;
@@ -23,14 +25,24 @@ class CallSet {
 
 public:
 
+	CallSet(bool debug=false):m_debug(debug) {}
+
+	bool m_debug;
+
 	using iterator = std::set<PCall>::iterator;
 	using const_iterator = std::set<PCall>::const_iterator;
 
 	void insert(PCall call) {
+		if (m_debug)
+			std::cerr << "Insert: " << call->no << " " << call->name() << "\n";
 		m_calls.insert(call);
 	}
 
 	void insert(const CallSet& calls) {
+		if (m_debug) {
+			for (auto& c: calls)
+				std::cerr << "Insert: " << c->no << " " << c->name() << "\n";
+		}
 		m_calls.insert(calls.begin(), calls.end());
 	}
 

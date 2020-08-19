@@ -251,7 +251,8 @@ void StateImpl::start_target_farme()
 
 StateImpl::StateImpl():
    m_active_texture_unit(0),
-   m_in_target_frame(false)
+   m_in_target_frame(false),
+	m_required_calls(true)
 {
    m_mv_matrix.push(make_shared<MatrixState>(nullptr));
    m_current_matrix = m_mv_matrix.top();
