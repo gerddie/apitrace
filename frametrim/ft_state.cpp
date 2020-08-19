@@ -228,8 +228,8 @@ void StateImpl::collect_state_calls(CallSet& list) const
    for (auto& va: m_vertex_arrays)
       va.second->emit_calls_to_list(list);
 
-/*   for (auto& buf: m_bound_buffers)
-      buf.second->emit_calls_to_list(list); */
+   for (auto& buf: m_bound_buffers)
+      buf.second->emit_calls_to_list(list);
 
    for (auto& tex: m_bound_texture)
       tex.second->emit_calls_to_list(list);

@@ -89,10 +89,8 @@ void FramebufferState::clear(PCall call)
    if (m_viewport_full_size && !flags)
       m_draw.clear();
 
-	m_draw.insert(m_bind_call);
+   m_draw.insert(m_bind_call);
 
-   if(m_viewport_call)
-      m_draw.insert(m_viewport_call);
    m_draw.insert(call);
 }
 
