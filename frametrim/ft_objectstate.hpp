@@ -30,11 +30,13 @@ public:
 
    void append_gen_call(PCall call);
 
-   void append_call(PCall call);
-
    void emit_calls_to_list(CallSet& list) const;
 
-   CallSet& calls();
+   void append_call(PCall call);
+
+protected:
+
+   void reset_callset();
 
 private:
 
@@ -42,16 +44,11 @@ private:
 
    GLint m_glID;
 
-   uint64_t m_goid;
-
    CallSet m_gen_calls;
 
-   /* Call chain that leads to the current state of this object */
    CallSet m_calls;
 
-   mutable bool m_submitted;
-
-   static uint64_t g_next_object_id;
+   mutable bool m_emitting;
 };
 
 using PObjectState=std::shared_ptr<ObjectState>;

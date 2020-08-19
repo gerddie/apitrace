@@ -11,12 +11,19 @@ MatrixState::MatrixState(MatrixState::Pointer parent):
 
 }
 
-void MatrixState::identity(PCall call)
+void MatrixState::select_matrixtype(PCall call)
+{
+   m_type_select_call = call;
+}
+
+void MatrixState::set_matrix(PCall call)
 {
    assert(!strcmp(call->name(), "glLoadIdentity") ||
           !strncmp(call->name(), "glLoadMatrix", 12));
 
    m_parent = nullptr;
+   reset_callset();
+   append_call(m_type_select_call);
    append_call(call);
 }
 

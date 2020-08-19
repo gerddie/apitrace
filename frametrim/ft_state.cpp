@@ -670,12 +670,12 @@ void StateImpl::program_call(PCall call)
 
 void StateImpl::LoadIdentity(PCall call)
 {
-   m_current_matrix->identity(call);
+   m_current_matrix->set_matrix(call);
 }
 
 void StateImpl::LoadMatrix(PCall call)
 {
-   m_current_matrix->identity(call);
+   m_current_matrix->set_matrix(call);
 }
 
 void StateImpl::Material(PCall call)
@@ -707,7 +707,7 @@ void StateImpl::MatrixMode(PCall call)
       m_current_matrix_stack->push(make_shared<MatrixState>(nullptr));
 
    m_current_matrix = m_current_matrix_stack->top();
-   m_current_matrix->append_call(call);
+   m_current_matrix->select_matrixtype(call);
 }
 
 void StateImpl::NewList(PCall call)

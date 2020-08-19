@@ -4,8 +4,7 @@ namespace frametrim {
 
 ObjectState::ObjectState(GLint glID):
    m_glID(glID),
-   m_goid(g_next_object_id++),
-   m_submitted(false)
+   m_emitting(false)
 {
 }
 
@@ -16,12 +15,19 @@ unsigned ObjectState::id() const
 
 void ObjectState::emit_calls_to_list(CallSet& list) const
 {
-   if (!m_submitted) {
-      m_submitted = true;
-      do_emit_calls_to_list(list);
+   /* Because of circular references (e.g. FBO and texture attachments that
+    * gets used later) we need to make sure we only emit this series once,
+    * otherwise we might end up with a stack overflow.
+    */
+   if (!m_emitting) {
+      m_emitting = true;
+
       list.insert(m_gen_calls.begin(), m_gen_calls.end());
       list.insert(m_calls.begin(), m_calls.end());
-      m_submitted = false;
+
+      do_emit_calls_to_list(list);
+
+      m_emitting = false;
    }
 }
 
@@ -35,9 +41,9 @@ void ObjectState::append_call(PCall call)
    m_calls.insert(call);
 }
 
-CallSet& ObjectState::calls()
+void ObjectState::reset_callset()
 {
-   return m_calls;
+   m_calls.clear();
 }
 
 void ObjectState::do_emit_calls_to_list(CallSet &list) const
@@ -45,5 +51,4 @@ void ObjectState::do_emit_calls_to_list(CallSet &list) const
    (void)list;
 }
 
-uint64_t ObjectState::g_next_object_id = 0;
 }

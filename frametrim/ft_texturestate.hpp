@@ -8,7 +8,7 @@ namespace frametrim {
 class TextureState : public SizedObjectState
 {
 public:
-   using SizedObjectState::SizedObjectState;
+   TextureState(GLint glID, PCall gen_call);
 
    void bind_unit(PCall bind, PCall unit);
 

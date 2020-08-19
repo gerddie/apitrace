@@ -18,7 +18,6 @@ unsigned ShaderState::stage() const
 
 ProgramState::ProgramState(unsigned id):
    ObjectState(id)
-
 {
 
 }
@@ -43,7 +42,6 @@ void ProgramState::bind(PCall call)
    m_last_bind = call;
    m_uniforms.clear();
 }
-
 
 void ProgramState::do_emit_calls_to_list(CallSet& list) const
 {

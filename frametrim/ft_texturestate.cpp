@@ -3,6 +3,12 @@
 
 namespace frametrim {
 
+TextureState::TextureState(GLint glID, PCall gen_call):
+   SizedObjectState(glID, gen_call, texture)
+{
+
+}
+
 void TextureState::bind_unit(PCall b, PCall unit)
 {
    m_last_bind_call = b;

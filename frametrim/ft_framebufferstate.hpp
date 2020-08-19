@@ -41,7 +41,7 @@ private:
    unsigned m_attached_color_buffer_mask;
 
    std::unordered_map<unsigned, PCall> m_attachment_call;
-   std::unordered_map<unsigned, PGenObjectState> m_attachments;
+   std::unordered_map<unsigned, PSizedObjectState> m_attachments;
 
 };
 
@@ -50,7 +50,7 @@ using PFramebufferState = std::shared_ptr<FramebufferState>;
 class RenderbufferState : public SizedObjectState
 {
 public:
-   using SizedObjectState::SizedObjectState;
+   RenderbufferState(GLint glID, PCall gen_call);
 
    void attach(PCall call, bool read, PFramebufferState write_fb);
 

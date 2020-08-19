@@ -24,6 +24,10 @@ void FramebufferState::bind(PCall call)
 void FramebufferState::attach(unsigned attachemnt, PCall call,
                               PSizedObjectState att)
 {
+   if (m_attachments[attachemnt] &&
+       (*m_attachments[attachemnt] == *att))
+      return;
+
    m_attachments[attachemnt] = att;
    m_attachment_call[attachemnt] = call;
    m_attach_calls.insert(m_bind_call);
@@ -102,6 +106,11 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
          if (a.second)
             a.second->emit_calls_to_list(list);
    }
+}
+
+RenderbufferState::RenderbufferState(GLint glID, PCall gen_call):
+   SizedObjectState(glID, gen_call, renderbuffer)
+{
 }
 
 void RenderbufferState::attach(PCall call, bool read, PFramebufferState write_fb)

@@ -10,7 +10,7 @@ orig_img=$5
 
 echo "Run tests $trace" 
 
-rm trace0*.png
+rm ${trace}0*.png
 
 ${trim} "${datadir}/${trace}" --frames ${frame} -o trim-${trace}
 ${apitrace} replay --headless "${datadir}/${trace}" --snapshot=${orig_img} --snapshot-prefix=orig || exit 1
