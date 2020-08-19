@@ -82,8 +82,9 @@ void FramebufferState::clear(PCall call)
     * so we can forget all older draw calls
     * FIXME: Technically it is possible that some buffer is masked out and
     * its contents should be retained from earlier draw calls. */
-   if (m_viewport_full_size &&
-       m_attached_buffer_types == call->arg(0).toUInt())
+   unsigned flags = m_attached_buffer_types & ~call->arg(0).toUInt();
+
+   if (m_viewport_full_size && !flags)
       m_draw.clear();
 
    if(m_viewport_call)
