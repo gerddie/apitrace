@@ -25,8 +25,8 @@ void BufferState::do_emit_calls_to_list(CallSet& list) const
 {
    if (!m_data_use_set.empty()) {
       emit_gen_call(list);
-      list.insert(m_data_upload_set.begin(), m_data_upload_set.end());
-      list.insert(m_data_use_set.begin(), m_data_use_set.end());
+      list.insert(m_data_upload_set);
+      list.insert(m_data_use_set);
    }
 }
 

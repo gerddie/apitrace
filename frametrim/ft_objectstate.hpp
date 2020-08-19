@@ -19,7 +19,49 @@ struct pcall_less {
    }
 };
 
-using CallSet = std::set<PCall>;
+class CallSet {
+
+public:
+
+	using iterator = std::set<PCall>::iterator;
+	using const_iterator = std::set<PCall>::const_iterator;
+
+	void insert(PCall call) {
+		m_calls.insert(call);
+	}
+
+	void insert(const CallSet& calls) {
+		m_calls.insert(calls.begin(), calls.end());
+	}
+
+	iterator begin() {
+		return m_calls.begin();
+	}
+
+	const_iterator begin() const {
+		return m_calls.begin();
+	}
+
+	iterator end() {
+		return m_calls.end();
+	}
+
+	const_iterator end() const {
+		return m_calls.end();
+	}
+
+	void clear() {
+		m_calls.clear();
+	}
+
+	bool empty() const {
+		return m_calls.empty();
+	}
+
+private:
+	std::set<PCall> m_calls;
+};
+
 
 class ObjectState
 {

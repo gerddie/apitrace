@@ -101,9 +101,9 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
       emit_gen_call(list);
 
       list.insert(m_bind_call);
-      list.insert(m_attach_calls.begin(), m_attach_calls.end());
-      list.insert(m_draw_prepare.begin(), m_draw_prepare.end());
-      list.insert(m_draw.begin(), m_draw.end());
+      list.insert(m_attach_calls);
+      list.insert(m_draw_prepare);
+      list.insert(m_draw);
 
       for(auto& a: m_attachments)
          if (a.second)

@@ -22,8 +22,8 @@ void ObjectState::emit_calls_to_list(CallSet& list) const
    if (!m_emitting) {
       m_emitting = true;
 
-      list.insert(m_gen_calls.begin(), m_gen_calls.end());
-      list.insert(m_calls.begin(), m_calls.end());
+      list.insert(m_gen_calls);
+      list.insert(m_calls);
 
       do_emit_calls_to_list(list);
 
