@@ -50,6 +50,7 @@ struct StateImpl {
    void BindRenderbuffer(PCall call);
    void BindTexture(PCall call);
    void BufferData(PCall call);
+   void BufferSubData(PCall call);
    void BindProgram(PCall call);
    void CallList(PCall call);
    void Clear(PCall call);
@@ -131,7 +132,7 @@ struct StateImpl {
    PCall m_active_texture_unit_call;
 
    std::unordered_map<GLint, PObjectState> m_vertex_arrays;
-   std::unordered_map<GLint, PCall> m_vertex_attr_pointer;
+   std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
 
    std::unordered_map<GLint, PFramebufferState> m_framebuffers;
    PFramebufferState m_draw_framebuffer;
@@ -220,7 +221,7 @@ void StateImpl::collect_state_calls(CallSet& list) const
       auto vae = m_va_enables.find(va.first);
       if (vae != m_va_enables.end() &&
           !strcmp(vae->second->name(), "glEnableVertexAttribArray")) {
-         list.insert(va.second);
+         va.second->emit_calls_to_list(list);
          list.insert(vae->second);
       }
    }
@@ -435,6 +436,13 @@ void StateImpl::BufferData(PCall call)
    m_bound_buffers[target]->data(call);
 }
 
+void StateImpl::BufferSubData(PCall call)
+{
+   unsigned target = call->arg(0).toUInt();
+   m_bound_buffers[target]->append_data(call);
+}
+
+
 void StateImpl::BindProgram(PCall call)
 {
    GLint program_id = call->arg(0).toSInt();
@@ -463,14 +471,14 @@ void StateImpl::BindRenderbuffer(PCall call)
 
 void StateImpl::CallList(PCall call)
 {
-	auto list  = m_display_lists.find(call->arg(0).toUInt());
-	assert(list != m_display_lists.end());
+   auto list  = m_display_lists.find(call->arg(0).toUInt());
+   assert(list != m_display_lists.end());
 
-	if (m_in_target_frame)
+   if (m_in_target_frame)
       list->second->emit_calls_to_list(m_required_calls);
 
-	if (m_draw_framebuffer)
-		list->second->emit_calls_to_list(m_draw_framebuffer->state_calls());
+   if (m_draw_framebuffer)
+      list->second->emit_calls_to_list(m_draw_framebuffer->state_calls());
 }
 
 void StateImpl::Clear(PCall call)
@@ -833,7 +841,10 @@ void StateImpl::VertexAttribPointer(PCall call)
 {
    auto buf = m_bound_buffers[GL_ARRAY_BUFFER];
    if (buf) {
-      m_active_program->set_va(call->arg(0).toUInt(), buf);
+      m_vertex_attr_pointer[call->arg(0).toUInt()] = buf;
+
+      if (m_active_program)
+         m_active_program->set_va(call->arg(0).toUInt(), buf);
       if (m_in_target_frame)
          buf->emit_calls_to_list(m_required_calls);
       else if (m_draw_framebuffer)
@@ -916,6 +927,7 @@ void StateImpl::register_callbacks()
    MAP(glBlendFunc, record_state_call);
 
    MAP(glBufferData, BufferData);
+   MAP(glBufferSubData, BufferSubData);
 
    MAP(glCallList, CallList);
    MAP(glCullFace, record_state_call);
@@ -965,16 +977,21 @@ void StateImpl::register_callbacks()
    MAP(glGenRenderbuffer, GenRenderbuffer);
    MAP(glGenVertexArrays, GenVertexArrays);
    MAP(glGetUniformLocation, program_call);
+   MAP(glGetAttribLocation, program_call);
 
    MAP(glGetInteger, history_ignore);
    MAP(glGetProgram, history_ignore);
    MAP(glGetShader, history_ignore);
    MAP(glGetString, history_ignore);
+   MAP(glGetFloat, history_ignore);
+   MAP(glIsEnabled, history_ignore);
 
    MAP(glLight, Light);
+   MAP(glLineWidth, record_state_call);
    MAP(glLinkProgram, program_call);
    MAP(glUseProgram, UseProgram);
    MAP(glVertexAttribPointer, VertexAttribPointer);
+
    MAP(glLoadIdentity, LoadIdentity);
    MAP(glMaterial, Material);
    MAP(glLoadMatrix, LoadMatrix);
@@ -1014,6 +1031,7 @@ void StateImpl::register_callbacks()
    MAP(glXGetFBConfigs, history_ignore);
    MAP(glXGetVisualFromFBConfig, history_ignore);
    MAP(glXGetCurrentDisplay, history_ignore);
+   MAP(glXGetCurrentDrawable, history_ignore);
 
 #undef MAP
 /*

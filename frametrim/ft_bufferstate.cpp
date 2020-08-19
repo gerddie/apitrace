@@ -5,12 +5,23 @@ namespace frametrim {
 void BufferState::bind(PCall call)
 {
    m_last_bind_call = call;
+   m_last_bind_call_dirty = true;
 }
 
 void BufferState::data(PCall call)
 {
    m_data_upload_set.clear();
+
    m_data_upload_set.insert(m_last_bind_call);
+   m_data_upload_set.insert(call);
+}
+
+void BufferState::append_data(PCall call)
+{
+   if (m_last_bind_call_dirty) {
+      m_data_upload_set.insert(m_last_bind_call);
+      m_last_bind_call_dirty = false;
+   }
    m_data_upload_set.insert(call);
 }
 

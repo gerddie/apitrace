@@ -12,6 +12,7 @@ public:
 
    void bind(PCall call);
    void data(PCall call);
+   void append_data(PCall call);
    void use(PCall call = nullptr);
 
 private:
@@ -20,6 +21,7 @@ private:
    PCall m_last_bind_call;
    CallSet m_data_upload_set;
    CallSet m_data_use_set;
+   bool m_last_bind_call_dirty;
 };
 
 using PBufferState = std::shared_ptr<BufferState>;
