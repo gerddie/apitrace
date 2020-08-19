@@ -21,15 +21,15 @@ void FramebufferState::bind(PCall call)
    m_bind_call = call;
 }
 
-void FramebufferState::attach(unsigned attachemnt, PCall call,
+void FramebufferState::attach(unsigned attachment, PCall call,
                               PSizedObjectState att)
 {
-   if (m_attachments[attachemnt] &&
-       (*m_attachments[attachemnt] == *att))
+   if (m_attachments[attachment] &&
+       (*m_attachments[attachment] == *att))
       return;
 
-   m_attachments[attachemnt] = att;
-   m_attachment_call[attachemnt] = call;
+   m_attachments[attachment] = att;
+   m_attachment_call[attachment] = call;
    m_attach_calls.insert(m_bind_call);
    m_attach_calls.insert(call);
 
@@ -86,6 +86,8 @@ void FramebufferState::clear(PCall call)
 
    if (m_viewport_full_size && !flags)
       m_draw.clear();
+
+	m_draw.insert(m_bind_call);
 
    if(m_viewport_call)
       m_draw.insert(m_viewport_call);

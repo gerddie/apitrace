@@ -13,7 +13,7 @@ public:
 
    void bind(PCall call);
 
-   void attach(unsigned attachemnt, PCall call, PSizedObjectState att);
+   void attach(unsigned attachment, PCall call, PSizedObjectState att);
 
    void draw(PCall call);
 

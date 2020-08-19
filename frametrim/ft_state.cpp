@@ -228,8 +228,8 @@ void StateImpl::collect_state_calls(CallSet& list) const
    for (auto& va: m_vertex_arrays)
       va.second->emit_calls_to_list(list);
 
-   for (auto& buf: m_bound_buffers)
-      buf.second->emit_calls_to_list(list);
+/*   for (auto& buf: m_bound_buffers)
+      buf.second->emit_calls_to_list(list); */
 
    for (auto& tex: m_bound_texture)
       tex.second->emit_calls_to_list(list);
@@ -302,8 +302,7 @@ void StateImpl::call(PCall call)
 
    if (m_in_target_frame)
       m_required_calls.insert(call);
-
-   if (m_draw_framebuffer)
+   else if (m_draw_framebuffer)
       m_draw_framebuffer->draw(call);
 }
 
@@ -421,7 +420,9 @@ void StateImpl::BindTexture(PCall call)
 
          if (m_in_target_frame) {
             tex->emit_calls_to_list(m_required_calls);
-         }
+			}
+			if (m_draw_framebuffer)
+				tex->emit_calls_to_list(m_draw_framebuffer->state_calls());
       }
    } else
       m_bound_texture.erase(target_unit);
@@ -461,11 +462,14 @@ void StateImpl::BindRenderbuffer(PCall call)
 
 void StateImpl::CallList(PCall call)
 {
-   if (m_in_target_frame) {
-      auto list  = m_display_lists.find(call->arg(0).toUInt());
-      assert(list != m_display_lists.end());
+	auto list  = m_display_lists.find(call->arg(0).toUInt());
+	assert(list != m_display_lists.end());
+
+	if (m_in_target_frame)
       list->second->emit_calls_to_list(m_required_calls);
-   }
+
+	if (m_draw_framebuffer)
+		list->second->emit_calls_to_list(m_draw_framebuffer->state_calls());
 }
 
 void StateImpl::Clear(PCall call)
@@ -495,7 +499,7 @@ void StateImpl::DeleteLists(PCall call)
 {
    GLint value = call->arg(0).toUInt();
    GLint value_end = call->arg(1).toUInt() + value;
-   for(unsigned i = value; i < value_end; ++i) {
+   for(int i = value; i < value_end; ++i) {
       auto list  = m_display_lists.find(call->arg(0).toUInt());
       assert(list != m_display_lists.end());
       m_display_lists.erase(list);
@@ -506,10 +510,14 @@ void StateImpl::DrawElements(PCall call)
 {
    auto buf = m_bound_buffers[GL_ELEMENT_ARRAY_BUFFER];
    if (buf) {
-      buf->use(call);
       if (m_in_target_frame)
          buf->emit_calls_to_list(m_required_calls);
-   }
+
+		if (m_draw_framebuffer)
+			buf->emit_calls_to_list(m_draw_framebuffer->state_calls());
+
+		buf->use(call);
+	}
 }
 
 void StateImpl::record_va_enables(PCall call)
@@ -565,16 +573,16 @@ void StateImpl::FramebufferTexture(PCall call)
 {
    unsigned layer = 0;
    unsigned textarget = 0;
-   unsigned has_tex_harfet = textarget  > 0;
+   unsigned has_tex_target = strcmp("glFramebufferTexture", call->name()) != 0;
 
    unsigned target = call->arg(0).toUInt();
    unsigned attachment = call->arg(1).toUInt();
 
-   if (has_tex_harfet)
+   if (has_tex_target)
       textarget = call->arg(2).toUInt();
 
-   unsigned texid = call->arg(2 + has_tex_harfet).toUInt();
-   unsigned level = call->arg(3 + has_tex_harfet).toUInt();
+   unsigned texid = call->arg(2 + has_tex_target).toUInt();
+   unsigned level = call->arg(3 + has_tex_target).toUInt();
 
    if (!strcmp(call->name(), "glFramebufferTexture3D"))
       layer = call->arg(5).toUInt();
@@ -622,7 +630,6 @@ void StateImpl::GenRenderbuffer(PCall call)
       m_renderbuffers[v->toUInt()] = obj;
    }
 }
-
 
 void StateImpl::GenTextures(PCall call)
 {
@@ -824,8 +831,12 @@ void StateImpl::VertexAttribPointer(PCall call)
 {
    auto buf = m_bound_buffers[GL_ARRAY_BUFFER];
    if (buf) {
-      buf->use(call);
       m_active_program->set_va(call->arg(0).toUInt(), buf);
+		if (m_in_target_frame)
+			buf->emit_calls_to_list(m_required_calls);
+		else if (m_draw_framebuffer)
+			buf->emit_calls_to_list(m_draw_framebuffer->state_calls());
+		buf->use(call);
    } else
       std::cerr << "Calling VertexAttribPointer without bound ARRAY_BUFFER, ignored\n";
 }
