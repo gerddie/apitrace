@@ -67,6 +67,7 @@ struct StateImpl {
    void GenBuffers(PCall call);
    void GenFramebuffer(PCall call);
    void GenLists(PCall call);
+	void GenPrograms(PCall call);
 	void GenSamplers(PCall call);
    void GenTextures(PCall call);
    void GenVertexArrays(PCall call);
@@ -655,6 +656,16 @@ void StateImpl::GenTextures(PCall call)
    }
 }
 
+void StateImpl::GenPrograms(PCall call)
+{
+	const auto ids = (call->arg(1)).toArray();
+   for (auto& v : ids->values) {
+      auto obj = make_shared<ProgramState>(v->toUInt());
+      obj->append_call(call);
+      m_programs[v->toUInt()] = obj;
+   }
+}
+
 void StateImpl::GenSamplers(PCall call)
 {
    const auto ids = (call->arg(1)).toArray();
@@ -975,7 +986,9 @@ void StateImpl::register_callbacks()
    MAP(glEndList, EndList);
    MAP(glGenBuffers, GenBuffers);
    MAP(glGenFramebuffer, GenFramebuffer);
-   MAP(glGenSamplers, GenSamplers);
+	MAP(glGenProgram, GenPrograms);
+
+	MAP(glGenSamplers, GenSamplers);
 	MAP(glGenTexture, GenTextures);
 
    MAP(glGenLists, GenLists);
@@ -1060,10 +1073,12 @@ void StateImpl::register_state_calls()
 		"glBlendEquation",
 		"glBlendColor",
 		"glDepthMask",
+		"glStencilOpSeparate",
 		"glStencilFuncSeparate",
 		"glStencilMask",
 		"glClearDepth",
 		"glClearStencil",
+		"glScissor"
 	};
 
 	auto state_call_func = bind(&StateImpl::record_state_call, this, _1);
