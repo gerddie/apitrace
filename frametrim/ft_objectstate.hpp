@@ -79,6 +79,7 @@ class ObjectState
 {
 public:
    ObjectState(GLint glID);
+   virtual ~ObjectState();
 
    unsigned id() const;
 

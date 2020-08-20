@@ -8,6 +8,11 @@ ObjectState::ObjectState(GLint glID):
 {
 }
 
+ObjectState::~ObjectState()
+{
+   // only needed to be virtual
+}
+
 unsigned ObjectState::id() const
 {
    return m_glID;

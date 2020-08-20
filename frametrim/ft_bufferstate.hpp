@@ -9,6 +9,7 @@ class BufferState : public GenObjectState
 {
 public:
    BufferState(GLint glID, PCall gen_call);
+   ~BufferState();
 
    void bind(PCall call);
    void data(PCall call);
@@ -16,12 +17,9 @@ public:
    void use(PCall call = nullptr);
 
 private:
-   virtual void do_emit_calls_to_list(CallSet& list) const;
+   void do_emit_calls_to_list(CallSet& list) const override;
 
-   PCall m_last_bind_call;
-   CallSet m_data_upload_set;
-   CallSet m_data_use_set;
-   bool m_last_bind_call_dirty;
+   struct BufferStateImpl *impl;
 };
 
 using PBufferState = std::shared_ptr<BufferState>;
