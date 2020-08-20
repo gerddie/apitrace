@@ -40,6 +40,7 @@ struct StateImpl {
     void call(PCall call);
     void register_callbacks();
     void register_state_calls();
+    void register_ignore_history_calls();
 
 
     /* OpenGL calls */
@@ -72,7 +73,6 @@ struct StateImpl {
     void GenTextures(PCall call);
     void GenVertexArrays(PCall call);
     void GenRenderbuffer(PCall call);
-    void Light(PCall call);
     void program_call(PCall call);
     void LoadIdentity(PCall call);
     void LoadMatrix(PCall call);
@@ -97,7 +97,7 @@ struct StateImpl {
     void Viewport(PCall call);
     void VertexAttribPointer(PCall call);
 
-    void history_ignore(PCall call);
+    void ignore_history(PCall call);
     void todo(PCall call);
 
 
@@ -153,9 +153,6 @@ struct StateImpl {
     std::unordered_map<GLint, PRenderbufferState> m_renderbuffers;
     PRenderbufferState m_active_renderbuffer;
 
-
-    std::unordered_map<uint64_t, PCall> m_last_lights;
-
     std::unordered_map<std::string, PCall> m_state_calls;
 
     bool m_in_target_frame;
@@ -210,9 +207,6 @@ void StateImpl::collect_state_calls(CallSet& list) const
 
     for(auto& cap: m_enables)
         list.insert(cap.second);
-
-    for (auto& l: m_last_lights)
-        list.insert(l.second);
 
     if (!m_mv_matrix.empty())
         m_mv_matrix.top()->emit_calls_to_list(list);
@@ -309,6 +303,9 @@ void StateImpl::call(PCall call)
     } else {
         /* This should be some debug output only, because we might
        * not handle some calls deliberately */
+        if (cb_range.first != m_call_table.end())
+            std::cerr <<  "Found " << cb_range.first->first << " but don't like it\n";
+
         std::cerr << call->name() << " unhandled\n";
     }
 
@@ -705,12 +702,6 @@ void StateImpl::GenVertexArrays(PCall call)
     }
 }
 
-void StateImpl::Light(PCall call)
-{
-    auto light_id = call->arg(0).toUInt();
-    m_last_lights[light_id] = call;
-}
-
 void StateImpl::program_call(PCall call)
 {
     unsigned progid = call->arg(0).toUInt();
@@ -920,7 +911,7 @@ void StateImpl::record_required_call(PCall call)
         m_required_calls.insert(call);
 }
 
-void StateImpl::history_ignore(PCall call)
+void StateImpl::ignore_history(PCall call)
 {
     (void)call;
 }
@@ -965,7 +956,6 @@ void StateImpl::register_callbacks()
     MAP(glBufferData, BufferData);
     MAP(glBufferSubData, BufferSubData);
     MAP(glCallList, CallList);
-    MAP(glCheckFramebufferStatus, history_ignore);
     MAP(glClear, Clear);
     MAP(glColor2, Vertex);
     MAP(glColor3, Vertex);
@@ -974,15 +964,9 @@ void StateImpl::register_callbacks()
     MAP(glCompressedTexImage2D, texture_call);
     MAP(glCreateProgram, CreateProgram);
     MAP(glCreateShader, CreateShader);
-    MAP(glDeleteBuffers, history_ignore);
     MAP(glDeleteLists, DeleteLists);
-    MAP(glDeleteProgram, history_ignore);
-    MAP(glDeleteShader, history_ignore);
-    MAP(glDeleteVertexArrays, history_ignore);
-    MAP(glDetachShader, history_ignore);
     MAP(glDisable, record_enable);
     MAP(glDisableVertexAttribArray, record_va_enables);
-    MAP(glDrawArrays, history_ignore);
     MAP(glDrawElements, DrawElements);
     MAP(glEnable, record_enable);
     MAP(glEnableVertexAttribArray, record_va_enables);
@@ -1000,16 +984,7 @@ void StateImpl::register_callbacks()
     MAP(glGenVertexArrays, GenVertexArrays);
     MAP(glGenerateMipmap, texture_call);
     MAP(glGetAttribLocation, program_call);
-    MAP(glGetFloat, history_ignore);
-    MAP(glGetInfoLog, history_ignore);
-    MAP(glGetInteger, history_ignore);
-    MAP(glGetObjectParameter, history_ignore);
-    MAP(glGetProgram, history_ignore);
-    MAP(glGetShader, history_ignore);
-    MAP(glGetString, history_ignore);
     MAP(glGetUniformLocation, program_call);
-    MAP(glIsEnabled, history_ignore);
-    MAP(glLight, Light);
     MAP(glLinkProgram, program_call);
     MAP(glLoadIdentity, LoadIdentity);
     MAP(glLoadMatrix, LoadMatrix);
@@ -1039,27 +1014,54 @@ void StateImpl::register_callbacks()
     MAP(glXChooseVisual, record_required_call);
     MAP(glXCreateContext, record_required_call);
     MAP(glXDestroyContext, record_required_call);
-    MAP(glXGetClientString, history_ignore);
-    MAP(glXGetCurrentDisplay, history_ignore);
-    MAP(glXGetCurrentDrawable, history_ignore);
-    MAP(glXGetFBConfigAttrib, history_ignore);
-    MAP(glXGetFBConfigs, history_ignore);
     MAP(glXGetProcAddress, record_required_call);
     MAP(glXGetSwapIntervalMESA, record_required_call);
-    MAP(glXGetVisualFromFBConfig, history_ignore);
     MAP(glXMakeCurrent, record_required_call);
     MAP(glXQueryExtensionsString, record_required_call);
-    MAP(glXQueryVersion, history_ignore);
-    MAP(glXSwapBuffers, history_ignore);
-    /*
-   for(auto& x: m_call_table) {
-      std::cerr << "Mapped " << x.first << "\n";
-   }*/
+
     register_state_calls();
+    register_ignore_history_calls();
+}
+
+void StateImpl::register_ignore_history_calls()
+{
+    /* These functions are ignored outside required recordings
+     * TODO: Delete calls should probably really delete things */
+    const std::vector<const char *> ignore_history_calls = {
+        "glCheckFramebufferStatus",
+        "glDeleteBuffers",
+        "glDeleteProgram",
+        "glDeleteShader",
+        "glDeleteVertexArrays",
+        "glDetachShader",
+        "glDrawArrays",
+        "glGetFloat",
+        "glGetInfoLog",
+        "glGetInteger",
+        "glGetObjectParameter",
+        "glGetProgram",
+        "glGetShader",
+        "glGetString",
+        "glIsEnabled",
+        "glXGetClientString",
+        "glXGetCurrentDisplay",
+        "glXGetCurrentDrawable",
+        "glXGetFBConfigAttrib",
+        "glXGetFBConfigs",
+        "glXGetVisualFromFBConfig",
+        "glXQueryVersion",
+        "glXSwapBuffers",
+     };
+
+    auto ignore_history_func = bind(&StateImpl::ignore_history, this, _1);
+    for (auto& i : ignore_history_calls)
+        m_call_table.insert(std::make_pair(i, ignore_history_func));
 }
 
 void StateImpl::register_state_calls()
 {
+    /* These Functions change the state and we only need to remember the last
+     * call before the target frame or an fbo creating a dependency is draw. */
     const std::vector<const char *> state_calls  = {
         "glAlphaFunc",
         "glBindVertexArray",
@@ -1093,10 +1095,12 @@ void StateImpl::register_state_calls()
     for (auto& i : state_calls)
         m_call_table.insert(std::make_pair(i, state_call_func));
 
+    /* These are state functions with an extra parameter */
     auto state_call_ex_func = bind(&StateImpl::record_state_call_ex, this, _1);
     const std::vector<const char *> state_calls_ex  = {
         "glClipPlane",
-        "glColorMaskIndexedEXT"
+        "glColorMaskIndexedEXT",
+        "glLight",
         "glPixelStorei"
     };
 
