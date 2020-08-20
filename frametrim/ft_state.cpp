@@ -39,6 +39,8 @@ struct StateImpl {
 
    void call(PCall call);
    void register_callbacks();
+	void register_state_calls();
+
 
    /* OpenGL calls */
    void ActiveTexture(PCall call);
@@ -65,6 +67,7 @@ struct StateImpl {
    void GenBuffers(PCall call);
    void GenFramebuffer(PCall call);
    void GenLists(PCall call);
+	void GenSamplers(PCall call);
    void GenTextures(PCall call);
    void GenVertexArrays(PCall call);
    void GenRenderbuffer(PCall call);
@@ -125,11 +128,13 @@ struct StateImpl {
    std::unordered_map<GLint, PBufferState> m_buffers;
    std::unordered_map<GLint, PBufferState> m_bound_buffers;
 
-   // TODO: multitexture support
    std::unordered_map<GLint, PTextureState> m_textures;
    std::unordered_map<GLint, PTextureState> m_bound_texture;
    unsigned m_active_texture_unit;
    PCall m_active_texture_unit_call;
+
+	std::unordered_map<GLint, PGenObjectState> m_samplers;
+   std::unordered_map<GLint, PGenObjectState> m_bound_samplers;
 
    std::unordered_map<GLint, PObjectState> m_vertex_arrays;
    std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
@@ -468,7 +473,6 @@ void StateImpl::BindRenderbuffer(PCall call)
    }
 }
 
-
 void StateImpl::CallList(PCall call)
 {
    auto list  = m_display_lists.find(call->arg(0).toUInt());
@@ -650,6 +654,17 @@ void StateImpl::GenTextures(PCall call)
       m_textures[v->toUInt()] = obj;
    }
 }
+
+void StateImpl::GenSamplers(PCall call)
+{
+   const auto ids = (call->arg(1)).toArray();
+   for (auto& v : ids->values) {
+      auto obj = make_shared<GenObjectState>(v->toUInt(), call);
+      obj->append_call(call);
+      m_samplers[v->toUInt()] = obj;
+   }
+}
+
 
 void StateImpl::GenLists(PCall call)
 {
@@ -920,20 +935,14 @@ void StateImpl::register_callbacks()
    MAP(glBindBuffer, BindBuffer);
    MAP(glBindFramebuffer, BindFramebuffer);
    MAP(glBindTexture, BindTexture);
-   MAP(glBindVertexArray, record_state_call);
-
    MAP(glBindProgram, BindProgram);
    MAP(glBindRenderbuffer, BindRenderbuffer);
-   MAP(glBlendFunc, record_state_call);
-
    MAP(glBufferData, BufferData);
    MAP(glBufferSubData, BufferSubData);
 
    MAP(glCallList, CallList);
-   MAP(glCullFace, record_state_call);
    MAP(glCheckFramebufferStatus, history_ignore);
    MAP(glClear, Clear);
-   MAP(glClearColor, record_state_call);
 
    MAP(glCreateShader, CreateShader);
    MAP(glCreateProgram, CreateProgram);
@@ -951,8 +960,6 @@ void StateImpl::register_callbacks()
    MAP(glTexParameter, texture_call);
    MAP(glGenerateMipmap, texture_call);
 
-   MAP(glDepthFunc, record_state_call);
-
    MAP(glDetachShader, history_ignore);
    MAP(glDisableVertexAttribArray, record_va_enables);
    MAP(glDrawArrays, history_ignore);
@@ -960,18 +967,16 @@ void StateImpl::register_callbacks()
 
    MAP(glFramebufferRenderbuffer, FramebufferRenderbuffer);
    MAP(glFramebufferTexture, FramebufferTexture);
-
-   MAP(glDrawBuffers, record_state_call);
    MAP(glDrawElements, DrawElements);
 
    MAP(glDisable, record_enable);
    MAP(glEnable, record_enable);
    MAP(glEnd, End);
    MAP(glEndList, EndList);
-   MAP(glFrustum, record_state_call);
    MAP(glGenBuffers, GenBuffers);
    MAP(glGenFramebuffer, GenFramebuffer);
-   MAP(glGenTexture, GenTextures);
+   MAP(glGenSamplers, GenSamplers);
+	MAP(glGenTexture, GenTextures);
 
    MAP(glGenLists, GenLists);
    MAP(glGenRenderbuffer, GenRenderbuffer);
@@ -987,7 +992,6 @@ void StateImpl::register_callbacks()
    MAP(glIsEnabled, history_ignore);
 
    MAP(glLight, Light);
-   MAP(glLineWidth, record_state_call);
    MAP(glLinkProgram, program_call);
    MAP(glUseProgram, UseProgram);
    MAP(glVertexAttribPointer, VertexAttribPointer);
@@ -998,12 +1002,10 @@ void StateImpl::register_callbacks()
    MAP(glMatrixMode, MatrixMode);
    MAP(glNewList, NewList);
    MAP(glNormal, Normal);
-   MAP(glPixelStorei, record_state_call_ex);
    MAP(glPopMatrix, PopMatrix);
    MAP(glPushMatrix, PushMatrix);
    MAP(glRenderbufferStorage, RenderbufferStorage);
    MAP(glRotate, Rotate);
-   MAP(glScissor, record_state_call);
    MAP(glShadeModel, ShadeModel);
    MAP(glShaderSource, shader_call);
    MAP(glTranslate, Translate);
@@ -1014,21 +1016,7 @@ void StateImpl::register_callbacks()
    MAP(glColor2, Vertex);
    MAP(glColor3, Vertex);
    MAP(glColor4, Vertex);
-
    MAP(glViewport, Viewport);
-
-	MAP(glAlphaFunc, record_state_call);
-	MAP(glFrontFace, record_state_call);
-	MAP(glPolygonMode, record_state_call);
-	MAP(glPolygonMode, record_state_call);
-	MAP(glPolygonOffset, record_state_call);
-	MAP(glClipPlane, record_state_call_ex);
-
-	MAP(glDepthRange, record_state_call);
-	MAP(glColorMask, record_state_call);
-	MAP(glColorMaskIndexedEXT, record_state_call_ex);
-
-
    MAP(glXGetFBConfigAttrib, history_ignore);
    MAP(glXChooseVisual, record_required_call);
    MAP(glXCreateContext, record_required_call);
@@ -1044,13 +1032,55 @@ void StateImpl::register_callbacks()
    MAP(glXGetVisualFromFBConfig, history_ignore);
    MAP(glXGetCurrentDisplay, history_ignore);
    MAP(glXGetCurrentDrawable, history_ignore);
-
-#undef MAP
 /*
    for(auto& x: m_call_table) {
       std::cerr << "Mapped " << x.first << "\n";
    }*/
+	register_state_calls();
+}
+
+void StateImpl::register_state_calls()
+{
+	const std::vector<const char *> state_calls  = {
+		"glBindVertexArray",
+		"glBlendFunc",
+		"glCullFace",
+		"glClearColor",
+		"glDepthFunc",
+		"glDrawBuffers",
+		"glFrustum",
+		"glLineWidth",
+		"glAlphaFunc",
+		"glFrontFace",
+		"glPolygonMode",
+		"glPolygonMode",
+		"glPolygonOffset",
+		"glDepthRange",
+		"glColorMask",
+		"glBlendEquation",
+		"glBlendColor",
+		"glDepthMask",
+		"glStencilFuncSeparate",
+		"glStencilMask",
+		"glClearDepth",
+		"glClearStencil",
+	};
+
+	auto state_call_func = bind(&StateImpl::record_state_call, this, _1);
+	for (auto& i : state_calls)
+		m_call_table.insert(std::make_pair(i, state_call_func));
+
+	auto state_call_ex_func = bind(&StateImpl::record_state_call_ex, this, _1);
+	const std::vector<const char *> state_calls_ex  = {
+		"glClipPlane",
+		"glColorMaskIndexedEXT"
+		"glPixelStorei"
+	};
+
+	for (auto& i : state_calls_ex)
+		m_call_table.insert(std::make_pair(i, state_call_ex_func));
 
 }
 
+#undef MAP
 } // namespace frametrim
