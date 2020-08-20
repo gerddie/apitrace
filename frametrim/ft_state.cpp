@@ -32,7 +32,6 @@ struct string_part_less {
     }
 };
 
-
 struct StateImpl {
 
     StateImpl();
@@ -323,7 +322,7 @@ void StateImpl::call(PCall call)
 
 void StateImpl::ActiveTexture(PCall call)
 {
-    m_active_texture_unit = call->arg(0).toUInt();
+    m_active_texture_unit = call->arg(0).toUInt() - GL_TEXTURE0;
     m_active_texture_unit_call = call;
 }
 
@@ -463,7 +462,12 @@ void StateImpl::BindProgram(PCall call)
 
     if (shader_id > 0) {
         auto prog = m_shaders.find(shader_id);
-        assert(prog != m_shaders.end());
+        if (prog == m_shaders.end()) {
+            // some old programs don't call GenProgram
+            auto program = make_shared<ShaderState>(shader_id, stage);
+            m_shaders[shader_id] = program;
+            prog = m_shaders.find(shader_id);
+        }
         prog->second->append_call(call);
         m_active_shaders[stage] = prog->second;
     } else {
@@ -823,8 +827,28 @@ void StateImpl::shader_call(PCall call)
 
 void StateImpl::texture_call(PCall call)
 {
-    auto texture = m_bound_texture[(call->arg(0).toUInt() << 16) |
-            m_active_texture_unit];
+    auto target = call->arg(0).toUInt();
+    switch (target) {
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+        target = GL_TEXTURE_CUBE_MAP;
+        break;
+    default:
+        ;
+    }
+
+    auto texture = m_bound_texture[(target << 16) | m_active_texture_unit];
+    if (!texture) {
+        std::cerr << "No texture found in call " << call->no
+                  << " target:" << call->arg(0).toUInt()
+                  << " U:" << m_active_texture_unit;
+
+    }
+
     assert(texture);
     texture->data(call);
 }
@@ -1036,6 +1060,7 @@ void StateImpl::register_ignore_history_calls()
         "glDeleteVertexArrays",
         "glDetachShader",
         "glDrawArrays",
+        "glGetError",
         "glGetFloat",
         "glGetInfoLog",
         "glGetInteger",
@@ -1045,13 +1070,13 @@ void StateImpl::register_ignore_history_calls()
         "glGetString",
         "glIsEnabled",
         "glXGetClientString",
+        "glXGetCurrentContext",
         "glXGetCurrentDisplay",
         "glXGetCurrentDrawable",
         "glXGetFBConfigAttrib",
         "glXGetFBConfigs",
         "glXGetProcAddress",
         "glXGetSwapIntervalMESA",
-        "glXGetVisualFromFBConfig",
         "glXGetVisualFromFBConfig",
         "glXQueryVersion",
         "glXSwapBuffers",
@@ -1119,6 +1144,7 @@ void StateImpl::register_required_calls()
         "glXDestroyContext",
         "glXMakeCurrent",
         "glXQueryExtensionsString",
+        "glXSwapIntervalMESA",
     };
     update_call_table(required_calls, required_func);
 }
@@ -1129,7 +1155,6 @@ void StateImpl::update_call_table(const std::vector<const char*>& names,
     for (auto& i : names)
         m_call_table.insert(std::make_pair(i, cb));
 }
-
 
 #undef MAP
 } // namespace frametrim
