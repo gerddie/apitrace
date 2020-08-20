@@ -48,12 +48,12 @@ struct StateImpl {
    void Begin(PCall call);
    void BindAttribLocation(PCall call);
    void BindBuffer(PCall call);
-   void BindFramebuffer(PCall call);
-   void BindRenderbuffer(PCall call);
+   void BindFramebuffer(PCall call);	
+   void BindProgram(PCall call);
+	void BindRenderbuffer(PCall call);
    void BindTexture(PCall call);
    void BufferData(PCall call);
    void BufferSubData(PCall call);
-   void BindProgram(PCall call);
    void CallList(PCall call);
    void Clear(PCall call);
    void CreateShader(PCall call);
@@ -118,6 +118,7 @@ struct StateImpl {
    std::unordered_map<GLint, PShaderState> m_shaders;
    std::unordered_map<GLint, PProgramState> m_programs;
    PProgramState m_active_program;
+	PProgramState m_active_program_arb;
 
    std::unordered_map<GLenum, PCall> m_enables;
    std::unordered_map<GLint, PCall> m_va_enables;
@@ -451,12 +452,16 @@ void StateImpl::BufferSubData(PCall call)
 
 void StateImpl::BindProgram(PCall call)
 {
-   GLint program_id = call->arg(0).toSInt();
+   GLint shader_id = call->arg(1).toSInt();
 
-   if (program_id > 0) {
-      auto prog = m_programs.find(program_id);
-      assert(prog != m_programs.end());
-      m_active_program = prog->second;
+   if (shader_id > 0) {
+      auto prog = m_shaders.find(shader_id);
+      assert(prog != m_shaders.end());
+		if (!m_active_program_arb) {
+			m_active_program_arb = make_shared<ProgramState>(1);
+		}
+
+		m_active_program = m_active_program_arb;
       m_active_program->append_call(call);
    } else
       m_active_program = nullptr;
@@ -657,11 +662,13 @@ void StateImpl::GenTextures(PCall call)
 
 void StateImpl::GenPrograms(PCall call)
 {
+	const auto stage = (call->arg(0)).toUInt();
 	const auto ids = (call->arg(1)).toArray();
    for (auto& v : ids->values) {
-      auto obj = make_shared<ProgramState>(v->toUInt());
+      auto obj = make_shared<ShaderState>(v->toUInt(), stage);
       obj->append_call(call);
-      m_programs[v->toUInt()] = obj;
+		std::cerr << "Add program ID " << v->toUInt() << "\n";
+		m_shaders[v->toUInt()] = obj;
    }
 }
 
@@ -674,7 +681,6 @@ void StateImpl::GenSamplers(PCall call)
       m_samplers[v->toUInt()] = obj;
    }
 }
-
 
 void StateImpl::GenLists(PCall call)
 {
