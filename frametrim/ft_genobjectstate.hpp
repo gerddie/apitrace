@@ -8,13 +8,13 @@ namespace frametrim {
 class GenObjectState : public ObjectState
 {
 public:     
-   GenObjectState(GLint glID, PCall gen_call);
+    GenObjectState(GLint glID, PCall gen_call);
 protected:
 
-   void emit_gen_call(CallSet& list) const;
+    void emit_gen_call(CallSet& list) const;
 
 private:
-   PCall m_gen_call;
+    PCall m_gen_call;
 
 };
 
@@ -25,27 +25,27 @@ class SizedObjectState : public GenObjectState
 {
 public:
 
-   enum EAttachmentType {
-      texture,
-      renderbuffer
-   };
+    enum EAttachmentType {
+        texture,
+        renderbuffer
+    };
 
-   SizedObjectState(GLint glID, PCall gen_call, EAttachmentType at);
+    SizedObjectState(GLint glID, PCall gen_call, EAttachmentType at);
 
-   unsigned width(unsigned level = 0) const;
-   unsigned height(unsigned level = 0) const;
+    unsigned width(unsigned level = 0) const;
+    unsigned height(unsigned level = 0) const;
 
-   friend bool operator == (const SizedObjectState& lhs,
-                            const SizedObjectState& rhs);
+    friend bool operator == (const SizedObjectState& lhs,
+                             const SizedObjectState& rhs);
 
 protected:
 
-   void set_size(unsigned level, unsigned w, unsigned h);
+    void set_size(unsigned level, unsigned w, unsigned h);
 
 private:
-   std::vector<std::pair<unsigned, unsigned>> m_size;
+    std::vector<std::pair<unsigned, unsigned>> m_size;
 
-   EAttachmentType m_attachment_type;
+    EAttachmentType m_attachment_type;
 
 };
 

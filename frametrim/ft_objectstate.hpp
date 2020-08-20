@@ -15,95 +15,95 @@ namespace frametrim {
 using PCall=std::shared_ptr<trace::Call>;
 
 struct pcall_less {
-   bool operator () (PCall lhs, PCall rhs)
-   {
-      return lhs->no < rhs->no;
-   }
+    bool operator () (PCall lhs, PCall rhs)
+    {
+        return lhs->no < rhs->no;
+    }
 };
 
 class CallSet {
 
 public:
 
-	CallSet(bool debug=false):m_debug(debug) {}
+    CallSet(bool debug=false):m_debug(debug) {}
 
-	bool m_debug;
+    bool m_debug;
 
-	using iterator = std::set<PCall>::iterator;
-	using const_iterator = std::set<PCall>::const_iterator;
+    using iterator = std::set<PCall>::iterator;
+    using const_iterator = std::set<PCall>::const_iterator;
 
-	void insert(PCall call) {
-		if (m_debug)
-			std::cerr << "Insert: " << call->no << " " << call->name() << "\n";
-		m_calls.insert(call);
-	}
+    void insert(PCall call) {
+        if (m_debug)
+            std::cerr << "Insert: " << call->no << " " << call->name() << "\n";
+        m_calls.insert(call);
+    }
 
-	void insert(const CallSet& calls) {
-		if (m_debug) {
-			for (auto& c: calls)
-				std::cerr << "Insert: " << c->no << " " << c->name() << "\n";
-		}
-		m_calls.insert(calls.begin(), calls.end());
-	}
+    void insert(const CallSet& calls) {
+        if (m_debug) {
+            for (auto& c: calls)
+                std::cerr << "Insert: " << c->no << " " << c->name() << "\n";
+        }
+        m_calls.insert(calls.begin(), calls.end());
+    }
 
-	iterator begin() {
-		return m_calls.begin();
-	}
+    iterator begin() {
+        return m_calls.begin();
+    }
 
-	const_iterator begin() const {
-		return m_calls.begin();
-	}
+    const_iterator begin() const {
+        return m_calls.begin();
+    }
 
-	iterator end() {
-		return m_calls.end();
-	}
+    iterator end() {
+        return m_calls.end();
+    }
 
-	const_iterator end() const {
-		return m_calls.end();
-	}
+    const_iterator end() const {
+        return m_calls.end();
+    }
 
-	void clear() {
-		m_calls.clear();
-	}
+    void clear() {
+        m_calls.clear();
+    }
 
-	bool empty() const {
-		return m_calls.empty();
-	}
+    bool empty() const {
+        return m_calls.empty();
+    }
 
 private:
-	std::set<PCall> m_calls;
+    std::set<PCall> m_calls;
 };
 
 
 class ObjectState
 {
 public:
-   ObjectState(GLint glID);
-   virtual ~ObjectState();
+    ObjectState(GLint glID);
+    virtual ~ObjectState();
 
-   unsigned id() const;
+    unsigned id() const;
 
-   void append_gen_call(PCall call);
+    void append_gen_call(PCall call);
 
-   void emit_calls_to_list(CallSet& list) const;
+    void emit_calls_to_list(CallSet& list) const;
 
-   void append_call(PCall call);
+    void append_call(PCall call);
 
 protected:
 
-   void reset_callset();
+    void reset_callset();
 
 private:
 
-   virtual void do_emit_calls_to_list(CallSet& list) const;
+    virtual void do_emit_calls_to_list(CallSet& list) const;
 
-   GLint m_glID;
+    GLint m_glID;
 
-   CallSet m_gen_calls;
+    CallSet m_gen_calls;
 
-   CallSet m_calls;
+    CallSet m_calls;
 
-   mutable bool m_emitting;
+    mutable bool m_emitting;
 };
 
 using PObjectState=std::shared_ptr<ObjectState>;

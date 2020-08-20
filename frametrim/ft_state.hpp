@@ -17,17 +17,17 @@ using ft_callback = std::function<void(PCall)>;
 class State
 {
 public:
-   State();
-   ~State();
+    State();
+    ~State();
 
-   void target_frame_started();
+    void target_frame_started();
 
-   void call(PCall call);
+    void call(PCall call);
 
-   void write(trace::Writer& writer);
+    void write(trace::Writer& writer);
 
 private:
-   struct StateImpl *impl;
+    struct StateImpl *impl;
 
 };
 
