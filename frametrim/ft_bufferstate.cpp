@@ -166,6 +166,17 @@ CallSet BufferStateImpl::clean_bind_calls() const
     return retval;
 }
 
+void BufferStateImpl::mapped_call(PCall call)
+{
+
+}
+
+void BufferStateImpl::unmap(PCall call)
+{
+
+}
+
+
 BufferSubRange::BufferSubRange(unsigned start, unsigned end, PCall call):
     m_start(start), m_end(end), m_call(call)
 {
