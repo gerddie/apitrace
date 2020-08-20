@@ -38,9 +38,6 @@ struct StateImpl {
     StateImpl();
 
     void call(PCall call);
-    void register_callbacks();
-    void register_state_calls();
-    void register_ignore_history_calls();
 
 
     /* OpenGL calls */
@@ -112,6 +109,15 @@ struct StateImpl {
     void texture_call(PCall call);
 
     void collect_state_calls(CallSet& lisr) const;
+
+
+    void register_callbacks();
+    void register_state_calls();
+    void register_ignore_history_calls();
+    void register_required_calls();
+    void update_call_table(const std::vector<const char*>& names,
+                           ft_callback cb);
+
 
     using CallTable = std::multimap<const char *, ft_callback, string_part_less>;
     CallTable m_call_table;
@@ -1011,14 +1017,9 @@ void StateImpl::register_callbacks()
     MAP(glVertex4, Vertex);
     MAP(glVertexAttribPointer, VertexAttribPointer);
     MAP(glViewport, Viewport);
-    MAP(glXChooseVisual, record_required_call);
-    MAP(glXCreateContext, record_required_call);
-    MAP(glXDestroyContext, record_required_call);
-    MAP(glXGetProcAddress, record_required_call);
-    MAP(glXGetSwapIntervalMESA, record_required_call);
-    MAP(glXMakeCurrent, record_required_call);
-    MAP(glXQueryExtensionsString, record_required_call);
 
+
+    register_required_calls();
     register_state_calls();
     register_ignore_history_calls();
 }
@@ -1048,14 +1049,15 @@ void StateImpl::register_ignore_history_calls()
         "glXGetCurrentDrawable",
         "glXGetFBConfigAttrib",
         "glXGetFBConfigs",
+        "glXGetProcAddress",
+        "glXGetSwapIntervalMESA",
+        "glXGetVisualFromFBConfig",
         "glXGetVisualFromFBConfig",
         "glXQueryVersion",
         "glXSwapBuffers",
      };
-
     auto ignore_history_func = bind(&StateImpl::ignore_history, this, _1);
-    for (auto& i : ignore_history_calls)
-        m_call_table.insert(std::make_pair(i, ignore_history_func));
+    update_call_table(ignore_history_calls, ignore_history_func);
 }
 
 void StateImpl::register_state_calls()
@@ -1092,8 +1094,7 @@ void StateImpl::register_state_calls()
     };
 
     auto state_call_func = bind(&StateImpl::record_state_call, this, _1);
-    for (auto& i : state_calls)
-        m_call_table.insert(std::make_pair(i, state_call_func));
+    update_call_table(state_calls, state_call_func);
 
     /* These are state functions with an extra parameter */
     auto state_call_ex_func = bind(&StateImpl::record_state_call_ex, this, _1);
@@ -1101,13 +1102,34 @@ void StateImpl::register_state_calls()
         "glClipPlane",
         "glColorMaskIndexedEXT",
         "glLight",
-        "glPixelStorei"
+        "glPixelStorei",
     };
-
-    for (auto& i : state_calls_ex)
-        m_call_table.insert(std::make_pair(i, state_call_ex_func));
-
+    update_call_table(state_calls_ex, state_call_ex_func);
 }
+
+void StateImpl::register_required_calls()
+{
+    /* These function set up the context and are, therefore, required
+     * TODO: figure out what is really required, and whether the can be
+     * tracked like state variables. */
+    auto required_func = bind(&StateImpl::record_required_call, this, _1);
+    const std::vector<const char *> required_calls = {
+        "glXChooseVisual",
+        "glXCreateContext",
+        "glXDestroyContext",
+        "glXMakeCurrent",
+        "glXQueryExtensionsString",
+    };
+    update_call_table(required_calls, required_func);
+}
+
+void StateImpl::update_call_table(const std::vector<const char*>& names,
+                                  ft_callback cb)
+{
+    for (auto& i : names)
+        m_call_table.insert(std::make_pair(i, cb));
+}
+
 
 #undef MAP
 } // namespace frametrim
