@@ -1,4 +1,5 @@
 #include "ft_bufferstate.hpp"
+#include <limits>
 
 namespace frametrim {
 
@@ -24,6 +25,7 @@ struct BufferStateImpl {
    CallSet m_data_use_set;
    bool m_last_bind_call_dirty;
 
+   CallSet m_sub_data_bind_calls;
    std::vector<BufferSubRange> m_sub_buffers;
 
    void bind(PCall call);
@@ -31,6 +33,7 @@ struct BufferStateImpl {
    void append_data(PCall call);
    void use(PCall call = nullptr);
    void emit_calls_to_list(CallSet& list) const;
+   CallSet clean_bind_calls() const;
 };
 
 
@@ -84,7 +87,7 @@ void BufferStateImpl::data(PCall call)
 void BufferStateImpl::append_data(PCall call)
 {
    if (m_last_bind_call_dirty) {
-      m_data_upload_set.insert(m_last_bind_call);
+      m_sub_data_bind_calls.insert(m_last_bind_call);
       m_last_bind_call_dirty = false;
    }
 
@@ -122,8 +125,33 @@ void BufferStateImpl::use(PCall call)
 
 void BufferStateImpl::emit_calls_to_list(CallSet& list) const
 {
+   list.insert(clean_bind_calls());
    list.insert(m_data_upload_set);
    list.insert(m_data_use_set);
+}
+
+CallSet BufferStateImpl::clean_bind_calls() const
+{
+
+   unsigned oldest_sub_buffer_call = std::numeric_limits<unsigned>::max();
+   for(auto& b : m_sub_buffers) {
+      if (oldest_sub_buffer_call > b.m_call->no)
+         oldest_sub_buffer_call = b.m_call->no;
+   }
+
+   unsigned first_needed_bind_call_no = 0;
+   for(auto& b : m_sub_data_bind_calls) {
+      if (b->no < oldest_sub_buffer_call &&
+          b->no > first_needed_bind_call_no)
+         first_needed_bind_call_no = b->no;
+   }
+
+   CallSet retval;
+   for (auto b: m_sub_data_bind_calls) {
+      if (b->no > first_needed_bind_call_no)
+         retval.insert(b);
+   }
+   return retval;
 }
 
 BufferSubRange::BufferSubRange(unsigned start, unsigned end, PCall call):
