@@ -1017,6 +1017,18 @@ void StateImpl::register_callbacks()
 
    MAP(glViewport, Viewport);
 
+	MAP(glAlphaFunc, record_state_call);
+	MAP(glFrontFace, record_state_call);
+	MAP(glPolygonMode, record_state_call);
+	MAP(glPolygonMode, record_state_call);
+	MAP(glPolygonOffset, record_state_call);
+	MAP(glClipPlane, record_state_call_ex);
+
+	MAP(glDepthRange, record_state_call);
+	MAP(glColorMask, record_state_call);
+	MAP(glColorMaskIndexedEXT, record_state_call_ex);
+
+
    MAP(glXGetFBConfigAttrib, history_ignore);
    MAP(glXChooseVisual, record_required_call);
    MAP(glXCreateContext, record_required_call);
