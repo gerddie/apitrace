@@ -31,6 +31,10 @@ struct BufferStateImpl {
     void bind(PCall call);
     void data(PCall call);
     void append_data(PCall call);
+    void map(PCall call);
+    void mapped_call(PCall call);
+    void unmap(PCall call);
+
     void use(PCall call = nullptr);
     void emit_calls_to_list(CallSet& list) const;
     CallSet clean_bind_calls() const;
@@ -47,6 +51,9 @@ FORWARD_CALL(bind)
 FORWARD_CALL(data)
 FORWARD_CALL(append_data)
 FORWARD_CALL(use)
+FORWARD_CALL(map)
+FORWARD_CALL(mapped_call)
+FORWARD_CALL(unmap)
 
 void BufferState::do_emit_calls_to_list(CallSet& list) const
 {
@@ -82,6 +89,11 @@ void BufferStateImpl::data(PCall call)
     m_last_bind_call_dirty = false;
     m_data_upload_set.insert(call);
     m_sub_buffers.clear();
+}
+
+void BufferStateImpl::map(PCall call)
+{
+
 }
 
 void BufferStateImpl::append_data(PCall call)

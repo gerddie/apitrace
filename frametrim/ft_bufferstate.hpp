@@ -14,6 +14,12 @@ public:
     void bind(PCall call);
     void data(PCall call);
     void append_data(PCall call);
+
+    void map(PCall call);
+    void mapped_call(PCall call);
+    void unmap(PCall call);
+
+
     void use(PCall call = nullptr);
 
 private:
