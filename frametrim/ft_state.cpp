@@ -651,7 +651,6 @@ void StateImpl::GenTextures(PCall call)
    const auto ids = (call->arg(1)).toArray();
    for (auto& v : ids->values) {
       auto obj = make_shared<TextureState>(v->toUInt(), call);
-      obj->append_call(call);
       m_textures[v->toUInt()] = obj;
    }
 }
