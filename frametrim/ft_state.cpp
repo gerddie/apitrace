@@ -1010,7 +1010,6 @@ void StateImpl::register_callbacks()
 
     MAP(glRenderbufferStorage, RenderbufferStorage);
 
-    MAP(glShadeModel, ShadeModel);
     MAP(glVertexAttribPointer, VertexAttribPointer);
     MAP(glViewport, Viewport);
 
@@ -1162,6 +1161,7 @@ void StateImpl::register_state_calls()
         "glPolygonMode",
         "glPolygonMode",
         "glPolygonOffset",
+        "glShadeModel",
         "glScissor",
         "glStencilFuncSeparate",
         "glStencilMask",
