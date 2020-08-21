@@ -116,6 +116,7 @@ struct StateImpl {
     void register_state_calls();
     void register_ignore_history_calls();
     void register_required_calls();
+    void register_texture_calls();
     void update_call_table(const std::vector<const char*>& names,
                            ft_callback cb);
 
@@ -970,23 +971,22 @@ void StateImpl::register_callbacks()
 {
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&StateImpl:: call, this, _1)))
 
-    MAP(glActiveTexture, ActiveTexture);
+
     MAP(glAttachObject, AttachShader);
     MAP(glAttachShader, AttachShader);
     MAP(glBindAttribLocation, BindAttribLocation);
-    MAP(glBindBuffer, BindBuffer);
+
     MAP(glBindFramebuffer, BindFramebuffer);
     MAP(glBindRenderbuffer, BindRenderbuffer);
-    MAP(glBindTexture, BindTexture);
+
     MAP(glClear, Clear);
     MAP(glCompileShader, shader_call);
-    MAP(glCompressedTexImage2D, texture_call);
+
     MAP(glCreateProgram, CreateProgram);
     MAP(glCreateShader, CreateShader);
-    MAP(glDisable, record_enable);
+
     MAP(glDisableVertexAttribArray, record_va_enables);
     MAP(glDrawElements, DrawElements);
-    MAP(glEnable, record_enable);
     MAP(glEnableVertexAttribArray, record_va_enables);
 
     MAP(glFramebufferRenderbuffer, FramebufferRenderbuffer);
@@ -994,9 +994,8 @@ void StateImpl::register_callbacks()
     MAP(glGenFramebuffer, GenFramebuffer);
     MAP(glGenRenderbuffer, GenRenderbuffer);
     MAP(glGenSamplers, GenSamplers);
-    MAP(glGenTexture, GenTextures);
     MAP(glGenVertexArrays, GenVertexArrays);
-    MAP(glGenerateMipmap, texture_call);
+
     MAP(glGetAttribLocation, program_call);
     MAP(glGetUniformLocation, program_call);
     MAP(glLinkProgram, program_call);
@@ -1006,10 +1005,6 @@ void StateImpl::register_callbacks()
 
     MAP(glShadeModel, ShadeModel);
     MAP(glShaderSource, shader_call);
-    MAP(glTexImage1D, texture_call);
-    MAP(glTexImage2D, texture_call);
-    MAP(glTexImage3D, texture_call);
-    MAP(glTexParameter, texture_call);
     MAP(glUniform, Uniform);
     MAP(glUseProgram, UseProgram);
     MAP(glVertexAttribPointer, VertexAttribPointer);
@@ -1020,13 +1015,30 @@ void StateImpl::register_callbacks()
     register_ignore_history_calls();
     register_legacy_calls();
     register_buffer_calls();
+    register_texture_calls();
 }
 
 void StateImpl::register_buffer_calls()
 {
     MAP(glGenBuffers, GenBuffers);
+    MAP(glBindBuffer, BindBuffer);
     MAP(glBufferData, BufferData);
     MAP(glBufferSubData, BufferSubData);
+}
+
+void StateImpl::register_texture_calls()
+{
+    MAP(glActiveTexture, ActiveTexture);
+    MAP(glBindTexture, BindTexture);
+    MAP(glCompressedTexImage2D, texture_call);
+    MAP(glGenerateMipmap, texture_call);
+    MAP(glGenTexture, GenTextures);
+    MAP(glTexImage1D, texture_call);
+    MAP(glTexImage2D, texture_call);
+    MAP(glTexImage3D, texture_call);
+    MAP(glTexParameter, texture_call);
+
+
 }
 
 void StateImpl::register_legacy_calls()
@@ -1058,12 +1070,12 @@ void StateImpl::register_legacy_calls()
     MAP(glLoadIdentity, LoadIdentity);
     MAP(glLoadMatrix, LoadMatrix);
     MAP(glMatrixMode, MatrixMode);
+    MAP(glMultMatrix, matrix_op);
     MAP(glRotate, matrix_op);
+    MAP(glScale, matrix_op);
     MAP(glTranslate, matrix_op);
     MAP(glPopMatrix, PopMatrix);
     MAP(glPushMatrix, PushMatrix);
-
-
 }
 
 void StateImpl::register_ignore_history_calls()
@@ -1148,6 +1160,9 @@ void StateImpl::register_state_calls()
         "glPixelStorei",
     };
     update_call_table(state_calls_ex, state_call_ex_func);
+
+    MAP(glDisable, record_enable);
+    MAP(glEnable, record_enable);
 }
 
 void StateImpl::register_required_calls()
