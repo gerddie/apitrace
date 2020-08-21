@@ -81,6 +81,11 @@ struct StateImpl {
     void RenderbufferStorage(PCall call);
     void ProgramString(PCall call);
 
+    void MapBuffer(PCall call);
+    void MapBufferRange(PCall call);
+    void BufferMemcopy(PCall call);
+    void UnmapBuffer(PCall call);
+
     void ShadeModel(PCall call);
     void shader_call(PCall call);
 
@@ -144,6 +149,8 @@ struct StateImpl {
 
     std::unordered_map<GLint, PBufferState> m_buffers;
     std::unordered_map<GLint, PBufferState> m_bound_buffers;
+    std::unordered_map<GLint, std::unordered_map<GLint, PBufferState>> m_mapped_buffers;
+
 
     std::unordered_map<GLint, PTextureState> m_textures;
     std::unordered_map<GLint, PTextureState> m_bound_texture;
@@ -461,6 +468,49 @@ void StateImpl::BufferSubData(PCall call)
     m_bound_buffers[target]->append_data(call);
 }
 
+void StateImpl::MapBuffer(PCall call)
+{
+    unsigned target = call->arg(0).toUInt();
+    auto buf = m_bound_buffers[target];
+    if (buf) {
+        m_mapped_buffers[target][buf->id()] = buf;
+        buf->map(call);
+    }
+}
+
+void StateImpl::MapBufferRange(PCall call)
+{
+    unsigned target = call->arg(0).toUInt();
+    auto buf = m_bound_buffers[target];
+    if (buf) {
+        m_mapped_buffers[target][buf->id()] = buf;
+        buf->map_range(call);
+    }
+}
+
+void StateImpl::BufferMemcopy(PCall call)
+{
+    auto dest_address = call->arg(0).toUInt();
+
+    for(auto& bt : m_mapped_buffers) {
+        for(auto& b: bt.second) {
+            if (b.second->in_mapped_range(dest_address)) {
+                b.second->memcopy(call);
+                return;
+            }
+        }
+    }
+}
+
+void StateImpl::UnmapBuffer(PCall call)
+{
+    unsigned target = call->arg(0).toUInt();
+    auto buf = m_bound_buffers[target];
+    if (buf) {
+        auto& mapped = m_mapped_buffers[target];
+        mapped.erase(buf->id());
+    }
+}
 
 void StateImpl::BindProgram(PCall call)
 {
@@ -1021,6 +1071,10 @@ void StateImpl::register_buffer_calls()
     MAP(glBindBuffer, BindBuffer);
     MAP(glBufferData, BufferData);
     MAP(glBufferSubData, BufferSubData);
+    MAP(glMapBuffer, MapBuffer);
+    MAP(glMapBufferRange, MapBufferRange);
+    MAP(memcopy, BufferMemcopy);
+    MAP(glUnmapBuffer, UnmapBuffer);
 }
 
 void StateImpl::register_program_calls()

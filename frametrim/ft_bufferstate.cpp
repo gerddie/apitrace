@@ -80,6 +80,11 @@ FORWARD_CALL(map_range)
 FORWARD_CALL(memcopy)
 FORWARD_CALL(unmap)
 
+bool BufferState::in_mapped_range(uint64_t address) const
+{
+    return impl->m_mapping.contains(address);
+}
+
 void BufferState::do_emit_calls_to_list(CallSet& list) const
 {
     if (!impl->m_data_use_set.empty()) {
