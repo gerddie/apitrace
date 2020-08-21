@@ -119,6 +119,8 @@ struct StateImpl {
     void register_required_calls();
     void register_texture_calls();
     void register_program_calls();
+    void register_framebuffer_calls();
+
     void update_call_table(const std::vector<const char*>& names,
                            ft_callback cb);
 
@@ -991,24 +993,14 @@ void StateImpl::register_callbacks()
 {
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&StateImpl:: call, this, _1)))
 
-    MAP(glBindFramebuffer, BindFramebuffer);
-    MAP(glBindRenderbuffer, BindRenderbuffer);
-
     MAP(glClear, Clear);
-
 
     MAP(glDisableVertexAttribArray, record_va_enables);
     MAP(glDrawElements, DrawElements);
     MAP(glEnableVertexAttribArray, record_va_enables);
 
-    MAP(glFramebufferRenderbuffer, FramebufferRenderbuffer);
-    MAP(glFramebufferTexture, FramebufferTexture);
-    MAP(glGenFramebuffer, GenFramebuffer);
-    MAP(glGenRenderbuffer, GenRenderbuffer);
     MAP(glGenSamplers, GenSamplers);
     MAP(glGenVertexArrays, GenVertexArrays);
-
-    MAP(glRenderbufferStorage, RenderbufferStorage);
 
     MAP(glVertexAttribPointer, VertexAttribPointer);
     MAP(glViewport, Viewport);
@@ -1018,6 +1010,7 @@ void StateImpl::register_callbacks()
     register_ignore_history_calls();
     register_legacy_calls();
     register_buffer_calls();
+    register_framebuffer_calls();
     register_program_calls();
     register_texture_calls();
 }
@@ -1059,9 +1052,19 @@ void StateImpl::register_texture_calls()
     MAP(glTexParameter, texture_call);
 }
 
+void StateImpl::register_framebuffer_calls()
+{
+    MAP(glBindFramebuffer, BindFramebuffer);
+    MAP(glBindRenderbuffer, BindRenderbuffer);
+    MAP(glFramebufferRenderbuffer, FramebufferRenderbuffer);
+    MAP(glFramebufferTexture, FramebufferTexture);
+    MAP(glGenFramebuffer, GenFramebuffer);
+    MAP(glGenRenderbuffer, GenRenderbuffer);
+    MAP(glRenderbufferStorage, RenderbufferStorage);
+}
+
 void StateImpl::register_legacy_calls()
 {
-
     // draw calls
     MAP(glBegin, Begin);
     MAP(glColor2, Vertex);
