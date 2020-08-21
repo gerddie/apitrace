@@ -16,9 +16,9 @@ public:
     void append_data(PCall call);
 
     void map(PCall call);
-    void mapped_call(PCall call);
+    void memcopy(PCall call);
     void unmap(PCall call);
-
+    bool in_mapped_range(uint64_t address) const;
 
     void use(PCall call = nullptr);
 
