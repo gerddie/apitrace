@@ -1035,7 +1035,7 @@ void StateImpl::register_program_calls()
     MAP(glGetUniformLocation, program_call);
     MAP(glLinkProgram, program_call);
     MAP(glShaderSource, shader_call);
-    MAP(glUniform, program_call);
+    MAP(glUniform, Uniform);
     MAP(glUseProgram, UseProgram);
 }
 
