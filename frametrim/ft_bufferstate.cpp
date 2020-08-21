@@ -9,13 +9,14 @@ using std::make_pair;
 struct BufferSubRange {
 
     BufferSubRange() = default;
-    BufferSubRange(uint64_t start, uint64_t end, PCall call);
+    BufferSubRange(uint64_t start, uint64_t end, PCall call, bool memcopy);
     bool overlap_with(const BufferSubRange& range) const;
     bool split(const BufferSubRange& range, BufferSubRange& second_split);
 
     uint64_t m_start;
     uint64_t m_end;
     PCall m_call;
+    bool m_is_memcopy;
 };
 
 struct BufferMap {
@@ -24,12 +25,11 @@ struct BufferMap {
     BufferMap(PCall call);
 
     bool contains(uint64_t start);
-    void append_call(PCall call);
+    void append_copy_call(PCall call);
 
     uint64_t buffer_base;
     uint64_t range_begin;
     uint64_t range_end;
-    CallSet calls_on_map;
 };
 
 struct BufferStateImpl {
@@ -39,18 +39,25 @@ struct BufferStateImpl {
     CallSet m_data_use_set;
     bool m_last_bind_call_dirty;
 
+    uint64_t m_buffer_size;
+
     CallSet m_sub_data_bind_calls;
     std::vector<BufferSubRange> m_sub_buffers;
 
     BufferMap m_mapping;
 
+    std::vector<PCall> m_map_calls;
+    std::vector<PCall> m_unmap_calls;
+
     void bind(PCall call);
     void data(PCall call);
     void append_data(PCall call);
     void map(PCall call);
+    void map_range(PCall call);
     void memcopy(PCall call);
     void unmap(PCall call);
     bool in_mapped_range(uint64_t address) const;
+    void add_sub_range(uint64_t start, uint64_t end, PCall call, bool memcopy);
 
     void use(PCall call = nullptr);
     void emit_calls_to_list(CallSet& list) const;
@@ -69,6 +76,7 @@ FORWARD_CALL(data)
 FORWARD_CALL(append_data)
 FORWARD_CALL(use)
 FORWARD_CALL(map)
+FORWARD_CALL(map_range)
 FORWARD_CALL(memcopy)
 FORWARD_CALL(unmap)
 
@@ -105,6 +113,8 @@ void BufferStateImpl::data(PCall call)
     m_last_bind_call_dirty = false;
     m_data_upload_set.insert(call);
     m_sub_buffers.clear();
+
+    m_buffer_size = call->arg(1).toUInt();
 }
 
 void BufferStateImpl::append_data(PCall call)
@@ -117,7 +127,12 @@ void BufferStateImpl::append_data(PCall call)
     uint64_t start = call->arg(0).toUInt();
     uint64_t end =  start + call->arg(1).toUInt();
 
-    BufferSubRange bsr(start, end, call);
+    add_sub_range(start, end, call, false);
+}
+
+void BufferStateImpl::add_sub_range(uint64_t start, uint64_t end, PCall call, bool memcopy)
+{
+    BufferSubRange bsr(start, end, call, memcopy);
 
     for(auto& b : m_sub_buffers) {
         if (b.overlap_with(bsr)) {
@@ -155,11 +170,15 @@ void BufferStateImpl::emit_calls_to_list(CallSet& list) const
 
 CallSet BufferStateImpl::clean_bind_calls() const
 {
-
     unsigned oldest_sub_buffer_call = std::numeric_limits<unsigned>::max();
+    unsigned oldest_memcopy_call = std::numeric_limits<unsigned>::max();
+
     for(auto& b : m_sub_buffers) {
         if (oldest_sub_buffer_call > b.m_call->no)
             oldest_sub_buffer_call = b.m_call->no;
+        if (b.m_is_memcopy)
+            if (oldest_memcopy_call > b.m_call->no)
+                oldest_memcopy_call = b.m_call->no;
     }
 
     unsigned first_needed_bind_call_no = 0;
@@ -169,35 +188,83 @@ CallSet BufferStateImpl::clean_bind_calls() const
             first_needed_bind_call_no = b->no;
     }
 
+    unsigned first_needed_map_call_no = 0;
+    for(auto& b : m_map_calls) {
+        if (b->no < oldest_memcopy_call &&
+                b->no > first_needed_map_call_no)
+            first_needed_map_call_no = b->no;
+    }
+
     CallSet retval;
     for (auto b: m_sub_data_bind_calls) {
         if (b->no > first_needed_bind_call_no)
             retval.insert(b);
     }
+
+    for(auto& b : m_map_calls) {
+        if (b->no > first_needed_map_call_no)
+            retval.insert(b);
+    }
+
+    for(auto& b : m_unmap_calls) {
+        if (b->no > first_needed_map_call_no)
+            retval.insert(b);
+    }
+
     return retval;
 }
 
 void BufferStateImpl::map(PCall call)
 {
+    if (m_last_bind_call_dirty) {
+        m_sub_data_bind_calls.insert(m_last_bind_call);
+        m_last_bind_call_dirty = false;
+    }
+
+    assert(0);
+    m_mapping.range_begin = m_mapping.buffer_base = call->ret->toUInt();
+    m_mapping.range_end = m_mapping.range_begin + call->arg(0).toUInt();
+    m_map_calls.push_back(call);
+}
+
+
+void BufferStateImpl::map_range(PCall call)
+{
+    if (m_last_bind_call_dirty) {
+        m_sub_data_bind_calls.insert(m_last_bind_call);
+        m_last_bind_call_dirty = false;
+    }
     m_mapping = BufferMap(call);
+    m_map_calls.push_back(call);
 }
 
 void BufferStateImpl::memcopy(PCall call)
 {
-    assert(m_mapping.contains(call->arg(0).toUInt()) ||
-           m_mapping.contains(call->arg(1).toUInt()));
-    m_mapping.append_call(call);
+    // @remark: we track only copies TO buffers, have to see whether we
+    // actually also need to track copying FROM buffers
+
+    uint64_t start_ptr = call->arg(0).toUInt();
+    assert(m_mapping.contains(start_ptr));
+
+    uint64_t start = start_ptr - m_mapping.buffer_base;
+    uint64_t end = call->arg(1).toUInt() + start;
+
+    add_sub_range(start, end, call, true);
 }
 
 void BufferStateImpl::unmap(PCall call)
 {
-    m_mapping.append_call(call);
+    m_unmap_calls.push_back(call);
+
+    m_mapping.buffer_base =
+            m_mapping.range_begin =
+            m_mapping.range_end = 0;
+
 }
 
-BufferSubRange::BufferSubRange(uint64_t start, uint64_t end, PCall call):
-    m_start(start), m_end(end), m_call(call)
+BufferSubRange::BufferSubRange(uint64_t start, uint64_t end, PCall call, bool memcopy):
+    m_start(start), m_end(end), m_call(call), m_is_memcopy(memcopy)
 {
-
 }
 
 bool BufferSubRange::overlap_with(const BufferSubRange& range) const
@@ -231,7 +298,6 @@ BufferMap::BufferMap():
     range_begin(0),
     range_end(0)
 {
-
 }
 
 BufferMap::BufferMap(PCall call)
@@ -243,12 +309,6 @@ BufferMap::BufferMap(PCall call)
     buffer_base = map - offset;
     range_begin = map;
     range_end = map + size;
-    append_call(call);
-}
-
-void BufferMap::append_call(PCall call)
-{
-    calls_on_map.insert(call);
 }
 
 bool BufferMap::contains(uint64_t start)
