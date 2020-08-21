@@ -252,7 +252,7 @@ void BufferStateImpl::memcopy(PCall call)
     assert(m_mapping.contains(start_ptr));
 
     uint64_t start = start_ptr - m_mapping.buffer_base;
-    uint64_t end = call->arg(1).toUInt() + start;
+    uint64_t end = call->arg(2).toUInt() + start;
 
     add_sub_range(start, end, call, true);
 }

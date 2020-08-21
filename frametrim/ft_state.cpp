@@ -55,6 +55,7 @@ struct StateImpl {
     void Clear(PCall call);
     void CreateShader(PCall call);
     void CreateProgram(PCall call);
+    void DeleteFramebuffers(PCall call);
     void DeleteLists(PCall call);
     void DrawElements(PCall call);
     void End(PCall call);
@@ -539,9 +540,20 @@ void StateImpl::BindRenderbuffer(PCall call)
 
     auto id = call->arg(1).toUInt();
 
-    if (!m_active_renderbuffer || m_active_renderbuffer->id() != id) {
-        m_active_renderbuffer = m_renderbuffers[id];
-        m_active_renderbuffer->append_call(call);
+    if (id) {
+        if (!m_active_renderbuffer || m_active_renderbuffer->id() != id) {
+            m_active_renderbuffer = m_renderbuffers[id];
+            if (!m_active_renderbuffer) {
+                std::cerr << "No renderbuffer in " << __func__
+                          << " with call " << call->no
+                          << " " << call->name() << "\n";
+                assert(0);
+            }
+            m_active_renderbuffer->append_call(call);
+        }
+    } else {
+        // This is a bit fishy ...
+        m_state_calls[call->name()] = call;
     }
 }
 
@@ -589,6 +601,13 @@ void StateImpl::DeleteLists(PCall call)
         assert(list != m_display_lists.end());
         m_display_lists.erase(list);
     }
+}
+
+void StateImpl::DeleteFramebuffers(PCall call)
+{
+    const auto ids = (call->arg(1)).toArray();
+    for (auto& v : ids->values)
+        m_framebuffers.erase(v->toUInt());
 }
 
 void StateImpl::DrawElements(PCall call)
@@ -652,7 +671,8 @@ void StateImpl::FramebufferRenderbuffer(PCall call)
         read_rb = true;
     }
 
-    rb->attach(call, read_rb, draw_fb);
+    if (rb)
+        rb->attach(call, read_rb, draw_fb);
 }
 
 void StateImpl::FramebufferTexture(PCall call)
@@ -1047,6 +1067,7 @@ void StateImpl::register_callbacks()
 
     MAP(glDisableVertexAttribArray, record_va_enables);
     MAP(glDrawElements, DrawElements);
+    MAP(glDrawRangeElements, DrawElements);
     MAP(glEnableVertexAttribArray, record_va_enables);
 
     MAP(glGenSamplers, GenSamplers);
@@ -1073,7 +1094,7 @@ void StateImpl::register_buffer_calls()
     MAP(glBufferSubData, BufferSubData);
     MAP(glMapBuffer, MapBuffer);
     MAP(glMapBufferRange, MapBufferRange);
-    MAP(memcopy, BufferMemcopy);
+    MAP(memcpy, BufferMemcopy);
     MAP(glUnmapBuffer, UnmapBuffer);
 }
 
@@ -1114,6 +1135,7 @@ void StateImpl::register_framebuffer_calls()
     MAP(glFramebufferTexture, FramebufferTexture);
     MAP(glGenFramebuffer, GenFramebuffer);
     MAP(glGenRenderbuffer, GenRenderbuffer);
+    MAP(glDeleteFramebuffers, DeleteFramebuffers);
     MAP(glRenderbufferStorage, RenderbufferStorage);
 }
 
@@ -1211,6 +1233,7 @@ void StateImpl::register_state_calls()
         "glDepthMask",
         "glDepthRange",
         "glDrawBuffers",
+        "glFlush",
         "glFenceSync",
         "glFrontFace",
         "glFrustum",
@@ -1254,6 +1277,7 @@ void StateImpl::register_required_calls()
         "glXCreateContext",
         "glXDestroyContext",
         "glXMakeCurrent",
+        "glXChooseFBConfig",
         "glXQueryExtensionsString",
         "glXSwapIntervalMESA",
     };

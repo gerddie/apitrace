@@ -33,8 +33,10 @@ void FramebufferState::attach(unsigned attachment, PCall call,
     m_attach_calls.insert(m_bind_call);
     m_attach_calls.insert(call);
 
-    m_width = att->width();
-    m_height = att->height();
+    if (att) {
+        m_width = att->width();
+        m_height = att->height();
+    }
 
     m_attached_buffer_types = 0;
     m_attached_color_buffer_mask = 0;
