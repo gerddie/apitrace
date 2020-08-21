@@ -100,6 +100,7 @@ struct StateImpl {
 
     void record_state_call(PCall call);
     void record_state_call_ex(PCall call);
+    void record_state_call_ex2(PCall call);
     void record_required_call(PCall call);
 
 
@@ -924,13 +925,31 @@ void StateImpl::Viewport(PCall call)
 void StateImpl::record_state_call(PCall call)
 {
     m_state_calls[call->name()] = call;
+    if (m_active_display_list)
+        m_active_display_list->append_call(call);
 }
 
 void StateImpl::record_state_call_ex(PCall call)
 {
     std::stringstream s;
-    s << call->name() << call->arg(0).toUInt();
+    s << call->name() << "_" << call->arg(0).toUInt();
     m_state_calls[s.str()] = call;
+    if (m_active_display_list)
+        m_active_display_list->append_call(call);
+}
+
+void StateImpl::record_state_call_ex2(PCall call)
+{
+    std::stringstream s;
+    s << call->name() << "_"
+      << call->arg(0).toUInt()
+      << "_" << call->arg(1).toUInt();
+
+    m_state_calls[s.str()] = call;
+
+    if (m_active_display_list)
+        m_active_display_list->append_call(call);
+
 }
 
 void StateImpl::record_required_call(PCall call)
@@ -999,13 +1018,12 @@ void StateImpl::register_callbacks()
     MAP(glGetAttribLocation, program_call);
     MAP(glGetUniformLocation, program_call);
     MAP(glLinkProgram, program_call);
-    MAP(glMaterial, Material);
     MAP(glProgramString, ProgramString);
     MAP(glRenderbufferStorage, RenderbufferStorage);
 
     MAP(glShadeModel, ShadeModel);
     MAP(glShaderSource, shader_call);
-    MAP(glUniform, Uniform);
+    MAP(glUniform, program_call);
     MAP(glUseProgram, UseProgram);
     MAP(glVertexAttribPointer, VertexAttribPointer);
     MAP(glViewport, Viewport);
@@ -1163,6 +1181,7 @@ void StateImpl::register_state_calls()
 
     MAP(glDisable, record_enable);
     MAP(glEnable, record_enable);
+    MAP(glMaterial, record_state_call_ex2);
 }
 
 void StateImpl::register_required_calls()
