@@ -8,6 +8,8 @@ namespace frametrim {
 class TextureState : public SizedObjectState
 {
 public:
+    using Pointer = std::shared_ptr<TextureState>;
+
     TextureState(GLint glID, PCall gen_call);
 
     void bind_unit(PCall bind, PCall unit);
@@ -28,7 +30,9 @@ private:
     std::unordered_map<unsigned, PFramebufferState> m_fbo;
 };
 
-using PTextureState = std::shared_ptr<TextureState>;
+using PTextureState = TextureState::Pointer;
+
+using TextureStateSet = TStateSet<TextureState>;
 
 }
 

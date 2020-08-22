@@ -2,7 +2,6 @@
 
 #include "ft_genobjectstate.hpp"
 
-
 namespace frametrim {
 
 GenObjectState::GenObjectState(GLint glID, PCall gen_call):

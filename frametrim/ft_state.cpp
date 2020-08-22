@@ -155,8 +155,7 @@ struct StateImpl {
     std::unordered_map<GLint, PBufferState> m_bound_buffers;
     std::unordered_map<GLint, std::unordered_map<GLint, PBufferState>> m_mapped_buffers;
 
-
-    std::unordered_map<GLint, PTextureState> m_textures;
+    TextureStateSet m_textures;
     std::unordered_map<GLint, PTextureState> m_bound_texture;
     unsigned m_active_texture_unit;
     PCall m_active_texture_unit_call;
@@ -444,9 +443,10 @@ void StateImpl::BindTexture(PCall call)
     unsigned target_unit = (target << 16) | m_active_texture_unit;
 
     if (id) {
-        auto tex = m_textures[id];
         if (!m_bound_texture[target_unit] ||
                 m_bound_texture[target_unit]->id() != id) {
+
+            auto tex = m_textures.get_by_id(id);
             m_bound_texture[target_unit] = tex;
             tex->bind_unit(call, m_active_texture_unit_call);
 
@@ -456,12 +456,16 @@ void StateImpl::BindTexture(PCall call)
             if (m_draw_framebuffer)
                 tex->emit_calls_to_list(m_draw_framebuffer->state_calls());
         }
-    } else
+    } else {
+        if (m_bound_texture[target_unit])
+            m_bound_texture[target_unit]->append_call(call);
         m_bound_texture.erase(target_unit);
+    }
 }
 
 void StateImpl::BlitFramebuffer(PCall call)
 {
+    (void)call;
     assert(m_read_framebuffer);
 
     if (m_draw_framebuffer)
@@ -710,7 +714,7 @@ void StateImpl::FramebufferTexture(PCall call)
 
     unsigned textargetid = (textarget << 16) | level << 12 | level;
 
-    auto texture = m_textures[texid];
+    auto texture = m_textures.get_by_id(texid);
 
     if (target == GL_FRAMEBUFFER || target == GL_DRAW_FRAMEBUFFER) {
         m_draw_framebuffer->attach(attachment, call, texture);
@@ -751,18 +755,12 @@ void StateImpl::GenRenderbuffer(PCall call)
 
 void StateImpl::GenTextures(PCall call)
 {
-    const auto ids = (call->arg(1)).toArray();
-    for (auto& v : ids->values) {
-        auto obj = make_shared<TextureState>(v->toUInt(), call);
-        m_textures[v->toUInt()] = obj;
-    }
+    m_textures.generate(call);
 }
 
 void StateImpl::DeleteTextures(PCall call)
 {
-    const auto ids = (call->arg(1)).toArray();
-    for (auto& v : ids->values)
-        m_textures.erase(v->toUInt());
+    m_textures.destroy(call);
 }
 
 void StateImpl::DeleteRenderbuffers(PCall call)
