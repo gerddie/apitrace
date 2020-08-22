@@ -56,25 +56,23 @@ struct StateImpl {
     void Clear(PCall call);
     void CreateShader(PCall call);
     void CreateProgram(PCall call);
-    void DeleteBuffers(PCall call);
 
-    void DeleteTextures(PCall call);
     void DeleteFramebuffers(PCall call);
-    void DeleteRenderbuffers(PCall call);
+
     void DeleteLists(PCall call);
     void DrawElements(PCall call);
     void End(PCall call);
     void EndList(PCall call);
     void FramebufferTexture(PCall call);
     void FramebufferRenderbuffer(PCall call);
-    void GenBuffers(PCall call);
+
     void GenFramebuffer(PCall call);
     void GenLists(PCall call);
     void GenPrograms(PCall call);
     void GenSamplers(PCall call);
-    void GenTextures(PCall call);
+
     void GenVertexArrays(PCall call);
-    void GenRenderbuffer(PCall call);
+
     void program_call(PCall call);
     void LoadIdentity(PCall call);
     void LoadMatrix(PCall call);
@@ -732,17 +730,6 @@ void StateImpl::FramebufferTexture(PCall call)
     }
 }
 
-void StateImpl::GenBuffers(PCall call)
-{
-    m_buffers.generate(call);
-}
-
-void StateImpl::DeleteBuffers(PCall call)
-{
-    m_buffers.generate(call);
-}
-
-
 void StateImpl::GenFramebuffer(PCall call)
 {
     const auto ids = (call->arg(1)).toArray();
@@ -750,26 +737,6 @@ void StateImpl::GenFramebuffer(PCall call)
         auto obj = make_shared<FramebufferState>(v->toUInt(), call);
         m_framebuffers[v->toUInt()] = obj;
     }
-}
-
-void StateImpl::GenRenderbuffer(PCall call)
-{
-    m_renderbuffers.generate(call);
-}
-
-void StateImpl::GenTextures(PCall call)
-{
-    m_textures.generate(call);
-}
-
-void StateImpl::DeleteTextures(PCall call)
-{
-    m_textures.destroy(call);
-}
-
-void StateImpl::DeleteRenderbuffers(PCall call)
-{
-    m_renderbuffers.destroy(call);
 }
 
 void StateImpl::GenPrograms(PCall call)
@@ -1119,7 +1086,6 @@ void StateImpl::register_buffer_calls()
     MAP_GENOBJ(glGenBuffers, m_buffers, BufferStateMap::generate);
     MAP_GENOBJ(glDeleteBuffers, m_buffers, BufferStateMap::destroy);
 
-    MAP(glGenBuffers, GenBuffers);
     MAP(glBindBuffer, BindBuffer);
     MAP(glBufferData, BufferData);
     MAP(glBufferSubData, BufferSubData);
@@ -1155,9 +1121,7 @@ void StateImpl::register_texture_calls()
     MAP(glActiveTexture, ActiveTexture);
     MAP(glBindTexture, BindTexture);
     MAP(glCompressedTexImage2D, texture_call);
-    MAP(glDeleteTextures, DeleteTextures);
     MAP(glGenerateMipmap, texture_call);
-    MAP(glGenTexture, GenTextures);
     MAP(glTexImage1D, texture_call);
     MAP(glTexImage2D, texture_call);
     MAP(glTexImage3D, texture_call);
