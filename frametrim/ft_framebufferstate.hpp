@@ -10,6 +10,9 @@ namespace frametrim {
 class FramebufferState : public GenObjectState
 {
 public:
+
+    using Pointer = std::shared_ptr<FramebufferState>;
+
     FramebufferState(GLint glID, PCall gen_call);
 
     void bind(PCall call);
@@ -48,11 +51,15 @@ private:
 
 };
 
-using PFramebufferState = std::shared_ptr<FramebufferState>;
+using PFramebufferState = FramebufferState::Pointer;
+using FramebufferMap = TStateMap<FramebufferState>;
 
 class RenderbufferState : public SizedObjectState
 {
 public:
+
+    using Pointer = std::shared_ptr<RenderbufferState>;
+
     RenderbufferState(GLint glID, PCall gen_call);
 
     void attach(PCall call, bool read, PFramebufferState write_fb);
@@ -77,8 +84,8 @@ private:
     PFramebufferState m_data_source;
 };
 
-using PRenderbufferState = std::shared_ptr<RenderbufferState>;
-
+using PRenderbufferState = RenderbufferState::Pointer;
+using RenderbufferMap = TStateMap<RenderbufferState>;
 
 }
 

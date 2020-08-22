@@ -168,13 +168,15 @@ struct StateImpl {
     std::unordered_map<GLint, PObjectState> m_vertex_arrays;
     std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
 
+
+
     std::unordered_map<GLint, PFramebufferState> m_framebuffers;
     PFramebufferState m_draw_framebuffer;
     PFramebufferState m_read_framebuffer;
     PCall m_draw_framebuffer_call;
     PCall m_read_framebuffer_call;
 
-    std::unordered_map<GLint, PRenderbufferState> m_renderbuffers;
+    RenderbufferMap m_renderbuffers;
     PRenderbufferState m_active_renderbuffer;
 
     std::unordered_map<std::string, PCall> m_state_calls;
@@ -562,7 +564,7 @@ void StateImpl::BindRenderbuffer(PCall call)
 
     if (id) {
         if (!m_active_renderbuffer || m_active_renderbuffer->id() != id) {
-            m_active_renderbuffer = m_renderbuffers[id];
+            m_active_renderbuffer = m_renderbuffers.get_by_id(id);
             if (!m_active_renderbuffer) {
                 std::cerr << "No renderbuffer in " << __func__
                           << " with call " << call->no
@@ -676,7 +678,7 @@ void StateImpl::FramebufferRenderbuffer(PCall call)
     unsigned attachment = call->arg(1).toUInt();
     unsigned rb_id = call->arg(3).toUInt();
 
-    auto rb = rb_id ? m_renderbuffers[rb_id] : nullptr;
+    auto rb = rb_id ? m_renderbuffers.get_by_id(rb_id) : nullptr;
 
     PFramebufferState  draw_fb;
     bool read_rb = false;
@@ -752,11 +754,7 @@ void StateImpl::GenFramebuffer(PCall call)
 
 void StateImpl::GenRenderbuffer(PCall call)
 {
-    const auto ids = (call->arg(1)).toArray();
-    for (auto& v : ids->values) {
-        auto obj = make_shared<RenderbufferState>(v->toUInt(), call);
-        m_renderbuffers[v->toUInt()] = obj;
-    }
+    m_renderbuffers.generate(call);
 }
 
 void StateImpl::GenTextures(PCall call)
@@ -771,9 +769,7 @@ void StateImpl::DeleteTextures(PCall call)
 
 void StateImpl::DeleteRenderbuffers(PCall call)
 {
-    const auto ids = (call->arg(1)).toArray();
-    for (auto& v : ids->values)
-        m_renderbuffers.erase(v->toUInt());
+    m_renderbuffers.destroy(call);
 }
 
 void StateImpl::GenPrograms(PCall call)
