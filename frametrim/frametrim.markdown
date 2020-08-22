@@ -39,6 +39,7 @@ The following types of calls need to be considered:
 
 ## Next steps:
 
+* code cleanups, move more code out of ft_state.cpp to the respective objects
 * Handle all fbo render targtes
 * handle fbo blits
 * compute shaders and their changeing of buffers and textures (images)
