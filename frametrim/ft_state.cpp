@@ -1088,6 +1088,8 @@ void StateImpl::write(trace::Writer& writer)
 void StateImpl::register_callbacks()
 {
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&StateImpl:: call, this, _1)))
+#define MAP_GENOBJ(name, obj, call) \
+    m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1)))
 
     MAP(glClear, Clear);
 
@@ -1114,11 +1116,14 @@ void StateImpl::register_callbacks()
 
 void StateImpl::register_buffer_calls()
 {
+    MAP_GENOBJ(glGenBuffers, m_buffers, BufferStateMap::generate);
+    MAP_GENOBJ(glDeleteBuffers, m_buffers, BufferStateMap::destroy);
+
     MAP(glGenBuffers, GenBuffers);
     MAP(glBindBuffer, BindBuffer);
     MAP(glBufferData, BufferData);
     MAP(glBufferSubData, BufferSubData);
-    MAP(glDeleteBuffers, DeleteBuffers);
+
     MAP(glMapBuffer, MapBuffer);
     MAP(glMapBufferRange, MapBufferRange);
     MAP(memcpy, BufferMemcopy);
@@ -1144,6 +1149,9 @@ void StateImpl::register_program_calls()
 
 void StateImpl::register_texture_calls()
 {
+    MAP_GENOBJ(glGenTextures, m_textures, TextureStateMap::generate);
+    MAP_GENOBJ(glDeleteTextures, m_textures, TextureStateMap::destroy);
+
     MAP(glActiveTexture, ActiveTexture);
     MAP(glBindTexture, BindTexture);
     MAP(glCompressedTexImage2D, texture_call);
@@ -1167,9 +1175,9 @@ void StateImpl::register_framebuffer_calls()
     MAP(glFramebufferRenderbuffer, FramebufferRenderbuffer);
     MAP(glFramebufferTexture, FramebufferTexture);
     MAP(glGenFramebuffer, GenFramebuffer);
-    MAP(glGenRenderbuffer, GenRenderbuffer);
+    MAP_GENOBJ(glGenRenderbuffer, m_renderbuffers, RenderbufferMap::generate);
     MAP(glDeleteFramebuffers, DeleteFramebuffers);
-    MAP(glDeleteRenderbuffers, DeleteRenderbuffers);
+    MAP_GENOBJ(glDeleteRenderbuffers,m_renderbuffers, RenderbufferMap::destroy);
     MAP(glRenderbufferStorage, RenderbufferStorage);
 
 }
