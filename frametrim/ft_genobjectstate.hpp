@@ -26,7 +26,7 @@ using PGenObjectState = GenObjectState::Pointer;
 
 
 template <typename T>
-class TStateSet  {
+class TStateMap  {
 
 public:
     void generate(PCall call) {

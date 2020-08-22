@@ -8,6 +8,9 @@ namespace frametrim {
 class BufferState : public GenObjectState
 {
 public:
+
+    using Pointer = std::shared_ptr<BufferState>;
+
     BufferState(GLint glID, PCall gen_call);
     ~BufferState();
 
@@ -29,7 +32,9 @@ private:
     struct BufferStateImpl *impl;
 };
 
-using PBufferState = std::shared_ptr<BufferState>;
+using PBufferState = BufferState::Pointer;
+
+using BufferStateMap = TStateMap<BufferState>;
 
 }
 

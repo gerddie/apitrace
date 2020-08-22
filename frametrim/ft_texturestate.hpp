@@ -32,7 +32,7 @@ private:
 
 using PTextureState = TextureState::Pointer;
 
-using TextureStateSet = TStateSet<TextureState>;
+using TextureStateMap = TStateMap<TextureState>;
 
 }
 

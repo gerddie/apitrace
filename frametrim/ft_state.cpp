@@ -56,6 +56,8 @@ struct StateImpl {
     void Clear(PCall call);
     void CreateShader(PCall call);
     void CreateProgram(PCall call);
+    void DeleteBuffers(PCall call);
+
     void DeleteTextures(PCall call);
     void DeleteFramebuffers(PCall call);
     void DeleteRenderbuffers(PCall call);
@@ -151,11 +153,11 @@ struct StateImpl {
     std::unordered_map<GLint, PObjectState> m_display_lists;
     PObjectState m_active_display_list;
 
-    std::unordered_map<GLint, PBufferState> m_buffers;
+    BufferStateMap m_buffers;
     std::unordered_map<GLint, PBufferState> m_bound_buffers;
     std::unordered_map<GLint, std::unordered_map<GLint, PBufferState>> m_mapped_buffers;
 
-    TextureStateSet m_textures;
+    TextureStateMap m_textures;
     std::unordered_map<GLint, PTextureState> m_bound_texture;
     unsigned m_active_texture_unit;
     PCall m_active_texture_unit_call;
@@ -377,10 +379,12 @@ void StateImpl::BindBuffer(PCall call)
     if (id) {
         if (!m_bound_buffers[target] ||
                 m_bound_buffers[target]->id() != id) {
-            m_bound_buffers[target] = m_buffers[id];
+            m_bound_buffers[target] = m_buffers.get_by_id(id);
             m_bound_buffers[target] ->bind(call);
         }
     } else {
+        if (m_bound_buffers[target])
+            m_bound_buffers[target]->append_call(call);
         m_bound_buffers.erase(target);
     }
 }
@@ -728,12 +732,14 @@ void StateImpl::FramebufferTexture(PCall call)
 
 void StateImpl::GenBuffers(PCall call)
 {
-    const auto ids = (call->arg(1)).toArray();
-    for (auto& v : ids->values) {
-        auto obj = make_shared<BufferState>(v->toUInt(), call);
-        m_buffers[v->toUInt()] = obj;
-    }
+    m_buffers.generate(call);
 }
+
+void StateImpl::DeleteBuffers(PCall call)
+{
+    m_buffers.generate(call);
+}
+
 
 void StateImpl::GenFramebuffer(PCall call)
 {
@@ -1116,6 +1122,7 @@ void StateImpl::register_buffer_calls()
     MAP(glBindBuffer, BindBuffer);
     MAP(glBufferData, BufferData);
     MAP(glBufferSubData, BufferSubData);
+    MAP(glDeleteBuffers, DeleteBuffers);
     MAP(glMapBuffer, MapBuffer);
     MAP(glMapBufferRange, MapBufferRange);
     MAP(memcpy, BufferMemcopy);
