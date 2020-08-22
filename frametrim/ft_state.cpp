@@ -49,13 +49,16 @@ struct StateImpl {
     void BindProgram(PCall call);
     void BindRenderbuffer(PCall call);
     void BindTexture(PCall call);
+    void BlitFramebuffer(PCall call);
     void BufferData(PCall call);
     void BufferSubData(PCall call);
     void CallList(PCall call);
     void Clear(PCall call);
     void CreateShader(PCall call);
     void CreateProgram(PCall call);
+    void DeleteTextures(PCall call);
     void DeleteFramebuffers(PCall call);
+    void DeleteRenderbuffers(PCall call);
     void DeleteLists(PCall call);
     void DrawElements(PCall call);
     void End(PCall call);
@@ -457,6 +460,15 @@ void StateImpl::BindTexture(PCall call)
         m_bound_texture.erase(target_unit);
 }
 
+void StateImpl::BlitFramebuffer(PCall call)
+{
+    assert(m_read_framebuffer);
+
+    if (m_draw_framebuffer)
+        m_draw_framebuffer->depends(m_read_framebuffer);
+
+}
+
 void StateImpl::BufferData(PCall call)
 {
     unsigned target = call->arg(0).toUInt();
@@ -744,6 +756,20 @@ void StateImpl::GenTextures(PCall call)
         auto obj = make_shared<TextureState>(v->toUInt(), call);
         m_textures[v->toUInt()] = obj;
     }
+}
+
+void StateImpl::DeleteTextures(PCall call)
+{
+    const auto ids = (call->arg(1)).toArray();
+    for (auto& v : ids->values)
+        m_textures.erase(v->toUInt());
+}
+
+void StateImpl::DeleteRenderbuffers(PCall call)
+{
+    const auto ids = (call->arg(1)).toArray();
+    for (auto& v : ids->values)
+        m_renderbuffers.erase(v->toUInt());
 }
 
 void StateImpl::GenPrograms(PCall call)
@@ -1108,6 +1134,7 @@ void StateImpl::register_program_calls()
     MAP(glCreateShader, CreateShader);
     MAP(glGetAttribLocation, program_call);
     MAP(glGetUniformLocation, program_call);
+    MAP(glBindFragDataLocation, program_call);
     MAP(glLinkProgram, program_call);
     MAP(glShaderSource, shader_call);
     MAP(glUniform, Uniform);
@@ -1119,11 +1146,15 @@ void StateImpl::register_texture_calls()
     MAP(glActiveTexture, ActiveTexture);
     MAP(glBindTexture, BindTexture);
     MAP(glCompressedTexImage2D, texture_call);
+    MAP(glDeleteTextures, DeleteTextures);
     MAP(glGenerateMipmap, texture_call);
     MAP(glGenTexture, GenTextures);
     MAP(glTexImage1D, texture_call);
     MAP(glTexImage2D, texture_call);
     MAP(glTexImage3D, texture_call);
+    MAP(glTexSubImage1D, texture_call);
+    MAP(glTexSubImage2D, texture_call);
+    MAP(glTexSubImage3D, texture_call);
     MAP(glTexParameter, texture_call);
 }
 
@@ -1131,12 +1162,15 @@ void StateImpl::register_framebuffer_calls()
 {
     MAP(glBindFramebuffer, BindFramebuffer);
     MAP(glBindRenderbuffer, BindRenderbuffer);
+    MAP(glBlitFramebuffer, BlitFramebuffer);
     MAP(glFramebufferRenderbuffer, FramebufferRenderbuffer);
     MAP(glFramebufferTexture, FramebufferTexture);
     MAP(glGenFramebuffer, GenFramebuffer);
     MAP(glGenRenderbuffer, GenRenderbuffer);
     MAP(glDeleteFramebuffers, DeleteFramebuffers);
+    MAP(glDeleteRenderbuffers, DeleteRenderbuffers);
     MAP(glRenderbufferStorage, RenderbufferStorage);
+
 }
 
 void StateImpl::register_legacy_calls()
@@ -1241,6 +1275,7 @@ void StateImpl::register_state_calls()
         "glPolygonMode",
         "glPolygonMode",
         "glPolygonOffset",
+        "glReadBuffer",
         "glShadeModel",
         "glScissor",
         "glStencilFuncSeparate",

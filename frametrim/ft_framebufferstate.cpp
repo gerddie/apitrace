@@ -15,7 +15,6 @@ FramebufferState::FramebufferState(GLint glID, PCall gen_call):
 {
 }
 
-
 void FramebufferState::bind(PCall call)
 {
     m_bind_call = call;
@@ -24,18 +23,19 @@ void FramebufferState::bind(PCall call)
 void FramebufferState::attach(unsigned attachment, PCall call,
                               PSizedObjectState att)
 {
-    if (m_attachments[attachment] &&
+    if (m_attachments[attachment] && att &&
             (*m_attachments[attachment] == *att))
         return;
 
     m_attachments[attachment] = att;
-    m_attachment_call[attachment] = call;
-    m_attach_calls.insert(m_bind_call);
-    m_attach_calls.insert(call);
+    m_attach_calls[attachment].insert(m_bind_call);
+    m_attach_calls[attachment].insert(call);
 
     if (att) {
         m_width = att->width();
         m_height = att->height();
+    } else {
+        m_attach_calls[attachment].clear();
     }
 
     m_attached_buffer_types = 0;
@@ -70,8 +70,6 @@ CallSet& FramebufferState::state_calls()
 
 void FramebufferState::set_viewport(PCall call)
 {
-    std::cerr << "FBO " << id() << " set viewport\n";
-
     m_viewport_call = call;
     m_viewport_full_size =
             call->arg(0).toUInt() == 0 &&
@@ -96,6 +94,12 @@ void FramebufferState::clear(PCall call)
     append_call(call);
 }
 
+void FramebufferState::depends(PGenObjectState read_buffer)
+{
+    // TODO: we should check whether the drawn region is covering the
+    // whole target so that we can remove un-needed calls
+    m_read_dependencies.insert(read_buffer);
+}
 
 void FramebufferState::do_emit_calls_to_list(CallSet& list) const
 {
@@ -106,8 +110,16 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
         emit_gen_call(list);
 
         list.insert(m_bind_call);
-        list.insert(m_attach_calls);
+
+        for (auto& a : m_attach_calls)
+            list.insert(a.second);
+
         list.insert(m_draw_prepare);
+
+        for (auto& d : m_read_dependencies) {
+            if (d)
+                d->emit_calls_to_list(list);
+        }
 
         for(auto& a: m_attachments)
             if (a.second)

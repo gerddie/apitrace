@@ -3,6 +3,7 @@
 
 #include "ft_genobjectstate.hpp"
 #include <unordered_map>
+#include <unordered_set>
 
 namespace frametrim {
 
@@ -23,6 +24,8 @@ public:
 
     CallSet& state_calls();
 
+    void depends(PGenObjectState read_buffer);
+
 private:
 
     void do_emit_calls_to_list(CallSet& list) const override;
@@ -30,7 +33,7 @@ private:
     PCall m_bind_call;
     PCall m_viewport_call;
 
-    CallSet m_attach_calls;
+    std::unordered_map<unsigned, CallSet> m_attach_calls;
     CallSet m_draw_prepare;
 
     unsigned m_width, m_height;
@@ -39,8 +42,9 @@ private:
     unsigned m_attached_buffer_types;
     unsigned m_attached_color_buffer_mask;
 
-    std::unordered_map<unsigned, PCall> m_attachment_call;
     std::unordered_map<unsigned, PSizedObjectState> m_attachments;
+
+    std::unordered_set<PGenObjectState> m_read_dependencies;
 
 };
 
