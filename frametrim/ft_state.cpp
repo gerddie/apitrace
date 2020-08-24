@@ -41,14 +41,9 @@ struct StateImpl {
 
 
     /* OpenGL calls */
-    void AttachShader(PCall call);
     void Begin(PCall call);
-    void BindAttribLocation(PCall call);
-    void BindProgram(PCall call);
     void CallList(PCall call);
     void Clear(PCall call);
-    void CreateShader(PCall call);
-    void CreateProgram(PCall call);
 
     void DeleteLists(PCall call);
     void DrawElements(PCall call);
@@ -56,22 +51,15 @@ struct StateImpl {
     void EndList(PCall call);
 
     void GenLists(PCall call);
-    void GenPrograms(PCall call);
     void GenSamplers(PCall call);
 
     void GenVertexArrays(PCall call);
 
-    void program_call(PCall call);
     void Material(PCall call);
     void NewList(PCall call);
     void Normal(PCall call);
-    void ProgramString(PCall call);
-
     void ShadeModel(PCall call);
-    void shader_call(PCall call);
 
-    void Uniform(PCall call);
-    void UseProgram(PCall call);
     void Vertex(PCall call);
     void Viewport(PCall call);
     void VertexAttribPointer(PCall call);
@@ -118,12 +106,9 @@ struct StateImpl {
 
     AllMatrisStates m_matrix_states;
 
-    std::unordered_map<GLint, PShaderState> m_shaders;
-    std::unordered_map<GLint, PShaderState> m_active_shaders;
-
-    std::unordered_map<GLint, PProgramState> m_programs;
-    PProgramState m_active_program;
-
+    ShaderStateMap m_shaders;
+    ProgramStateMap m_programs;
+    LegacyProgramStateMap m_legacy_programs;
 
     std::unordered_map<GLenum, PCall> m_enables;
     std::unordered_map<GLint, PCall> m_va_enables;
@@ -235,8 +220,9 @@ void StateImpl::collect_state_calls(CallSet& list) const
 
     m_textures.emit_calls_to_list(list);
 
-    if (m_active_program)
-        m_active_program->emit_calls_to_list(list);
+    m_programs.emit_calls_to_list(list);
+
+    m_legacy_programs.emit_calls_to_list(list);
 }
 
 void StateImpl::start_target_farme()
@@ -247,6 +233,9 @@ void StateImpl::start_target_farme()
 StateImpl::StateImpl(GlobalState *gs):
     m_in_target_frame(false),
     m_required_calls(false),
+    m_shaders(gs),
+    m_programs(gs),
+    m_legacy_programs(gs),
     m_buffers(gs),
     m_textures(gs),
     m_framebuffers(gs),
@@ -305,51 +294,10 @@ void StateImpl::call(PCall call)
         m_framebuffers.draw_fb()->draw(call);
 }
 
-void StateImpl::AttachShader(PCall call)
-{
-    auto program = m_programs[call->arg(0).toUInt()];
-    assert(program);
-
-    auto shader = m_shaders[call->arg(1).toUInt()];
-    assert(shader);
-
-    program->attach_shader(shader);
-    program->append_call(call);
-}
-
 void StateImpl::Begin(PCall call)
 {
     if (m_active_display_list)
         m_active_display_list->append_call(call);
-}
-
-void StateImpl::BindAttribLocation(PCall call)
-{
-    GLint program_id = call->arg(0).toSInt();
-    auto prog = m_programs.find(program_id);
-    assert(prog != m_programs.end());
-    prog->second->append_call(call);
-}
-
-void StateImpl::BindProgram(PCall call)
-{
-    GLint stage = call->arg(0).toSInt();
-    GLint shader_id = call->arg(1).toSInt();
-
-    if (shader_id > 0) {
-        auto prog = m_shaders.find(shader_id);
-        if (prog == m_shaders.end()) {
-            // some old programs don't call GenProgram
-            auto program = make_shared<ShaderState>(shader_id, stage);
-            m_shaders[shader_id] = program;
-            prog = m_shaders.find(shader_id);
-        }
-        prog->second->append_call(call);
-        m_active_shaders[stage] = prog->second;
-    } else {
-        m_active_shaders[stage] = nullptr;
-        std::cerr << "TODO: Unbind shader program\n";
-    }
 }
 
 void StateImpl::CallList(PCall call)
@@ -370,23 +318,6 @@ void StateImpl::Clear(PCall call)
     auto draw_fbo = m_framebuffers.draw_fb();
     if (draw_fbo)
         draw_fbo->clear(call);
-}
-
-void StateImpl::CreateShader(PCall call)
-{
-    GLint shader_id = call->ret->toUInt();
-    GLint stage = call->arg(0).toUInt();
-    auto shader = make_shared<ShaderState>(shader_id, stage);
-    m_shaders[shader_id] = shader;
-    shader->append_call(call);
-}
-
-void StateImpl::CreateProgram(PCall call)
-{
-    GLint shader_id = call->ret->toUInt();
-    auto program = make_shared<ProgramState>(shader_id);
-    m_programs[shader_id] = program;
-    program->append_call(call);
 }
 
 void StateImpl::DeleteLists(PCall call)
@@ -442,18 +373,6 @@ void StateImpl::EndList(PCall call)
     m_active_display_list = nullptr;
 }
 
-void StateImpl::GenPrograms(PCall call)
-{
-    const auto stage = (call->arg(0)).toUInt();
-    const auto ids = (call->arg(1)).toArray();
-    for (auto& v : ids->values) {
-        auto obj = make_shared<ShaderState>(v->toUInt(), stage);
-        obj->append_call(call);
-        std::cerr << "Add program ID " << v->toUInt() << "\n";
-        m_shaders[v->toUInt()] = obj;
-    }
-}
-
 void StateImpl::GenSamplers(PCall call)
 {
     const auto ids = (call->arg(1)).toArray();
@@ -485,14 +404,6 @@ void StateImpl::GenVertexArrays(PCall call)
     }
 }
 
-void StateImpl::program_call(PCall call)
-{
-    unsigned progid = call->arg(0).toUInt();
-    assert(m_programs[progid]);
-    m_programs[progid]->append_call(call);
-}
-
-
 void StateImpl::Material(PCall call)
 {
     if (m_active_display_list)
@@ -516,60 +427,10 @@ void StateImpl::Normal(PCall call)
         m_active_display_list->append_call(call);
 }
 
-void StateImpl::ProgramString(PCall call)
-{
-    auto stage = call->arg(0).toUInt();
-    auto shader = m_active_shaders[stage];
-    assert(shader);
-    shader->append_call(call);
-}
-
 void StateImpl::ShadeModel(PCall call)
 {
     if (m_active_display_list)
         m_active_display_list->append_call(call);
-}
-
-void StateImpl::shader_call(PCall call)
-{
-    auto shader = m_shaders[call->arg(0).toUInt()];
-    shader->append_call(call);
-}
-
-void StateImpl::UseProgram(PCall call)
-{
-    unsigned progid = call->arg(0).toUInt();
-    bool new_program = false;
-
-    if (!m_active_program ||
-            m_active_program->id() != progid) {
-        m_active_program = progid > 0 ? m_programs[progid] : nullptr;
-        new_program = true;
-    }
-
-    if (m_active_program && new_program)
-        m_active_program->bind(call);
-
-    if (m_in_target_frame) {
-        if (m_active_program)
-            m_active_program->emit_calls_to_list(m_required_calls);
-        else
-            m_required_calls.insert(call);
-    }
-
-    auto draw_fb = m_framebuffers.draw_fb();
-    if (draw_fb) {
-        if (m_active_program)
-            m_active_program->emit_calls_to_list(draw_fb->state_calls());
-        else
-            draw_fb->draw(call);
-    }
-}
-
-void StateImpl::Uniform(PCall call)
-{
-    assert(m_active_program);
-    m_active_program->set_uniform(call);
 }
 
 void StateImpl::Vertex(PCall call)
@@ -585,8 +446,7 @@ void StateImpl::VertexAttribPointer(PCall call)
         m_vertex_attr_pointer[call->arg(0).toUInt()] = buf;
         auto draw_fb = m_framebuffers.draw_fb();
 
-        if (m_active_program)
-            m_active_program->set_va(call->arg(0).toUInt(), buf);
+        m_programs.set_va(call->arg(0).toUInt(), buf);
         if (m_in_target_frame)
             buf->emit_calls_to_list(m_required_calls);
         else if (draw_fb)
@@ -721,19 +581,23 @@ void StateImpl::register_buffer_calls()
 
 void StateImpl::register_program_calls()
 {
-    MAP(glAttachObject, AttachShader);
-    MAP(glAttachShader, AttachShader);
-    MAP(glBindAttribLocation, BindAttribLocation);
-    MAP(glCompileShader, shader_call);
-    MAP(glCreateProgram, CreateProgram);
-    MAP(glCreateShader, CreateShader);
-    MAP(glGetAttribLocation, program_call);
-    MAP(glGetUniformLocation, program_call);
-    MAP(glBindFragDataLocation, program_call);
-    MAP(glLinkProgram, program_call);
-    MAP(glShaderSource, shader_call);
-    MAP(glUniform, Uniform);
-    MAP(glUseProgram, UseProgram);
+    MAP_GENOBJ_DATAREF(glAttachObject, m_programs,
+                       ProgramStateMap::attach_shader, m_shaders);
+    MAP_GENOBJ_DATAREF(glAttachShader, m_programs,
+                       ProgramStateMap::attach_shader, m_shaders);
+
+    MAP_GENOBJ(glCompileShader, m_shaders, ShaderStateMap::data);
+    MAP_GENOBJ(glCreateShader, m_shaders, ShaderStateMap::create);
+    MAP_GENOBJ(glShaderSource, m_shaders, ShaderStateMap::data);
+    MAP_GENOBJ(glBindAttribLocation, m_programs,
+               ProgramStateMap::bind_attr_location);
+    MAP_GENOBJ(glCreateProgram, m_programs, ProgramStateMap::create);
+    MAP_GENOBJ(glGetAttribLocation, m_programs, ProgramStateMap::data);
+    MAP_GENOBJ(glGetUniformLocation, m_programs, ProgramStateMap::data);
+    MAP_GENOBJ(glBindFragDataLocation, m_programs, ProgramStateMap::data);
+    MAP_GENOBJ(glLinkProgram, m_programs, ProgramStateMap::data);
+    MAP_GENOBJ(glUniform, m_programs, ProgramStateMap::uniform);
+    MAP_GENOBJ(glUseProgram, m_programs, ProgramStateMap::use);
 }
 
 void StateImpl::register_texture_calls()
@@ -792,9 +656,14 @@ void StateImpl::register_legacy_calls()
     MAP(glNewList, NewList);
 
     // shader calls
-    MAP(glGenProgram, GenPrograms);
-    MAP(glBindProgram, BindProgram);
-    MAP(glProgramString, ProgramString);
+    MAP_GENOBJ(glGenPrograms, m_legacy_programs,
+               LegacyProgramStateMap::generate);
+    MAP_GENOBJ(glDeletePrograms, m_legacy_programs,
+               LegacyProgramStateMap::destroy);
+    MAP_GENOBJ(glBindProgram, m_legacy_programs,
+               LegacyProgramStateMap::bind);
+    MAP_GENOBJ(glProgramString, m_legacy_programs,
+               LegacyProgramStateMap::program_string);
 
     // Matrix manipulation
     MAP_GENOBJ(glLoadIdentity, m_matrix_states, AllMatrisStates::LoadIdentity);

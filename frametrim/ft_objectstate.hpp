@@ -135,7 +135,7 @@ using PObjectState=std::shared_ptr<ObjectState>;
 
 
 template <typename T>
-class TObjStateMap  {
+class TObjStateMap {
 
 public:
     TObjStateMap (GlobalState *gs): m_global_state(gs){}
