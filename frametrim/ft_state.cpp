@@ -832,6 +832,9 @@ void StateImpl::register_callbacks()
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&StateImpl:: call, this, _1)))
 #define MAP_GENOBJ(name, obj, call) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1)))
+#define MAP_GENOBJ_DATA(name, obj, call, data) \
+    m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, data)))
+
 
     MAP(glClear, Clear);
 
@@ -903,7 +906,7 @@ void StateImpl::register_texture_calls()
     MAP_GENOBJ(glTexSubImage1D, m_textures, TextureStateMap::set_data);
     MAP_GENOBJ(glTexSubImage2D, m_textures, TextureStateMap::set_data);
     MAP_GENOBJ(glTexSubImage3D, m_textures, TextureStateMap::set_data);
-    MAP_GENOBJ(glTexParameter, m_textures, TextureStateMap::set_state);
+    MAP_GENOBJ_DATA(glTexParameter, m_textures, TextureStateMap::set_state, 2);
 }
 
 void StateImpl::register_framebuffer_calls()

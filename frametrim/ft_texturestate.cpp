@@ -40,13 +40,6 @@ void TextureState::data(PCall call)
     }
 }
 
-void TextureState::set_state(PCall call)
-{
-    stringstream s;
-    s << call->name() << "_" << call->arg(1).toUInt();
-    m_texture_state_set[s.str()] = call;
-}
-
 void TextureState::use(PCall call)
 {
     m_data_use_set.clear();
@@ -129,7 +122,7 @@ void TextureStateMap::set_data(PCall call)
     texture->data(call);
 }
 
-void TextureStateMap::set_state(PCall call)
+void TextureStateMap::set_state(PCall call, unsigned addr_params)
 {
     auto texture = m_bound_texture[get_target_unit(call)];
     if (!texture) {
@@ -138,7 +131,7 @@ void TextureStateMap::set_state(PCall call)
                   << " U:" << m_active_texture_unit;
         assert(0);
     }
-    texture->set_state(call);
+    texture->set_state_call(call, addr_params);
 }
 
 

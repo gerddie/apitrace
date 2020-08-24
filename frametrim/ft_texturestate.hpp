@@ -14,7 +14,6 @@ public:
 
     void bind_unit(PCall bind, PCall unit);
 
-    void set_state(PCall call);
     void data(PCall call);
     void use(PCall call);
 
@@ -45,7 +44,7 @@ public:
 
     void set_data(PCall call);
 
-    void set_state(PCall call);
+    void set_state(PCall call, unsigned addr_params);
 
     void emit_calls_to_list(CallSet& list) const;
 
