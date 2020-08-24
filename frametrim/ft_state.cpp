@@ -1,5 +1,6 @@
 #include "ft_state.hpp"
 #include "ft_bufferstate.hpp"
+
 #include "ft_framebufferstate.hpp"
 #include "ft_matrixstate.hpp"
 #include "ft_programstate.hpp"
@@ -126,7 +127,6 @@ struct StateImpl {
     void update_call_table(const std::vector<const char*>& names,
                            ft_callback cb);
 
-
     using CallTable = std::multimap<const char *, ft_callback, string_part_less>;
     CallTable m_call_table;
 
@@ -200,6 +200,27 @@ State::State()
 State::~State()
 {
     delete impl;
+}
+
+bool State::in_target_frame() const
+{
+    return impl->m_in_target_frame;
+}
+
+CallSet State::global_callset()
+{
+    return impl->m_required_calls;
+}
+
+
+PObjectState State::draw_framebuffer() const
+{
+    return impl->m_draw_framebuffer;
+}
+
+PObjectState State::read_framebuffer() const
+{
+    return impl->m_read_framebuffer;
 }
 
 void State::target_frame_started()

@@ -8,15 +8,13 @@ namespace frametrim  {
 class GlobalState
 {
 public:
-    GlobalState();
+    virtual bool in_target_frame() const = 0;
 
-    bool in_target_frame() const;
+    virtual CallSet global_callset() = 0;
 
-    CallSet global_callset();
+    virtual PObjectState draw_framebuffer() const = 0;
 
-    PObjectState draw_framebuffer() const;
-    PObjectState read_framebuffer() const;
-
+    virtual PObjectState read_framebuffer() const = 0;
 };
 
 }
