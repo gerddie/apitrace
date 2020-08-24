@@ -7,12 +7,16 @@
 #include <vector>
 #include <memory>
 #include <set>
+#include <unordered_map>
 
 #include <iostream>
 
 namespace frametrim {
 
 using PCall=std::shared_ptr<trace::Call>;
+
+using StateCallMap=std::unordered_map<std::string, PCall>;
+
 
 struct pcall_less {
     bool operator () (PCall lhs, PCall rhs)
@@ -44,6 +48,16 @@ public:
                 std::cerr << "Insert: " << c->no << " " << c->name() << "\n";
         }
         m_calls.insert(calls.begin(), calls.end());
+    }
+
+    void insert(const StateCallMap& calls) {
+        if (m_debug) {
+            for (auto& c: calls)
+                std::cerr << "Insert: " << c.second->no
+                          << " " << c.second->name() << "\n";
+        }
+        for (auto& c: calls)
+            m_calls.insert(c.second);
     }
 
     iterator begin() {
@@ -89,6 +103,8 @@ public:
 
     void append_call(PCall call);
 
+    void set_state_call(PCall call, unsigned state_id_params);
+
 protected:
 
     void reset_callset();
@@ -100,6 +116,8 @@ private:
     GLint m_glID;
 
     CallSet m_gen_calls;
+
+    StateCallMap m_state_calls;
 
     CallSet m_calls;
 

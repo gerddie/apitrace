@@ -14,6 +14,7 @@ public:
 
     void bind_unit(PCall bind, PCall unit);
 
+    void set_state(PCall call);
     void data(PCall call);
     void use(PCall call);
 
@@ -24,6 +25,7 @@ private:
 
     PCall m_last_unit_call;
     PCall m_last_bind_call;
+    StateCallMap m_texture_state_set;
     CallSet m_data_upload_set;
     CallSet m_data_use_set;
 
@@ -32,7 +34,17 @@ private:
 
 using PTextureState = TextureState::Pointer;
 
-using TextureStateMap = TStateMap<TextureState>;
+class TextureStateMap : public TStateMap<TextureState>
+{
+public:
+    void bind(PCall call);
+
+private:
+    unsigned m_active_texture_unit;
+    std::unordered_map<unsigned, PTextureState> m_bound_textures;
+
+
+};
 
 }
 

@@ -1,6 +1,9 @@
 #include "ft_objectstate.hpp"
+#include <sstream>
 
 namespace frametrim {
+
+using std::stringstream;
 
 ObjectState::ObjectState(GLint glID):
     m_glID(glID),
@@ -28,6 +31,7 @@ void ObjectState::emit_calls_to_list(CallSet& list) const
         m_emitting = true;
 
         list.insert(m_gen_calls);
+        list.insert(m_state_calls);
         list.insert(m_calls);
 
         do_emit_calls_to_list(list);
@@ -49,6 +53,16 @@ void ObjectState::append_call(PCall call)
 void ObjectState::reset_callset()
 {
     m_calls.clear();
+}
+
+void ObjectState::set_state_call(PCall call, unsigned nstate_id_params)
+{
+    stringstream state_call_name;
+    state_call_name << call->name();
+    for(unsigned i = 0; i < nstate_id_params; ++i)
+        state_call_name << "_" << call->arg(i).toUInt();
+
+    m_state_calls[state_call_name.str()] = call;
 }
 
 void ObjectState::do_emit_calls_to_list(CallSet &list) const

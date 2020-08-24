@@ -1,7 +1,10 @@
 #include "ft_texturestate.hpp"
 #include <cstring>
+#include <sstream>
 
 namespace frametrim {
+
+using std::stringstream;
 
 TextureState::TextureState(GLint glID, PCall gen_call):
     SizedObjectState(glID, gen_call, texture)
@@ -35,6 +38,13 @@ void TextureState::data(PCall call)
     }
 }
 
+void TextureState::set_state(PCall call)
+{
+    stringstream s;
+    s << call->name() << "_" << call->arg(1).toUInt();
+    m_texture_state_set[s.str()] = call;
+}
+
 void TextureState::use(PCall call)
 {
     m_data_use_set.clear();
@@ -53,6 +63,7 @@ void TextureState::do_emit_calls_to_list(CallSet& list) const
 {
     if (!m_data_use_set.empty() || m_last_bind_call) {
         emit_gen_call(list);
+        list.insert(m_texture_state_set);
         list.insert(m_data_upload_set);
         list.insert(m_data_use_set);
 
