@@ -105,6 +105,8 @@ public:
 
     void set_state_call(PCall call, unsigned state_id_params);
 
+    CallSet& dependent_calls();
+
 protected:
 
     void reset_callset();
@@ -116,6 +118,8 @@ private:
     GLint m_glID;
 
     CallSet m_gen_calls;
+
+    CallSet m_depenended_calls;
 
     StateCallMap m_state_calls;
 

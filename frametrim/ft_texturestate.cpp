@@ -2,6 +2,8 @@
 #include <cstring>
 #include <sstream>
 
+#include <GL/glext.h>
+
 namespace frametrim {
 
 using std::stringstream;
@@ -73,6 +75,95 @@ void TextureState::do_emit_calls_to_list(CallSet& list) const
         for (auto& f : m_fbo)
             f.second->emit_calls_to_list(list);
     }
+}
+
+TextureStateMap::TextureStateMap(GlobalState *gs):
+    TStateMap<TextureState>(gs),
+    m_active_texture_unit(0)
+{
+}
+
+void TextureStateMap::active_texture(PCall call)
+{
+    m_active_texture_unit = call->arg(0).toUInt() - GL_TEXTURE0;
+    m_active_texture_unit_call = call;
+}
+
+void TextureStateMap::bind(PCall call)
+{
+    unsigned id = call->arg(1).toUInt();
+    unsigned target_unit = get_target_unit(call);
+
+    if (id) {
+        if (!m_bound_texture[target_unit] ||
+                m_bound_texture[target_unit]->id() != id) {
+
+            auto tex = get_by_id(id);
+            m_bound_texture[target_unit] = tex;
+            tex->bind_unit(call, m_active_texture_unit_call);
+
+            if (global_state().in_target_frame()) {
+                tex->emit_calls_to_list(global_state().global_callset());
+            }
+            auto draw_fb = global_state().draw_framebuffer();
+            if (draw_fb)
+                tex->emit_calls_to_list(draw_fb->dependent_calls());
+        }
+    } else {
+        if (m_bound_texture[target_unit])
+            m_bound_texture[target_unit]->append_call(call);
+        m_bound_texture.erase(target_unit);
+    }
+}
+
+void TextureStateMap::set_data(PCall call)
+{
+    auto texture = m_bound_texture[get_target_unit(call)];
+
+    if (!texture) {
+        std::cerr << "No texture found in call " << call->no
+                  << " target:" << call->arg(0).toUInt()
+                  << " U:" << m_active_texture_unit;
+        assert(0);
+    }
+    texture->data(call);
+}
+
+void TextureStateMap::set_state(PCall call)
+{
+    auto texture = m_bound_texture[get_target_unit(call)];
+    if (!texture) {
+        std::cerr << "No texture found in call " << call->no
+                  << " target:" << call->arg(0).toUInt()
+                  << " U:" << m_active_texture_unit;
+        assert(0);
+    }
+    texture->set_state(call);
+}
+
+
+unsigned TextureStateMap::get_target_unit(PCall call) const
+{
+    auto target = call->arg(0).toUInt();
+    switch (target) {
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+        target = GL_TEXTURE_CUBE_MAP;
+        break;
+    default:
+        ;
+    }
+    return (target << 8) | m_active_texture_unit;
+}
+
+void TextureStateMap::emit_calls_to_list(CallSet& list) const
+{
+    for (auto& tex: m_bound_texture)
+        tex.second->emit_calls_to_list(list);
 }
 
 

@@ -41,7 +41,6 @@ struct StateImpl {
 
 
     /* OpenGL calls */
-    void ActiveTexture(PCall call);
     void AttachShader(PCall call);
     void Begin(PCall call);
     void BindAttribLocation(PCall call);
@@ -49,7 +48,6 @@ struct StateImpl {
     void BindFramebuffer(PCall call);
     void BindProgram(PCall call);
     void BindRenderbuffer(PCall call);
-    void BindTexture(PCall call);
     void BlitFramebuffer(PCall call);
     void BufferData(PCall call);
     void BufferSubData(PCall call);
@@ -109,7 +107,6 @@ struct StateImpl {
 
     void write(trace::Writer& writer);
     void start_target_farme();
-    void texture_call(PCall call);
 
     void collect_state_calls(CallSet& lisr) const;
 
@@ -156,9 +153,6 @@ struct StateImpl {
     std::unordered_map<GLint, std::unordered_map<GLint, PBufferState>> m_mapped_buffers;
 
     TextureStateMap m_textures;
-    std::unordered_map<GLint, PTextureState> m_bound_texture;
-    unsigned m_active_texture_unit;
-    PCall m_active_texture_unit_call;
 
     std::unordered_map<GLint, PGenObjectState> m_samplers;
     std::unordered_map<GLint, PGenObjectState> m_bound_samplers;
@@ -207,7 +201,7 @@ bool State::in_target_frame() const
     return impl->m_in_target_frame;
 }
 
-CallSet State::global_callset()
+CallSet &State::global_callset()
 {
     return impl->m_required_calls;
 }
@@ -259,8 +253,7 @@ void StateImpl::collect_state_calls(CallSet& list) const
     for (auto& buf: m_bound_buffers)
         buf.second->emit_calls_to_list(list);
 
-    for (auto& tex: m_bound_texture)
-        tex.second->emit_calls_to_list(list);
+    m_textures.emit_calls_to_list(list);
 
     if (m_active_program)
         m_active_program->emit_calls_to_list(list);
@@ -282,7 +275,6 @@ StateImpl::StateImpl(GlobalState *gs):
     m_required_calls(false),
     m_buffers(gs),
     m_textures(gs),
-    m_active_texture_unit(0),
     m_framebuffers(gs),
     m_renderbuffers(gs)
 {
@@ -337,12 +329,6 @@ void StateImpl::call(PCall call)
         m_required_calls.insert(call);
     else if (m_draw_framebuffer)
         m_draw_framebuffer->draw(call);
-}
-
-void StateImpl::ActiveTexture(PCall call)
-{
-    m_active_texture_unit = call->arg(0).toUInt() - GL_TEXTURE0;
-    m_active_texture_unit_call = call;
 }
 
 void StateImpl::AttachShader(PCall call)
@@ -437,33 +423,6 @@ void StateImpl::BindFramebuffer(PCall call)
             m_read_framebuffer_call = call;
         }
 
-    }
-}
-
-void StateImpl::BindTexture(PCall call)
-{
-    unsigned target = call->arg(0).toUInt();
-    unsigned id = call->arg(1).toUInt();
-    unsigned target_unit = (target << 16) | m_active_texture_unit;
-
-    if (id) {
-        if (!m_bound_texture[target_unit] ||
-                m_bound_texture[target_unit]->id() != id) {
-
-            auto tex = m_textures.get_by_id(id);
-            m_bound_texture[target_unit] = tex;
-            tex->bind_unit(call, m_active_texture_unit_call);
-
-            if (m_in_target_frame) {
-                tex->emit_calls_to_list(m_required_calls);
-            }
-            if (m_draw_framebuffer)
-                tex->emit_calls_to_list(m_draw_framebuffer->state_calls());
-        }
-    } else {
-        if (m_bound_texture[target_unit])
-            m_bound_texture[target_unit]->append_call(call);
-        m_bound_texture.erase(target_unit);
     }
 }
 
@@ -824,34 +783,6 @@ void StateImpl::shader_call(PCall call)
     shader->append_call(call);
 }
 
-void StateImpl::texture_call(PCall call)
-{
-    auto target = call->arg(0).toUInt();
-    switch (target) {
-    case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
-    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
-    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
-    case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
-    case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
-    case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
-        target = GL_TEXTURE_CUBE_MAP;
-        break;
-    default:
-        ;
-    }
-
-    auto texture = m_bound_texture[(target << 16) | m_active_texture_unit];
-    if (!texture) {
-        std::cerr << "No texture found in call " << call->no
-                  << " target:" << call->arg(0).toUInt()
-                  << " U:" << m_active_texture_unit;
-
-    }
-
-    assert(texture);
-    texture->data(call);
-}
-
 void StateImpl::UseProgram(PCall call)
 {
     unsigned progid = call->arg(0).toUInt();
@@ -1047,17 +978,17 @@ void StateImpl::register_texture_calls()
     MAP_GENOBJ(glGenTextures, m_textures, TextureStateMap::generate);
     MAP_GENOBJ(glDeleteTextures, m_textures, TextureStateMap::destroy);
 
-    MAP(glActiveTexture, ActiveTexture);
-    MAP(glBindTexture, BindTexture);
-    MAP(glCompressedTexImage2D, texture_call);
-    MAP(glGenerateMipmap, texture_call);
-    MAP(glTexImage1D, texture_call);
-    MAP(glTexImage2D, texture_call);
-    MAP(glTexImage3D, texture_call);
-    MAP(glTexSubImage1D, texture_call);
-    MAP(glTexSubImage2D, texture_call);
-    MAP(glTexSubImage3D, texture_call);
-    MAP(glTexParameter, texture_call);
+    MAP_GENOBJ(glActiveTexture, m_textures, TextureStateMap::active_texture);
+    MAP_GENOBJ(glBindTexture, m_textures, TextureStateMap::bind);
+    MAP_GENOBJ(glCompressedTexImage2D, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glGenerateMipmap, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glTexImage1D, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glTexImage2D, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glTexImage3D, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glTexSubImage1D, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glTexSubImage2D, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glTexSubImage3D, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glTexParameter, m_textures, TextureStateMap::set_state);
 }
 
 void StateImpl::register_framebuffer_calls()

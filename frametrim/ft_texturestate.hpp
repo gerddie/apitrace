@@ -37,14 +37,24 @@ using PTextureState = TextureState::Pointer;
 class TextureStateMap : public TStateMap<TextureState>
 {
 public:
-    using TStateMap<TextureState>::TStateMap;
+    TextureStateMap(GlobalState *gs);
+
+    void active_texture(PCall call);
 
     void bind(PCall call);
 
-private:
-    unsigned m_active_texture_unit;
-    std::unordered_map<unsigned, PTextureState> m_bound_textures;
+    void set_data(PCall call);
 
+    void set_state(PCall call);
+
+    void emit_calls_to_list(CallSet& list) const;
+
+private:
+    unsigned get_target_unit(PCall call) const;
+
+    unsigned m_active_texture_unit;
+    std::unordered_map<unsigned, PTextureState> m_bound_texture;
+    PCall m_active_texture_unit_call;
 
 };
 

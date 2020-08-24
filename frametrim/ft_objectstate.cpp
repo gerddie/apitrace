@@ -31,6 +31,7 @@ void ObjectState::emit_calls_to_list(CallSet& list) const
         m_emitting = true;
 
         list.insert(m_gen_calls);
+        list.insert(m_depenended_calls);
         list.insert(m_state_calls);
         list.insert(m_calls);
 
@@ -53,6 +54,11 @@ void ObjectState::append_call(PCall call)
 void ObjectState::reset_callset()
 {
     m_calls.clear();
+}
+
+CallSet& ObjectState::dependent_calls()
+{
+    return m_depenended_calls;
 }
 
 void ObjectState::set_state_call(PCall call, unsigned nstate_id_params)

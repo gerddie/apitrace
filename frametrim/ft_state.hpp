@@ -28,7 +28,7 @@ public:
 
     bool in_target_frame() const override;
 
-    CallSet global_callset() override;
+    CallSet& global_callset() override;
 
     PObjectState draw_framebuffer() const  override;
 
