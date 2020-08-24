@@ -44,7 +44,7 @@ public:
 
         auto iter = m_states.find(id);
         if (iter == m_states.end()) {
-            std::cerr << "Expected id " << id << " not found \n";
+            assert(0 && "Expected id not found \n");
             return nullptr;
         }
         return iter->second;

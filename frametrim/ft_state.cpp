@@ -44,9 +44,7 @@ struct StateImpl {
     void AttachShader(PCall call);
     void Begin(PCall call);
     void BindAttribLocation(PCall call);
-    void BindFramebuffer(PCall call);
     void BindProgram(PCall call);
-    void BlitFramebuffer(PCall call);
     void CallList(PCall call);
     void Clear(PCall call);
     void CreateShader(PCall call);
@@ -56,8 +54,6 @@ struct StateImpl {
     void DrawElements(PCall call);
     void End(PCall call);
     void EndList(PCall call);
-    void FramebufferTexture(PCall call);
-    void FramebufferRenderbuffer(PCall call);
 
     void GenLists(PCall call);
     void GenPrograms(PCall call);
@@ -147,11 +143,6 @@ struct StateImpl {
     std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
 
     FramebufferMap m_framebuffers;
-    PFramebufferState m_draw_framebuffer;
-    PFramebufferState m_read_framebuffer;
-    PCall m_draw_framebuffer_call;
-    PCall m_read_framebuffer_call;
-
     RenderbufferMap m_renderbuffers;
 
     std::unordered_map<std::string, PCall> m_state_calls;
@@ -194,12 +185,17 @@ CallSet &State::global_callset()
 
 PObjectState State::draw_framebuffer() const
 {
-    return impl->m_draw_framebuffer;
+    return impl->m_framebuffers.draw_fb();
 }
 
 PObjectState State::read_framebuffer() const
 {
-    return impl->m_read_framebuffer;
+    return impl->m_framebuffers.read_fb();
+}
+
+void State::collect_state_calls(CallSet& list)
+{
+    impl->collect_state_calls(list);
 }
 
 void State::target_frame_started()
@@ -241,12 +237,6 @@ void StateImpl::collect_state_calls(CallSet& list) const
 
     if (m_active_program)
         m_active_program->emit_calls_to_list(list);
-
-    if (m_draw_framebuffer_call)
-        list.insert(m_draw_framebuffer_call);
-
-    if (m_read_framebuffer_call)
-        list.insert(m_read_framebuffer_call);
 }
 
 void StateImpl::start_target_farme()
@@ -311,8 +301,8 @@ void StateImpl::call(PCall call)
 
     if (m_in_target_frame)
         m_required_calls.insert(call);
-    else if (m_draw_framebuffer)
-        m_draw_framebuffer->draw(call);
+    else if (m_framebuffers.draw_fb())
+        m_framebuffers.draw_fb()->draw(call);
 }
 
 void StateImpl::AttachShader(PCall call)
@@ -339,67 +329,6 @@ void StateImpl::BindAttribLocation(PCall call)
     auto prog = m_programs.find(program_id);
     assert(prog != m_programs.end());
     prog->second->append_call(call);
-}
-
-void StateImpl::BindFramebuffer(PCall call)
-{
-    unsigned target = call->arg(0).toUInt();
-    unsigned id = call->arg(1).toUInt();
-
-    if (id)  {
-
-        if ((target == GL_DRAW_FRAMEBUFFER ||
-             target == GL_FRAMEBUFFER) &&
-                (!m_draw_framebuffer ||
-                 m_draw_framebuffer->id() != id)) {
-            m_draw_framebuffer = m_framebuffers.get_by_id(id);
-            m_draw_framebuffer->bind(call);
-            m_draw_framebuffer_call = call;
-
-            /* TODO: Create a copy of the current state and record all
-          * calls in the framebuffer until it is un-bound
-          * attach the framebuffer to any texture that might be
-          * attached as render target */
-
-            auto& calls = m_draw_framebuffer->state_calls();
-            calls.clear();
-            collect_state_calls(calls);
-        }
-
-        if ((target == GL_READ_FRAMEBUFFER ||
-             target == GL_FRAMEBUFFER) &&
-                (!m_read_framebuffer ||
-                 m_read_framebuffer->id() != id)) {
-            m_read_framebuffer = m_framebuffers.get_by_id(id);
-            m_read_framebuffer->bind(call);
-            m_read_framebuffer_call = call;
-        }
-
-    } else {
-
-        if (target == GL_DRAW_FRAMEBUFFER ||
-                target == GL_FRAMEBUFFER) {
-            m_draw_framebuffer = nullptr;
-            m_draw_framebuffer_call = call;
-        }
-
-        if (target == GL_READ_FRAMEBUFFER ||
-                target == GL_FRAMEBUFFER) {
-            m_read_framebuffer = nullptr;
-            m_read_framebuffer_call = call;
-        }
-
-    }
-}
-
-void StateImpl::BlitFramebuffer(PCall call)
-{
-    (void)call;
-    assert(m_read_framebuffer);
-
-    if (m_draw_framebuffer)
-        m_draw_framebuffer->depends(m_read_framebuffer);
-
 }
 
 void StateImpl::BindProgram(PCall call)
@@ -431,14 +360,16 @@ void StateImpl::CallList(PCall call)
     if (m_in_target_frame)
         list->second->emit_calls_to_list(m_required_calls);
 
-    if (m_draw_framebuffer)
-        list->second->emit_calls_to_list(m_draw_framebuffer->state_calls());
+    auto draw_fbo = m_framebuffers.draw_fb();
+    if (draw_fbo)
+        list->second->emit_calls_to_list(draw_fbo->state_calls());
 }
 
 void StateImpl::Clear(PCall call)
 {
-    if (m_draw_framebuffer)
-        m_draw_framebuffer->clear(call);
+    auto draw_fbo = m_framebuffers.draw_fb();
+    if (draw_fbo)
+        draw_fbo->clear(call);
 }
 
 void StateImpl::CreateShader(PCall call)
@@ -479,8 +410,9 @@ void StateImpl::DrawElements(PCall call)
         if (m_in_target_frame)
             buf->emit_calls_to_list(m_required_calls);
 
-        if (m_draw_framebuffer)
-            buf->emit_calls_to_list(m_draw_framebuffer->state_calls());
+        auto draw_fbo = m_framebuffers.draw_fb();
+        if (draw_fbo)
+            buf->emit_calls_to_list(draw_fbo->state_calls());
         buf->use();
     }
 }
@@ -508,66 +440,6 @@ void StateImpl::EndList(PCall call)
         m_active_display_list->append_call(call);
 
     m_active_display_list = nullptr;
-}
-
-void StateImpl::FramebufferRenderbuffer(PCall call)
-{
-    unsigned target = call->arg(0).toUInt();
-    unsigned attachment = call->arg(1).toUInt();
-    unsigned rb_id = call->arg(3).toUInt();
-
-    auto rb = rb_id ? m_renderbuffers.get_by_id(rb_id) : nullptr;
-
-    PFramebufferState  draw_fb;
-    bool read_rb = false;
-
-    if (target == GL_FRAMEBUFFER || target == GL_DRAW_FRAMEBUFFER) {
-        m_draw_framebuffer->attach(attachment, call, rb);
-        draw_fb = m_draw_framebuffer;
-    }
-
-    if (target == GL_FRAMEBUFFER || target == GL_READ_FRAMEBUFFER) {
-        m_read_framebuffer->attach(attachment, call, rb);
-        read_rb = true;
-    }
-
-    if (rb)
-        rb->attach(call, read_rb, draw_fb);
-}
-
-void StateImpl::FramebufferTexture(PCall call)
-{
-    unsigned layer = 0;
-    unsigned textarget = 0;
-    unsigned has_tex_target = strcmp("glFramebufferTexture", call->name()) != 0;
-
-    unsigned target = call->arg(0).toUInt();
-    unsigned attachment = call->arg(1).toUInt();
-
-    if (has_tex_target)
-        textarget = call->arg(2).toUInt();
-
-    unsigned texid = call->arg(2 + has_tex_target).toUInt();
-    unsigned level = call->arg(3 + has_tex_target).toUInt();
-
-    if (!strcmp(call->name(), "glFramebufferTexture3D"))
-        layer = call->arg(5).toUInt();
-
-    assert(level < 16);
-    assert(layer < 1 << 12);
-
-    unsigned textargetid = (textarget << 16) | level << 12 | level;
-
-    auto texture = m_textures.get_by_id(texid);
-
-    if (target == GL_FRAMEBUFFER || target == GL_DRAW_FRAMEBUFFER) {
-        m_draw_framebuffer->attach(attachment, call, texture);
-        texture->rendertarget_of(textargetid, m_draw_framebuffer);
-    }
-
-    if (target == GL_FRAMEBUFFER || target == GL_READ_FRAMEBUFFER) {
-        m_read_framebuffer->attach(attachment, call, texture);
-    }
 }
 
 void StateImpl::GenPrograms(PCall call)
@@ -685,11 +557,12 @@ void StateImpl::UseProgram(PCall call)
             m_required_calls.insert(call);
     }
 
-    if (m_draw_framebuffer) {
+    auto draw_fb = m_framebuffers.draw_fb();
+    if (draw_fb) {
         if (m_active_program)
-            m_active_program->emit_calls_to_list(m_draw_framebuffer->state_calls());
+            m_active_program->emit_calls_to_list(draw_fb->state_calls());
         else
-            m_draw_framebuffer->draw(call);
+            draw_fb->draw(call);
     }
 }
 
@@ -710,13 +583,14 @@ void StateImpl::VertexAttribPointer(PCall call)
     auto buf = m_buffers.bound_to(GL_ARRAY_BUFFER);
     if (buf) {
         m_vertex_attr_pointer[call->arg(0).toUInt()] = buf;
+        auto draw_fb = m_framebuffers.draw_fb();
 
         if (m_active_program)
             m_active_program->set_va(call->arg(0).toUInt(), buf);
         if (m_in_target_frame)
             buf->emit_calls_to_list(m_required_calls);
-        else if (m_draw_framebuffer)
-            buf->emit_calls_to_list(m_draw_framebuffer->state_calls());
+        else if (draw_fb)
+            buf->emit_calls_to_list(draw_fb->state_calls());
         buf->use(call);
     } else
         std::cerr << "Calling VertexAttribPointer without bound ARRAY_BUFFER, ignored\n";
@@ -724,9 +598,12 @@ void StateImpl::VertexAttribPointer(PCall call)
 
 void StateImpl::Viewport(PCall call)
 {
-    record_state_call(call);
-    if (m_draw_framebuffer)
-        m_draw_framebuffer->set_viewport(call);
+    auto draw_fb = m_framebuffers.draw_fb();
+
+    if (draw_fb)
+        draw_fb->set_viewport(call);
+    else
+        record_state_call(call);
 }
 
 void StateImpl::record_state_call(PCall call)
@@ -800,6 +677,8 @@ void StateImpl::register_callbacks()
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1)))
 #define MAP_GENOBJ_DATA(name, obj, call, data) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, data)))
+#define MAP_GENOBJ_DATAREF(name, obj, call, data) \
+    m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, std::ref(data))))
 
 
     MAP(glClear, Clear);
@@ -877,10 +756,12 @@ void StateImpl::register_texture_calls()
 
 void StateImpl::register_framebuffer_calls()
 {
-    MAP(glBindFramebuffer, BindFramebuffer);
-    MAP(glBlitFramebuffer, BlitFramebuffer);
-    MAP(glFramebufferRenderbuffer, FramebufferRenderbuffer);
-    MAP(glFramebufferTexture, FramebufferTexture);
+    MAP_GENOBJ(glBindFramebuffer, m_framebuffers, FramebufferMap::bind);
+    MAP_GENOBJ(glBlitFramebuffer, m_framebuffers, FramebufferMap::blit);
+    MAP_GENOBJ_DATAREF(glFramebufferRenderbuffer, m_framebuffers,
+                       FramebufferMap::renderbuffer, m_renderbuffers);
+    MAP_GENOBJ_DATAREF(glFramebufferTexture, m_framebuffers,
+                       FramebufferMap::texture, m_textures);
     MAP_GENOBJ(glGenFramebuffer, m_framebuffers, FramebufferMap::generate);
     MAP_GENOBJ(glDeleteFramebuffers, m_framebuffers, FramebufferMap::destroy);
 

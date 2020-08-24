@@ -15,6 +15,8 @@ public:
     virtual PObjectState draw_framebuffer() const = 0;
 
     virtual PObjectState read_framebuffer() const = 0;
+
+    virtual void collect_state_calls(CallSet& list) = 0;
 };
 
 }

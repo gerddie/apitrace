@@ -1,4 +1,5 @@
 #include "ft_framebufferstate.hpp"
+#include "ft_texturestate.hpp"
 #include <GL/glext.h>
 #include <cstring>
 #include <iostream>
@@ -129,6 +130,147 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
             std::cerr << "Done FBO " << id() << "\n";
     }
 
+}
+
+
+void FramebufferMap::bind(PCall call)
+{
+    unsigned target = call->arg(0).toUInt();
+    unsigned id = call->arg(1).toUInt();
+
+    if (id)  {
+
+        if ((target == GL_DRAW_FRAMEBUFFER ||
+             target == GL_FRAMEBUFFER) &&
+                (!m_draw_framebuffer ||
+                 m_draw_framebuffer->id() != id)) {
+            m_draw_framebuffer = get_by_id(id);
+            m_draw_framebuffer->bind(call);
+            m_last_unbind_draw_fbo = nullptr;
+
+            /* TODO: Create a copy of the current state and record all
+          * calls in the framebuffer until it is un-bound
+          * attach the framebuffer to any texture that might be
+          * attached as render target */
+
+            auto& calls = m_draw_framebuffer->state_calls();
+            calls.clear();
+            global_state().collect_state_calls(calls);
+        }
+
+        if ((target == GL_READ_FRAMEBUFFER ||
+             target == GL_FRAMEBUFFER) &&
+                (!m_read_framebuffer ||
+                 m_read_framebuffer->id() != id)) {
+            m_read_framebuffer = get_by_id(id);
+            m_read_framebuffer->bind(call);
+            m_last_unbind_read_fbo = nullptr;
+        }
+
+    } else {
+
+        if (target == GL_DRAW_FRAMEBUFFER ||
+                target == GL_FRAMEBUFFER) {
+            m_draw_framebuffer = nullptr;
+            m_last_unbind_draw_fbo  = call;
+        }
+
+        if (target == GL_READ_FRAMEBUFFER ||
+                target == GL_FRAMEBUFFER) {
+            m_read_framebuffer = nullptr;
+            m_last_unbind_read_fbo  = call;
+        }
+    }
+}
+
+void FramebufferMap::blit(PCall call)
+{
+    (void)call;
+    assert(m_read_framebuffer);
+
+    if (m_draw_framebuffer) {
+        m_draw_framebuffer->depends(m_read_framebuffer);
+        m_draw_framebuffer->append_call(call);
+    }
+}
+
+void FramebufferMap::renderbuffer(PCall call, RenderbufferMap& renderbuffers)
+{
+    unsigned target = call->arg(0).toUInt();
+    unsigned attachment = call->arg(1).toUInt();
+    unsigned rb_id = call->arg(3).toUInt();
+
+    auto rb = rb_id ? renderbuffers.get_by_id(rb_id) : nullptr;
+
+    PFramebufferState  draw_fb;
+    bool read_rb = false;
+
+    if (target == GL_FRAMEBUFFER || target == GL_DRAW_FRAMEBUFFER) {
+        m_draw_framebuffer->attach(attachment, call, rb);
+        draw_fb = m_draw_framebuffer;
+    }
+
+    if (target == GL_FRAMEBUFFER || target == GL_READ_FRAMEBUFFER) {
+        m_read_framebuffer->attach(attachment, call, rb);
+        read_rb = true;
+    }
+
+    if (rb)
+        rb->attach(call, read_rb, draw_fb);
+}
+
+void FramebufferMap::texture(PCall call, TextureStateMap& textures)
+{
+    unsigned layer = 0;
+    unsigned textarget = 0;
+    unsigned has_tex_target = strcmp("glFramebufferTexture", call->name()) != 0;
+
+    unsigned target = call->arg(0).toUInt();
+    unsigned attachment = call->arg(1).toUInt();
+
+    if (has_tex_target)
+        textarget = call->arg(2).toUInt();
+
+    unsigned texid = call->arg(2 + has_tex_target).toUInt();
+    unsigned level = call->arg(3 + has_tex_target).toUInt();
+
+    if (!strcmp(call->name(), "glFramebufferTexture3D"))
+        layer = call->arg(5).toUInt();
+
+    assert(level < 16);
+    assert(layer < 1 << 12);
+
+    unsigned textargetid = (textarget << 16) | level << 12 | level;
+
+    auto texture = textures.get_by_id(texid);
+
+    if (target == GL_FRAMEBUFFER || target == GL_DRAW_FRAMEBUFFER) {
+        m_draw_framebuffer->attach(attachment, call, texture);
+        texture->rendertarget_of(textargetid, m_draw_framebuffer);
+    }
+
+    if (target == GL_FRAMEBUFFER || target == GL_READ_FRAMEBUFFER) {
+        m_read_framebuffer->attach(attachment, call, texture);
+    }
+}
+
+PFramebufferState FramebufferMap::draw_fb()
+{
+    return m_draw_framebuffer;
+}
+
+PFramebufferState FramebufferMap::read_fb()
+{
+    return m_read_framebuffer;
+}
+
+void FramebufferMap::emit_calls_to_list(CallSet& list) const
+{
+    if (m_last_unbind_draw_fbo)
+        list.insert(m_last_unbind_draw_fbo);
+
+    if (m_last_unbind_read_fbo)
+        list.insert(m_last_unbind_read_fbo);
 }
 
 RenderbufferState::RenderbufferState(GLint glID, PCall gen_call):

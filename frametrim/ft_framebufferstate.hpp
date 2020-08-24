@@ -52,7 +52,36 @@ private:
 };
 
 using PFramebufferState = FramebufferState::Pointer;
-using FramebufferMap = TStateMap<FramebufferState>;
+
+class RenderbufferMap;
+class TextureStateMap;
+
+class FramebufferMap : public TStateMap<FramebufferState>
+{
+public:
+    using TStateMap<FramebufferState>::TStateMap;
+
+    void bind(PCall call);
+    void blit(PCall call);
+    void renderbuffer(PCall call, RenderbufferMap& renderbuffers);
+    void texture(PCall call, TextureStateMap& textures);
+
+    PFramebufferState draw_fb();
+    PFramebufferState read_fb();
+
+    void emit_calls_to_list(CallSet& list) const;
+
+private:
+
+    PFramebufferState m_draw_framebuffer;
+    PFramebufferState m_read_framebuffer;
+
+    PCall m_last_unbind_draw_fbo;
+    PCall m_last_unbind_read_fbo;
+};
+
+
+
 
 class RenderbufferState : public SizedObjectState
 {

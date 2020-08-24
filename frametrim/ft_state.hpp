@@ -34,6 +34,8 @@ public:
 
     PObjectState read_framebuffer() const  override;
 
+    void collect_state_calls(CallSet& list) override;
+
 private:
     struct StateImpl *impl;
 
