@@ -53,8 +53,6 @@ struct StateImpl {
     void GenLists(PCall call);
     void GenSamplers(PCall call);
 
-    void GenVertexArrays(PCall call);
-
     void NewList(PCall call);
 
     void ReadBuffer(PCall call);
@@ -394,11 +392,6 @@ void StateImpl::GenLists(PCall call)
         m_display_lists[origResult]->append_call(call);
 }
 
-void StateImpl::GenVertexArrays(PCall call)
-{
-    m_vertex_arrays.generate(call);
-}
-
 void StateImpl::NewList(PCall call)
 {
     assert(!m_active_display_list);
@@ -541,7 +534,10 @@ void StateImpl::register_callbacks()
     MAP(glEnableVertexAttribArray, record_va_enables);
 
     MAP(glGenSamplers, GenSamplers);
-    MAP(glGenVertexArrays, GenVertexArrays);
+    MAP_GENOBJ(glGenVertexArrays, m_vertex_arrays,
+               TGenObjStateMap<ObjectState>::generate);
+    MAP_GENOBJ(glDeleteVertexArrays, m_vertex_arrays,
+               TGenObjStateMap<ObjectState>::destroy);
 
     MAP(glVertexAttribPointer, VertexAttribPointer);
     MAP(glViewport, Viewport);
