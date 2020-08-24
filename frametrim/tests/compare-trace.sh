@@ -9,15 +9,15 @@ orig_img=$5
 
 echo "Run tests $trace" 
 
-rm ${trace}0*.png
-rm *.md5
-rm trim*
+rm ${trace}*.png
+rm ${trace}*.md5
+rm trim$-{trace}
 
 ${trim} "${datadir}/${trace}" --frames ${frame} -o trim-${trace} || exit 1
-${apitrace} replay --headless "${datadir}/${trace}" --snapshot=${orig_img} --snapshot-prefix=orig || exit 1
+${apitrace} replay --headless "${datadir}/${trace}" --snapshot=${orig_img} --snapshot-prefix=${trace}orig || exit 1
 ${apitrace} replay --headless trim-${trace} --snapshot=frame --snapshot-prefix=${trace} || exit 1
 
-orig=$(printf "orig%010d.png" ${orig_img})
+orig=$(printf "${trace}orig%010d.png" ${orig_img})
 trim=$(ls ${trace}0*.png)
 
 md5sum ${orig} | sed -s "s/ .*//" >${trace}.orig.md5
