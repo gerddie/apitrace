@@ -35,7 +35,7 @@ struct string_part_less {
 
 struct StateImpl {
 
-    StateImpl();
+    StateImpl(GlobalState *gs);
 
     void call(PCall call);
 
@@ -130,6 +130,11 @@ struct StateImpl {
     using CallTable = std::multimap<const char *, ft_callback, string_part_less>;
     CallTable m_call_table;
 
+    bool m_in_target_frame;
+
+    CallSet m_required_calls;
+
+
     AllMatrisStates m_matrix_states;
 
     std::unordered_map<GLint, PShaderState> m_shaders;
@@ -172,11 +177,6 @@ struct StateImpl {
 
     std::unordered_map<std::string, PCall> m_state_calls;
 
-    bool m_in_target_frame;
-
-    CallSet m_required_calls;
-
-
 };
 
 
@@ -192,7 +192,7 @@ void State::write(trace::Writer& writer)
 
 State::State()
 {
-    impl = new StateImpl;
+    impl = new StateImpl(this);
 
     impl->register_callbacks();
 }
@@ -277,10 +277,14 @@ void StateImpl::start_target_farme()
     collect_state_calls(m_required_calls);
 }
 
-StateImpl::StateImpl():
-    m_active_texture_unit(0),
+StateImpl::StateImpl(GlobalState *gs):
     m_in_target_frame(false),
-    m_required_calls(false)
+    m_required_calls(false),
+    m_buffers(gs),
+    m_textures(gs),
+    m_active_texture_unit(0),
+    m_framebuffers(gs),
+    m_renderbuffers(gs)
 {
 }
 

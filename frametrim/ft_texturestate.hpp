@@ -37,6 +37,8 @@ using PTextureState = TextureState::Pointer;
 class TextureStateMap : public TStateMap<TextureState>
 {
 public:
+    using TStateMap<TextureState>::TStateMap;
+
     void bind(PCall call);
 
 private:

@@ -1,7 +1,7 @@
 #ifndef GENOBJECTSTATE_HPP
 #define GENOBJECTSTATE_HPP
 
-#include "ft_objectstate.hpp"
+#include "ft_globalstate.hpp"
 
 #include <unordered_map>
 
@@ -29,6 +29,8 @@ template <typename T>
 class TStateMap  {
 
 public:
+    TStateMap (GlobalState *gs): m_global_state(gs){}
+
     void generate(PCall call) {
         const auto ids = (call->arg(1)).toArray();
         for (auto& v : ids->values) {
@@ -59,9 +61,17 @@ public:
             m_states.erase(v->toUInt());
         }
     }
+protected:
+    GlobalState& global_state() {
+        assert(m_global_state);
+        return *m_global_state;
+    }
 
 private:
     std::unordered_map<unsigned, typename T::Pointer> m_states;
+
+    GlobalState *m_global_state;
+
 };
 
 
