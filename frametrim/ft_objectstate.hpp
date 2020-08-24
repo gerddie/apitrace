@@ -3,6 +3,7 @@
 
 #include "trace_model.hpp"
 
+
 #include <GL/gl.h>
 #include <vector>
 #include <memory>
@@ -12,6 +13,8 @@
 #include <iostream>
 
 namespace frametrim {
+
+class GlobalState;
 
 using PCall=std::shared_ptr<trace::Call>;
 
@@ -129,6 +132,46 @@ private:
 };
 
 using PObjectState=std::shared_ptr<ObjectState>;
+
+
+template <typename T>
+class TObjStateMap  {
+
+public:
+    TObjStateMap (GlobalState *gs): m_global_state(gs){}
+
+    typename T::Pointer get_by_id(uint64_t id) {
+        assert(id > 0);
+
+        auto iter = m_states.find(id);
+        if (iter == m_states.end()) {
+            assert(0 && "Expected id not found \n");
+            return nullptr;
+        }
+        return iter->second;
+    }
+
+    void set(uint64_t id, typename T::Pointer obj) {
+        m_states[id] = obj;
+    }
+
+    void clear(uint64_t id) {
+        m_states.erase(id);
+    }
+
+protected:
+    GlobalState& global_state() {
+        assert(m_global_state);
+        return *m_global_state;
+    }
+
+private:
+    std::unordered_map<unsigned, typename T::Pointer> m_states;
+
+    GlobalState *m_global_state;
+
+};
+
 
 }
 

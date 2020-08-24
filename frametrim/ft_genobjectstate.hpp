@@ -26,28 +26,17 @@ using PGenObjectState = GenObjectState::Pointer;
 
 
 template <typename T>
-class TGenObjStateMap  {
+class TGenObjStateMap : public TObjStateMap<T> {
 
 public:
-    TGenObjStateMap (GlobalState *gs): m_global_state(gs){}
+    using TObjStateMap<T>::TObjStateMap;
 
     void generate(PCall call) {
         const auto ids = (call->arg(1)).toArray();
         for (auto& v : ids->values) {
             auto obj = std::make_shared<T>(v->toUInt(), call);
-            m_states[v->toUInt()] = obj;
+            this->set(v->toUInt(), obj);
         }
-    }
-
-    typename T::Pointer get_by_id(uint64_t id) {
-        assert(id > 0);
-
-        auto iter = m_states.find(id);
-        if (iter == m_states.end()) {
-            assert(0 && "Expected id not found \n");
-            return nullptr;
-        }
-        return iter->second;
     }
 
     void destroy(PCall call) {
@@ -58,20 +47,9 @@ public:
              * elsewhere, so we have to record the call with the state */
             if (state)
                 state->append_call(call);
-            m_states.erase(v->toUInt());
+            this->clear(v->toUInt());
         }
     }
-protected:
-    GlobalState& global_state() {
-        assert(m_global_state);
-        return *m_global_state;
-    }
-
-private:
-    std::unordered_map<unsigned, typename T::Pointer> m_states;
-
-    GlobalState *m_global_state;
-
 };
 
 
