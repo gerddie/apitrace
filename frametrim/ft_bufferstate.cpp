@@ -321,4 +321,93 @@ bool BufferMap::contains(uint64_t start)
     return start >= range_begin && start < range_end;
 }
 
+
+void BufferStateMap::bind(PCall call)
+{
+    unsigned target = call->arg(0).toUInt();
+    unsigned id = call->arg(1).toUInt();
+
+    if (id) {
+        if (!m_bound_buffers[target] ||
+                m_bound_buffers[target]->id() != id) {
+            m_bound_buffers[target] = get_by_id(id);
+            m_bound_buffers[target] ->bind(call);
+        }
+    } else {
+        if (m_bound_buffers[target])
+            m_bound_buffers[target]->append_call(call);
+        m_bound_buffers.erase(target);
+    }
+
+}
+
+void BufferStateMap::data(PCall call)
+{
+    unsigned target = call->arg(0).toUInt();
+    m_bound_buffers[target]->data(call);
+}
+
+void BufferStateMap::sub_data(PCall call)
+{
+    unsigned target = call->arg(0).toUInt();
+    m_bound_buffers[target]->append_data(call);
+}
+
+void BufferStateMap::map(PCall call)
+{
+    unsigned target = call->arg(0).toUInt();
+    auto buf = m_bound_buffers[target];
+    if (buf) {
+        m_mapped_buffers[target][buf->id()] = buf;
+        buf->map(call);
+    }
+}
+
+void BufferStateMap::map_range(PCall call)
+{
+    unsigned target = call->arg(0).toUInt();
+    auto buf = m_bound_buffers[target];
+    if (buf) {
+        m_mapped_buffers[target][buf->id()] = buf;
+        buf->map_range(call);
+    }
+}
+
+void BufferStateMap::memcpy(PCall call)
+{
+    auto dest_address = call->arg(0).toUInt();
+
+    for(auto& bt : m_mapped_buffers) {
+        for(auto& b: bt.second) {
+            if (b.second->in_mapped_range(dest_address)) {
+                b.second->memcopy(call);
+                return;
+            }
+        }
+    }
+}
+
+void BufferStateMap::unmap(PCall call)
+{
+    unsigned target = call->arg(0).toUInt();
+    auto buf = m_bound_buffers[target];
+    if (buf) {
+        auto& mapped = m_mapped_buffers[target];
+        mapped.erase(buf->id());
+    }
+}
+
+PBufferState BufferStateMap::bound_to(unsigned target)
+{
+   return m_bound_buffers[target];
+}
+
+void BufferStateMap::emit_calls_to_list(CallSet& list) const
+{
+    for (auto& buf: m_bound_buffers)
+        buf.second->emit_calls_to_list(list);
+
+}
+
+
 }

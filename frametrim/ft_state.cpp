@@ -44,13 +44,10 @@ struct StateImpl {
     void AttachShader(PCall call);
     void Begin(PCall call);
     void BindAttribLocation(PCall call);
-    void BindBuffer(PCall call);
     void BindFramebuffer(PCall call);
     void BindProgram(PCall call);
     void BindRenderbuffer(PCall call);
     void BlitFramebuffer(PCall call);
-    void BufferData(PCall call);
-    void BufferSubData(PCall call);
     void CallList(PCall call);
     void Clear(PCall call);
     void CreateShader(PCall call);
@@ -77,11 +74,6 @@ struct StateImpl {
     void PushMatrix(PCall call);
     void RenderbufferStorage(PCall call);
     void ProgramString(PCall call);
-
-    void MapBuffer(PCall call);
-    void MapBufferRange(PCall call);
-    void BufferMemcopy(PCall call);
-    void UnmapBuffer(PCall call);
 
     void ShadeModel(PCall call);
     void shader_call(PCall call);
@@ -149,8 +141,6 @@ struct StateImpl {
     PObjectState m_active_display_list;
 
     BufferStateMap m_buffers;
-    std::unordered_map<GLint, PBufferState> m_bound_buffers;
-    std::unordered_map<GLint, std::unordered_map<GLint, PBufferState>> m_mapped_buffers;
 
     TextureStateMap m_textures;
 
@@ -250,8 +240,7 @@ void StateImpl::collect_state_calls(CallSet& list) const
     for (auto& va: m_vertex_arrays)
         va.second->emit_calls_to_list(list);
 
-    for (auto& buf: m_bound_buffers)
-        buf.second->emit_calls_to_list(list);
+    m_buffers.emit_calls_to_list(list);
 
     m_textures.emit_calls_to_list(list);
 
@@ -357,24 +346,6 @@ void StateImpl::BindAttribLocation(PCall call)
     prog->second->append_call(call);
 }
 
-void StateImpl::BindBuffer(PCall call)
-{
-    unsigned target = call->arg(0).toUInt();
-    unsigned id = call->arg(1).toUInt();
-
-    if (id) {
-        if (!m_bound_buffers[target] ||
-                m_bound_buffers[target]->id() != id) {
-            m_bound_buffers[target] = m_buffers.get_by_id(id);
-            m_bound_buffers[target] ->bind(call);
-        }
-    } else {
-        if (m_bound_buffers[target])
-            m_bound_buffers[target]->append_call(call);
-        m_bound_buffers.erase(target);
-    }
-}
-
 void StateImpl::BindFramebuffer(PCall call)
 {
     unsigned target = call->arg(0).toUInt();
@@ -434,62 +405,6 @@ void StateImpl::BlitFramebuffer(PCall call)
     if (m_draw_framebuffer)
         m_draw_framebuffer->depends(m_read_framebuffer);
 
-}
-
-void StateImpl::BufferData(PCall call)
-{
-    unsigned target = call->arg(0).toUInt();
-    m_bound_buffers[target]->data(call);
-}
-
-void StateImpl::BufferSubData(PCall call)
-{
-    unsigned target = call->arg(0).toUInt();
-    m_bound_buffers[target]->append_data(call);
-}
-
-void StateImpl::MapBuffer(PCall call)
-{
-    unsigned target = call->arg(0).toUInt();
-    auto buf = m_bound_buffers[target];
-    if (buf) {
-        m_mapped_buffers[target][buf->id()] = buf;
-        buf->map(call);
-    }
-}
-
-void StateImpl::MapBufferRange(PCall call)
-{
-    unsigned target = call->arg(0).toUInt();
-    auto buf = m_bound_buffers[target];
-    if (buf) {
-        m_mapped_buffers[target][buf->id()] = buf;
-        buf->map_range(call);
-    }
-}
-
-void StateImpl::BufferMemcopy(PCall call)
-{
-    auto dest_address = call->arg(0).toUInt();
-
-    for(auto& bt : m_mapped_buffers) {
-        for(auto& b: bt.second) {
-            if (b.second->in_mapped_range(dest_address)) {
-                b.second->memcopy(call);
-                return;
-            }
-        }
-    }
-}
-
-void StateImpl::UnmapBuffer(PCall call)
-{
-    unsigned target = call->arg(0).toUInt();
-    auto buf = m_bound_buffers[target];
-    if (buf) {
-        auto& mapped = m_mapped_buffers[target];
-        mapped.erase(buf->id());
-    }
 }
 
 void StateImpl::BindProgram(PCall call)
@@ -587,7 +502,7 @@ void StateImpl::DrawElements(PCall call)
 {
     (void)call;
 
-    auto buf = m_bound_buffers[GL_ELEMENT_ARRAY_BUFFER];
+    auto buf = m_buffers.bound_to(GL_ELEMENT_ARRAY_BUFFER);
     if (buf) {
         if (m_in_target_frame)
             buf->emit_calls_to_list(m_required_calls);
@@ -826,7 +741,7 @@ void StateImpl::Vertex(PCall call)
 
 void StateImpl::VertexAttribPointer(PCall call)
 {
-    auto buf = m_bound_buffers[GL_ARRAY_BUFFER];
+    auto buf = m_buffers.bound_to(GL_ARRAY_BUFFER);
     if (buf) {
         m_vertex_attr_pointer[call->arg(0).toUInt()] = buf;
 
@@ -946,14 +861,14 @@ void StateImpl::register_buffer_calls()
     MAP_GENOBJ(glGenBuffers, m_buffers, BufferStateMap::generate);
     MAP_GENOBJ(glDeleteBuffers, m_buffers, BufferStateMap::destroy);
 
-    MAP(glBindBuffer, BindBuffer);
-    MAP(glBufferData, BufferData);
-    MAP(glBufferSubData, BufferSubData);
+    MAP_GENOBJ(glBindBuffer, m_buffers, BufferStateMap::bind);
+    MAP_GENOBJ(glBufferData, m_buffers, BufferStateMap::data);
+    MAP_GENOBJ(glBufferSubData, m_buffers, BufferStateMap::sub_data);
 
-    MAP(glMapBuffer, MapBuffer);
-    MAP(glMapBufferRange, MapBufferRange);
-    MAP(memcpy, BufferMemcopy);
-    MAP(glUnmapBuffer, UnmapBuffer);
+    MAP_GENOBJ(glMapBuffer, m_buffers, BufferStateMap::map);
+    MAP_GENOBJ(glMapBufferRange, m_buffers, BufferStateMap::map_range);
+    MAP_GENOBJ(memcpy, m_buffers, BufferStateMap::memcpy);
+    MAP_GENOBJ(glUnmapBuffer, m_buffers, BufferStateMap::unmap);
 }
 
 void StateImpl::register_program_calls()

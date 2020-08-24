@@ -34,7 +34,30 @@ private:
 
 using PBufferState = BufferState::Pointer;
 
-using BufferStateMap = TStateMap<BufferState>;
+class BufferStateMap : public TStateMap<BufferState> {
+  public:
+    using TStateMap<BufferState>::TStateMap;
+
+    PBufferState bound_to(unsigned target);
+
+    void bind(PCall call);
+    void data(PCall call);
+    void sub_data(PCall call);
+
+    void map(PCall call);
+    void map_range(PCall call);
+    void memcpy(PCall call);
+    void unmap(PCall call);
+
+    void emit_calls_to_list(CallSet& list) const;
+
+private:
+
+    using BufferMap = std::unordered_map<GLint, PBufferState>;
+
+    BufferMap m_bound_buffers;
+    std::unordered_map<GLint, BufferMap> m_mapped_buffers;
+};
 
 }
 
