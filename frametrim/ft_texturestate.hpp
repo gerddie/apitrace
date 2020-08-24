@@ -33,7 +33,7 @@ private:
 
 using PTextureState = TextureState::Pointer;
 
-class TextureStateMap : public TStateMap<TextureState>
+class TextureStateMap : public TGenObjStateMap<TextureState>
 {
 public:
     TextureStateMap(GlobalState *gs);

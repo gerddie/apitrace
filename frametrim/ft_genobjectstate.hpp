@@ -26,10 +26,10 @@ using PGenObjectState = GenObjectState::Pointer;
 
 
 template <typename T>
-class TStateMap  {
+class TGenObjStateMap  {
 
 public:
-    TStateMap (GlobalState *gs): m_global_state(gs){}
+    TGenObjStateMap (GlobalState *gs): m_global_state(gs){}
 
     void generate(PCall call) {
         const auto ids = (call->arg(1)).toArray();

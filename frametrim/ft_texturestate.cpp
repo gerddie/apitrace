@@ -71,7 +71,7 @@ void TextureState::do_emit_calls_to_list(CallSet& list) const
 }
 
 TextureStateMap::TextureStateMap(GlobalState *gs):
-    TStateMap<TextureState>(gs),
+    TGenObjStateMap<TextureState>(gs),
     m_active_texture_unit(0)
 {
 }

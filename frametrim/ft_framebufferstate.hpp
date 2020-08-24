@@ -56,10 +56,10 @@ using PFramebufferState = FramebufferState::Pointer;
 class RenderbufferMap;
 class TextureStateMap;
 
-class FramebufferMap : public TStateMap<FramebufferState>
+class FramebufferMap : public TGenObjStateMap<FramebufferState>
 {
 public:
-    using TStateMap<FramebufferState>::TStateMap;
+    using TGenObjStateMap<FramebufferState>::TGenObjStateMap;
 
     void bind(PCall call);
     void blit(PCall call);
@@ -116,10 +116,10 @@ private:
 using PRenderbufferState = RenderbufferState::Pointer;
 
 
-class RenderbufferMap : public TStateMap<RenderbufferState>
+class RenderbufferMap : public TGenObjStateMap<RenderbufferState>
 {
 public:
-    using TStateMap<RenderbufferState>::TStateMap;
+    using TGenObjStateMap<RenderbufferState>::TGenObjStateMap;
 
     void bind(PCall call);
 

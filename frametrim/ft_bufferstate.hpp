@@ -34,9 +34,9 @@ private:
 
 using PBufferState = BufferState::Pointer;
 
-class BufferStateMap : public TStateMap<BufferState> {
+class BufferStateMap : public TGenObjStateMap<BufferState> {
   public:
-    using TStateMap<BufferState>::TStateMap;
+    using TGenObjStateMap<BufferState>::TGenObjStateMap;
 
     PBufferState bound_to(unsigned target);
 
