@@ -31,6 +31,8 @@ public:
 
     void create(PCall call);
     void data(PCall call);
+private:
+    void do_emit_calls_to_list(CallSet& list) const override;
 };
 
 
@@ -76,9 +78,9 @@ public:
     void uniform(PCall call);
     void set_va(unsigned attrid, PBufferState buf);
 
-    void emit_calls_to_list(CallSet list) const;
-
 private:
+    void do_emit_calls_to_list(CallSet& list) const override;
+
     PProgramState m_active_program;
 };
 
@@ -89,8 +91,9 @@ public:
 
     void program_string(PCall call);
     void bind(PCall call);
-    void emit_calls_to_list(CallSet list) const;
 private:
+    void do_emit_calls_to_list(CallSet& list) const override;
+
     std::unordered_map<unsigned, PShaderState> m_active_shaders;
 };
 

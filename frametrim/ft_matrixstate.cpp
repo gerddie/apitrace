@@ -7,7 +7,7 @@ using std::make_shared;
 namespace frametrim {
 
 MatrixState::MatrixState(MatrixState::Pointer parent):
-    ObjectState(0),
+    ObjectState(0, nullptr),
     m_parent(parent)
 {
 

@@ -95,12 +95,15 @@ private:
 class ObjectState
 {
 public:
+    using Pointer = std::shared_ptr<ObjectState>;
+
+    ObjectState(GLint glID, PCall call);
     ObjectState(GLint glID);
     virtual ~ObjectState();
 
     unsigned id() const;
 
-    void append_gen_call(PCall call);
+    //void append_gen_call(PCall call);
 
     void emit_calls_to_list(CallSet& list) const;
 
@@ -131,7 +134,7 @@ private:
     mutable bool m_emitting;
 };
 
-using PObjectState=std::shared_ptr<ObjectState>;
+using PObjectState=ObjectState::Pointer;
 
 
 template <typename T>
@@ -159,6 +162,13 @@ public:
         m_states.erase(id);
     }
 
+    void emit_calls_to_list(CallSet& list) const {
+        for (auto &s : m_states)
+            if (s.second)
+                s.second->emit_calls_to_list(list);
+        do_emit_calls_to_list(list);
+    }
+
 protected:
     GlobalState& global_state() {
         assert(m_global_state);
@@ -166,6 +176,8 @@ protected:
     }
 
 private:
+    virtual void do_emit_calls_to_list(CallSet& list) const = 0;
+
     std::unordered_map<unsigned, typename T::Pointer> m_states;
 
     GlobalState *m_global_state;

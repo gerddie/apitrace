@@ -69,9 +69,8 @@ public:
     PFramebufferState draw_fb();
     PFramebufferState read_fb();
 
-    void emit_calls_to_list(CallSet& list) const;
-
 private:
+    void do_emit_calls_to_list(CallSet& list) const override;
 
     PFramebufferState m_draw_framebuffer;
     PFramebufferState m_read_framebuffer;
@@ -125,9 +124,9 @@ public:
 
     void storage(PCall call);
 
-    void emit_calls_to_list(CallSet& list) const;
-
 private:
+    void do_emit_calls_to_list(CallSet& list) const override;
+
     PRenderbufferState m_active_renderbuffer;
     PCall m_last_unbind_call;
 

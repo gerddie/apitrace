@@ -45,10 +45,14 @@ void ShaderStateMap::data(PCall call)
     shader->append_call(call);
 }
 
+void ShaderStateMap::do_emit_calls_to_list(CallSet& list) const
+{
+    (void)list;
+}
+
 ProgramState::ProgramState(unsigned id):
     ObjectState(id)
 {
-
 }
 
 
@@ -166,7 +170,7 @@ void ProgramStateMap::set_va(unsigned attrid, PBufferState buf)
         m_active_program->set_va(attrid, buf);
 }
 
-void ProgramStateMap::emit_calls_to_list(CallSet list) const
+void ProgramStateMap::do_emit_calls_to_list(CallSet& list) const
 {
     if (m_active_program)
         m_active_program->emit_calls_to_list(list);
@@ -200,7 +204,7 @@ void LegacyProgramStateMap::bind(PCall call)
         std::cerr << "TODO: Unbind shader program\n";
     }
 }
-void LegacyProgramStateMap::emit_calls_to_list(CallSet list) const
+void LegacyProgramStateMap::do_emit_calls_to_list(CallSet& list) const
 {
     for(auto& s: m_active_shaders)
         s.second->emit_calls_to_list(list);

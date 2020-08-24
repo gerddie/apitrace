@@ -46,10 +46,10 @@ public:
 
     void set_state(PCall call, unsigned addr_params);
 
-    void emit_calls_to_list(CallSet& list) const;
-
 private:
     unsigned get_target_unit(PCall call) const;
+
+    void do_emit_calls_to_list(CallSet& list) const override;
 
     unsigned m_active_texture_unit;
     std::unordered_map<unsigned, PTextureState> m_bound_texture;

@@ -5,11 +5,21 @@ namespace frametrim {
 
 using std::stringstream;
 
-ObjectState::ObjectState(GLint glID):
+ObjectState::ObjectState(GLint glID, PCall call):
     m_glID(glID),
     m_emitting(false)
 {
+    if (call)
+        m_gen_calls.insert(call);
 }
+
+ObjectState::ObjectState(GLint glID):
+    ObjectState(glID, nullptr)
+{
+
+}
+
+
 
 ObjectState::~ObjectState()
 {
@@ -41,10 +51,10 @@ void ObjectState::emit_calls_to_list(CallSet& list) const
     }
 }
 
-void ObjectState::append_gen_call(PCall call)
+/*void ObjectState::append_gen_call(PCall call)
 {
     m_gen_calls.insert(call);
-}
+}*/
 
 void ObjectState::append_call(PCall call)
 {

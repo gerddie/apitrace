@@ -264,7 +264,7 @@ PFramebufferState FramebufferMap::read_fb()
     return m_read_framebuffer;
 }
 
-void FramebufferMap::emit_calls_to_list(CallSet& list) const
+void FramebufferMap::do_emit_calls_to_list(CallSet& list) const
 {
     if (m_last_unbind_draw_fbo)
         list.insert(m_last_unbind_draw_fbo);
@@ -351,7 +351,7 @@ void RenderbufferMap::storage(PCall call)
     m_active_renderbuffer->set_storage(call);
 }
 
-void RenderbufferMap::emit_calls_to_list(CallSet& list) const
+void RenderbufferMap::do_emit_calls_to_list(CallSet& list) const
 {
     /* Renderbuffers are only of interest if they are bound, so no
      * need to emit the related calls here, because the framebuffer will take

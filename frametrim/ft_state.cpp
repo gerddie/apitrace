@@ -124,7 +124,7 @@ struct StateImpl {
     std::unordered_map<GLint, PGenObjectState> m_samplers;
     std::unordered_map<GLint, PGenObjectState> m_bound_samplers;
 
-    std::unordered_map<GLint, PObjectState> m_vertex_arrays;
+    TGenObjStateMap<ObjectState> m_vertex_arrays;
     std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
 
     FramebufferMap m_framebuffers;
@@ -213,8 +213,7 @@ void StateImpl::collect_state_calls(CallSet& list) const
         }
     }
 
-    for (auto& va: m_vertex_arrays)
-        va.second->emit_calls_to_list(list);
+    m_vertex_arrays.emit_calls_to_list(list);
 
     m_buffers.emit_calls_to_list(list);
 
@@ -238,6 +237,7 @@ StateImpl::StateImpl(GlobalState *gs):
     m_legacy_programs(gs),
     m_buffers(gs),
     m_textures(gs),
+    m_vertex_arrays(gs),
     m_framebuffers(gs),
     m_renderbuffers(gs)
 {
@@ -396,12 +396,7 @@ void StateImpl::GenLists(PCall call)
 
 void StateImpl::GenVertexArrays(PCall call)
 {
-    const auto ids = (call->arg(1)).toArray();
-    for (auto& v : ids->values) {
-        auto obj = PObjectState(new ObjectState(v->toUInt()));
-        obj->append_call(call);
-        m_vertex_arrays[v->toUInt()] = obj;
-    }
+    m_vertex_arrays.generate(call);
 }
 
 void StateImpl::NewList(PCall call)

@@ -49,9 +49,8 @@ class BufferStateMap : public TGenObjStateMap<BufferState> {
     void memcpy(PCall call);
     void unmap(PCall call);
 
-    void emit_calls_to_list(CallSet& list) const;
-
 private:
+    void do_emit_calls_to_list(CallSet& list) const override;
 
     using BufferMap = std::unordered_map<GLint, PBufferState>;
 

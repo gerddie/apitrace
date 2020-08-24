@@ -153,7 +153,7 @@ unsigned TextureStateMap::get_target_unit(PCall call) const
     return (target << 8) | m_active_texture_unit;
 }
 
-void TextureStateMap::emit_calls_to_list(CallSet& list) const
+void TextureStateMap::do_emit_calls_to_list(CallSet& list) const
 {
     for (auto& tex: m_bound_texture)
         tex.second->emit_calls_to_list(list);

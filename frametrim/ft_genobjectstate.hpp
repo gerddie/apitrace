@@ -50,6 +50,10 @@ public:
             this->clear(v->toUInt());
         }
     }
+private:
+    void do_emit_calls_to_list(CallSet& list) const override {
+        (void)list;
+    }
 };
 
 
