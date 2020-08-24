@@ -46,7 +46,6 @@ struct StateImpl {
     void BindAttribLocation(PCall call);
     void BindFramebuffer(PCall call);
     void BindProgram(PCall call);
-    void BindRenderbuffer(PCall call);
     void BlitFramebuffer(PCall call);
     void CallList(PCall call);
     void Clear(PCall call);
@@ -70,9 +69,6 @@ struct StateImpl {
     void Material(PCall call);
     void NewList(PCall call);
     void Normal(PCall call);
-    void PopMatrix(PCall call);
-    void PushMatrix(PCall call);
-    void RenderbufferStorage(PCall call);
     void ProgramString(PCall call);
 
     void ShadeModel(PCall call);
@@ -157,7 +153,6 @@ struct StateImpl {
     PCall m_read_framebuffer_call;
 
     RenderbufferMap m_renderbuffers;
-    PRenderbufferState m_active_renderbuffer;
 
     std::unordered_map<std::string, PCall> m_state_calls;
 
@@ -428,29 +423,6 @@ void StateImpl::BindProgram(PCall call)
     }
 }
 
-void StateImpl::BindRenderbuffer(PCall call)
-{
-    assert(call->arg(0).toUInt() == GL_RENDERBUFFER);
-
-    auto id = call->arg(1).toUInt();
-
-    if (id) {
-        if (!m_active_renderbuffer || m_active_renderbuffer->id() != id) {
-            m_active_renderbuffer = m_renderbuffers.get_by_id(id);
-            if (!m_active_renderbuffer) {
-                std::cerr << "No renderbuffer in " << __func__
-                          << " with call " << call->no
-                          << " " << call->name() << "\n";
-                assert(0);
-            }
-            m_active_renderbuffer->append_call(call);
-        }
-    } else {
-        // This is a bit fishy ...
-        m_state_calls[call->name()] = call;
-    }
-}
-
 void StateImpl::CallList(PCall call)
 {
     auto list  = m_display_lists.find(call->arg(0).toUInt());
@@ -680,12 +652,6 @@ void StateImpl::ProgramString(PCall call)
     shader->append_call(call);
 }
 
-void StateImpl::RenderbufferStorage(PCall call)
-{
-    assert(m_active_renderbuffer);
-    m_active_renderbuffer->set_storage(call);
-}
-
 void StateImpl::ShadeModel(PCall call)
 {
     if (m_active_display_list)
@@ -912,15 +878,16 @@ void StateImpl::register_texture_calls()
 void StateImpl::register_framebuffer_calls()
 {
     MAP(glBindFramebuffer, BindFramebuffer);
-    MAP(glBindRenderbuffer, BindRenderbuffer);
     MAP(glBlitFramebuffer, BlitFramebuffer);
     MAP(glFramebufferRenderbuffer, FramebufferRenderbuffer);
     MAP(glFramebufferTexture, FramebufferTexture);
     MAP_GENOBJ(glGenFramebuffer, m_framebuffers, FramebufferMap::generate);
-    MAP_GENOBJ(glGenRenderbuffer, m_renderbuffers, RenderbufferMap::generate);
     MAP_GENOBJ(glDeleteFramebuffers, m_framebuffers, FramebufferMap::destroy);
+
+    MAP_GENOBJ(glBindRenderbuffer, m_renderbuffers, RenderbufferMap::bind);
     MAP_GENOBJ(glDeleteRenderbuffers, m_renderbuffers, RenderbufferMap::destroy);
-    MAP(glRenderbufferStorage, RenderbufferStorage);
+    MAP_GENOBJ(glGenRenderbuffer, m_renderbuffers, RenderbufferMap::generate);
+    MAP_GENOBJ(glRenderbufferStorage, m_renderbuffers, RenderbufferMap::storage);
 }
 
 void StateImpl::register_legacy_calls()

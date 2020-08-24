@@ -179,5 +179,44 @@ void RenderbufferState::do_emit_calls_to_list(CallSet& list) const
     }
 }
 
+void RenderbufferMap::bind(PCall call)
+{
+    assert(call->arg(0).toUInt() == GL_RENDERBUFFER);
+
+    auto id = call->arg(1).toUInt();
+
+    if (id) {
+        if (!m_active_renderbuffer || m_active_renderbuffer->id() != id) {
+            m_active_renderbuffer = get_by_id(id);
+            if (!m_active_renderbuffer) {
+                std::cerr << "No renderbuffer in " << __func__
+                          << " with call " << call->no
+                          << " " << call->name() << "\n";
+                assert(0);
+            }
+            m_active_renderbuffer->append_call(call);
+        }
+        m_last_unbind_call = nullptr;
+    } else {
+        /* Need to keep track when id == 0 */
+        m_last_unbind_call = call;
+    }
+}
+
+void RenderbufferMap::storage(PCall call)
+{
+    assert(m_active_renderbuffer);
+    m_active_renderbuffer->set_storage(call);
+}
+
+void RenderbufferMap::emit_calls_to_list(CallSet& list) const
+{
+    /* Renderbuffers are only of interest if they are bound, so no
+     * need to emit the related calls here, because the framebuffer will take
+     * care of this, but we have to unbind any renderbuffer if that's
+     * what the trace did before the current state is recorded. */
+    if (m_last_unbind_call)
+       list.insert(m_last_unbind_call);
+}
 
 }

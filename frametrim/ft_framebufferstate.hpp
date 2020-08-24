@@ -85,7 +85,24 @@ private:
 };
 
 using PRenderbufferState = RenderbufferState::Pointer;
-using RenderbufferMap = TStateMap<RenderbufferState>;
+
+
+class RenderbufferMap : public TStateMap<RenderbufferState>
+{
+public:
+    using TStateMap<RenderbufferState>::TStateMap;
+
+    void bind(PCall call);
+
+    void storage(PCall call);
+
+    void emit_calls_to_list(CallSet& list) const;
+
+private:
+    PRenderbufferState m_active_renderbuffer;
+    PCall m_last_unbind_call;
+
+};
 
 }
 
