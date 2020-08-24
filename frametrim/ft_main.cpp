@@ -108,7 +108,6 @@ static int trim_to_frame(const char *filename,
     frame = 0;
     std::shared_ptr<trace::Call> call(p.parse_call());
     while (call) {
-
         /* There's no use doing any work past the last call and frame
         * requested by the user. */
         if (frame > options.frames.getLast()) {

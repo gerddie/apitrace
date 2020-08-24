@@ -200,7 +200,6 @@ void StateImpl::collect_state_calls(CallSet& list) const
 
     m_matrix_states.emit_state_to_lists(list);
 
-
     /* Set vertex attribute array pointers only if they are enabled */
     for(auto& va : m_vertex_attr_pointer) {
         auto vae = m_va_enables.find(va.first);
@@ -212,14 +211,11 @@ void StateImpl::collect_state_calls(CallSet& list) const
     }
 
     m_vertex_arrays.emit_calls_to_list(list);
-
     m_buffers.emit_calls_to_list(list);
-
+    m_programs.emit_calls_to_list(list);
+    m_legacy_programs.emit_calls_to_list(list);
     m_textures.emit_calls_to_list(list);
 
-    m_programs.emit_calls_to_list(list);
-
-    m_legacy_programs.emit_calls_to_list(list);
 }
 
 void StateImpl::start_target_farme()
@@ -596,13 +592,13 @@ void StateImpl::register_texture_calls()
     MAP_GENOBJ(glActiveTexture, m_textures, TextureStateMap::active_texture);
     MAP_GENOBJ(glBindTexture, m_textures, TextureStateMap::bind);
     MAP_GENOBJ(glCompressedTexImage2D, m_textures, TextureStateMap::set_data);
-    MAP_GENOBJ(glGenerateMipmap, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glGenerateMipmap, m_textures, TextureStateMap::gen_mipmap);
     MAP_GENOBJ(glTexImage1D, m_textures, TextureStateMap::set_data);
     MAP_GENOBJ(glTexImage2D, m_textures, TextureStateMap::set_data);
     MAP_GENOBJ(glTexImage3D, m_textures, TextureStateMap::set_data);
-    MAP_GENOBJ(glTexSubImage1D, m_textures, TextureStateMap::set_data);
-    MAP_GENOBJ(glTexSubImage2D, m_textures, TextureStateMap::set_data);
-    MAP_GENOBJ(glTexSubImage3D, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glTexSubImage1D, m_textures, TextureStateMap::set_sub_data);
+    MAP_GENOBJ(glTexSubImage2D, m_textures, TextureStateMap::set_sub_data);
+    MAP_GENOBJ(glTexSubImage3D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ_DATA(glTexParameter, m_textures, TextureStateMap::set_state, 2);
 }
 

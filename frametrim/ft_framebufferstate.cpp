@@ -29,6 +29,7 @@ void FramebufferState::attach(unsigned attachment, PCall call,
         return;
 
     m_attachments[attachment] = att;
+    m_attach_calls[attachment].clear();
     m_attach_calls[attachment].insert(m_bind_call);
     m_attach_calls[attachment].insert(call);
 
@@ -156,6 +157,8 @@ void FramebufferMap::bind(PCall call)
             auto& calls = m_draw_framebuffer->state_calls();
             calls.clear();
             global_state().collect_state_calls(calls);
+            std::cerr << "Currnet number of state calls:"
+                      << calls.size() << "\n\n";
         }
 
         if ((target == GL_READ_FRAMEBUFFER ||

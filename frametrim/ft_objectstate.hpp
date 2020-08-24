@@ -87,6 +87,10 @@ public:
         return m_calls.empty();
     }
 
+    size_t size() const {
+        return m_calls.size();
+    }
+
 private:
     std::set<PCall> m_calls;
 };
@@ -141,7 +145,10 @@ template <typename T>
 class TObjStateMap {
 
 public:
-    TObjStateMap (GlobalState *gs): m_global_state(gs){}
+    TObjStateMap (GlobalState *gs):
+        m_global_state(gs),
+        m_emitting(false){
+    }
 
     typename T::Pointer get_by_id(uint64_t id) {
         assert(id > 0);
@@ -159,20 +166,26 @@ public:
     }
 
     void clear(uint64_t id) {
-        m_states.erase(id);
+        m_states[id] = nullptr;
     }
 
     void emit_calls_to_list(CallSet& list) const {
-        for (auto &s : m_states)
-            if (s.second)
-                s.second->emit_calls_to_list(list);
+        if (m_emitting)
+            return;
+        m_emitting = true;
         do_emit_calls_to_list(list);
+        m_emitting = false;
     }
-
 protected:
     GlobalState& global_state() {
         assert(m_global_state);
         return *m_global_state;
+    }
+
+    void emit_all_states(CallSet& list) const {
+        for(auto& s: m_states)
+            if (s.second)
+                s.second->emit_calls_to_list(list);
     }
 
 private:
@@ -181,6 +194,7 @@ private:
     std::unordered_map<unsigned, typename T::Pointer> m_states;
 
     GlobalState *m_global_state;
+    mutable bool m_emitting;
 
 };
 
