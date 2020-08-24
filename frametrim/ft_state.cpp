@@ -71,10 +71,7 @@ struct StateImpl {
     void GenVertexArrays(PCall call);
 
     void program_call(PCall call);
-    void LoadIdentity(PCall call);
-    void LoadMatrix(PCall call);
     void Material(PCall call);
-    void MatrixMode(PCall call);
     void NewList(PCall call);
     void Normal(PCall call);
     void PopMatrix(PCall call);
@@ -90,7 +87,6 @@ struct StateImpl {
     void ShadeModel(PCall call);
     void shader_call(PCall call);
 
-    void matrix_op(PCall call);
     void Uniform(PCall call);
     void UseProgram(PCall call);
     void Vertex(PCall call);
@@ -133,6 +129,8 @@ struct StateImpl {
 
     using CallTable = std::multimap<const char *, ft_callback, string_part_less>;
     CallTable m_call_table;
+
+    AllMatrisStates m_matrix_states;
 
     std::unordered_map<GLint, PShaderState> m_shaders;
     std::unordered_map<GLint, PShaderState> m_active_shaders;
@@ -178,13 +176,7 @@ struct StateImpl {
 
     CallSet m_required_calls;
 
-    std::stack<PMatrixState> m_mv_matrix;
-    std::stack<PMatrixState> m_proj_matrix;
-    std::stack<PMatrixState> m_texture_matrix;
-    std::stack<PMatrixState> m_color_matrix;
 
-    PMatrixState m_current_matrix;
-    std::stack<PMatrixState> *m_current_matrix_stack;
 };
 
 
@@ -227,17 +219,8 @@ void StateImpl::collect_state_calls(CallSet& list) const
     for(auto& cap: m_enables)
         list.insert(cap.second);
 
-    if (!m_mv_matrix.empty())
-        m_mv_matrix.top()->emit_calls_to_list(list);
+    m_matrix_states.emit_state_to_lists(list);
 
-    if (!m_proj_matrix.empty())
-        m_proj_matrix.top()->emit_calls_to_list(list);
-
-    if (!m_texture_matrix.empty())
-        m_texture_matrix.top()->emit_calls_to_list(list);
-
-    if (!m_color_matrix.empty())
-        m_color_matrix.top()->emit_calls_to_list(list);
 
     /* Set vertex attribute array pointers only if they are enabled */
     for(auto& va : m_vertex_attr_pointer) {
@@ -278,9 +261,6 @@ StateImpl::StateImpl():
     m_in_target_frame(false),
     m_required_calls(false)
 {
-    m_mv_matrix.push(make_shared<MatrixState>(nullptr));
-    m_current_matrix = m_mv_matrix.top();
-    m_current_matrix_stack = &m_mv_matrix;
 }
 
 unsigned equal_chars(const char *l, const char *r)
@@ -769,46 +749,11 @@ void StateImpl::program_call(PCall call)
     m_programs[progid]->append_call(call);
 }
 
-void StateImpl::LoadIdentity(PCall call)
-{
-    m_current_matrix->set_matrix(call);
-}
-
-void StateImpl::LoadMatrix(PCall call)
-{
-    m_current_matrix->set_matrix(call);
-}
 
 void StateImpl::Material(PCall call)
 {
     if (m_active_display_list)
         m_active_display_list->append_call(call);
-}
-
-void StateImpl::MatrixMode(PCall call)
-{
-    switch (call->arg(0).toUInt()) {
-    case GL_MODELVIEW:
-        m_current_matrix_stack = &m_mv_matrix;
-        break;
-    case GL_PROJECTION:
-        m_current_matrix_stack = &m_proj_matrix;
-        break;
-    case GL_TEXTURE:
-        m_current_matrix_stack = &m_texture_matrix;
-        break;
-    case GL_COLOR:
-        m_current_matrix_stack = &m_color_matrix;
-        break;
-    default:
-        assert(0 && "Unknown matrix mode");
-    }
-
-    if (m_current_matrix_stack->empty())
-        m_current_matrix_stack->push(make_shared<MatrixState>(nullptr));
-
-    m_current_matrix = m_current_matrix_stack->top();
-    m_current_matrix->select_matrixtype(call);
 }
 
 void StateImpl::NewList(PCall call)
@@ -828,28 +773,12 @@ void StateImpl::Normal(PCall call)
         m_active_display_list->append_call(call);
 }
 
-void StateImpl::PopMatrix(PCall call)
-{
-    m_current_matrix->append_call(call);
-    m_current_matrix_stack->pop();
-    assert(!m_current_matrix_stack->empty());
-    m_current_matrix = m_current_matrix_stack->top();
-
-}
-
 void StateImpl::ProgramString(PCall call)
 {
     auto stage = call->arg(0).toUInt();
     auto shader = m_active_shaders[stage];
     assert(shader);
     shader->append_call(call);
-}
-
-void StateImpl::PushMatrix(PCall call)
-{
-    m_current_matrix = make_shared<MatrixState>(m_current_matrix);
-    m_current_matrix_stack->push(m_current_matrix);
-    m_current_matrix->append_call(call);
 }
 
 void StateImpl::RenderbufferStorage(PCall call)
@@ -896,11 +825,6 @@ void StateImpl::texture_call(PCall call)
 
     assert(texture);
     texture->data(call);
-}
-
-void StateImpl::matrix_op(PCall call)
-{
-    m_current_matrix->append_call(call);
 }
 
 void StateImpl::UseProgram(PCall call)
@@ -1151,15 +1075,15 @@ void StateImpl::register_legacy_calls()
     MAP(glProgramString, ProgramString);
 
     // Matrix manipulation
-    MAP(glLoadIdentity, LoadIdentity);
-    MAP(glLoadMatrix, LoadMatrix);
-    MAP(glMatrixMode, MatrixMode);
-    MAP(glMultMatrix, matrix_op);
-    MAP(glRotate, matrix_op);
-    MAP(glScale, matrix_op);
-    MAP(glTranslate, matrix_op);
-    MAP(glPopMatrix, PopMatrix);
-    MAP(glPushMatrix, PushMatrix);
+    MAP_GENOBJ(glLoadIdentity, m_matrix_states, AllMatrisStates::LoadIdentity);
+    MAP_GENOBJ(glLoadMatrix, m_matrix_states, AllMatrisStates::LoadMatrix);
+    MAP_GENOBJ(glMatrixMode, m_matrix_states, AllMatrisStates::MatrixMode);
+    MAP_GENOBJ(glMultMatrix, m_matrix_states, AllMatrisStates::matrix_op);
+    MAP_GENOBJ(glRotate, m_matrix_states, AllMatrisStates::matrix_op);
+    MAP_GENOBJ(glScale, m_matrix_states, AllMatrisStates::matrix_op);
+    MAP_GENOBJ(glTranslate, m_matrix_states, AllMatrisStates::matrix_op);
+    MAP_GENOBJ(glPopMatrix, m_matrix_states, AllMatrisStates::PopMatrix);
+    MAP_GENOBJ(glPushMatrix, m_matrix_states, AllMatrisStates::PushMatrix);
 }
 
 void StateImpl::register_ignore_history_calls()

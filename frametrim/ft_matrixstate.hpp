@@ -2,6 +2,7 @@
 #define MATRIXSTATE_HPP
 
 #include "ft_objectstate.hpp"
+#include <stack>
 
 namespace frametrim {
 
@@ -27,6 +28,31 @@ private:
 };
 
 using PMatrixState = std::shared_ptr<MatrixState>;
+
+class AllMatrisStates {
+public:
+    AllMatrisStates();
+
+    void LoadIdentity(PCall call);
+    void LoadMatrix(PCall call);
+    void MatrixMode(PCall call);
+    void PopMatrix(PCall call);
+    void PushMatrix(PCall call);
+
+    void matrix_op(PCall call);
+
+    void emit_state_to_lists(CallSet& list) const;
+
+private:
+    std::stack<PMatrixState> m_mv_matrix;
+    std::stack<PMatrixState> m_proj_matrix;
+    std::stack<PMatrixState> m_texture_matrix;
+    std::stack<PMatrixState> m_color_matrix;
+
+    PMatrixState m_current_matrix;
+    std::stack<PMatrixState> *m_current_matrix_stack;
+};
+
 
 }
 
