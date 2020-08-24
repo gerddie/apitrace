@@ -55,9 +55,9 @@ struct StateImpl {
 
     void GenVertexArrays(PCall call);
 
-    void Material(PCall call);
     void NewList(PCall call);
-    void Normal(PCall call);
+
+    void ReadBuffer(PCall call);
     void ShadeModel(PCall call);
 
     void Vertex(PCall call);
@@ -404,12 +404,6 @@ void StateImpl::GenVertexArrays(PCall call)
     }
 }
 
-void StateImpl::Material(PCall call)
-{
-    if (m_active_display_list)
-        m_active_display_list->append_call(call);
-}
-
 void StateImpl::NewList(PCall call)
 {
     assert(!m_active_display_list);
@@ -421,10 +415,13 @@ void StateImpl::NewList(PCall call)
         m_active_display_list->append_call(call);
 }
 
-void StateImpl::Normal(PCall call)
+void StateImpl::ReadBuffer(PCall call)
 {
-    if (m_active_display_list)
-        m_active_display_list->append_call(call);
+    auto read_fb = m_framebuffers.read_fb();
+    if (read_fb)
+        read_fb->set_state_call(call, 0);
+    else
+        record_state_call(call);
 }
 
 void StateImpl::ShadeModel(PCall call)
