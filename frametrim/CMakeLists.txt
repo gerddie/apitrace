@@ -21,6 +21,7 @@ add_executable(glxtrim
    ft_matrixstate.cpp
    ft_main.cpp
    ft_objectstate.cpp
+   ft_objectwithbindstate.cpp
    ft_programstate.cpp
    ft_state.cpp
    ft_samplerstate.cpp

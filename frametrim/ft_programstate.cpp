@@ -89,7 +89,8 @@ void ProgramState::do_emit_calls_to_list(CallSet& list) const
             list.insert(s.second);
 
         for (auto& va: m_va)
-            va.second->emit_calls_to_list(list);
+            if (va.second)
+                va.second->emit_calls_to_list(list);
     }
 }
 

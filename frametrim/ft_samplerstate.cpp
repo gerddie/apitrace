@@ -49,4 +49,12 @@ void SamplerStateMap::set_state(PCall call, unsigned addr_params)
     sampler->set_state_call(call, addr_params);
 }
 
+void SamplerStateMap::do_emit_calls_to_list(CallSet& list) const
+{
+    for(auto& s : m_bound_samplers) {
+        if (s.second)
+            s.second->emit_calls_to_list(list);
+    }
+}
+
 }

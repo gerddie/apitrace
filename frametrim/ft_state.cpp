@@ -442,8 +442,14 @@ void StateImpl::VertexAttribPointer(PCall call)
         else if (draw_fb)
             buf->emit_calls_to_list(draw_fb->state_calls());
         buf->use(call);
-    } else
-        std::cerr << "Calling VertexAttribPointer without bound ARRAY_BUFFER, ignored\n";
+    } else {
+        if (!call->arg(5).toUInt()) {
+            m_vertex_attr_pointer[call->arg(0).toUInt()] = nullptr;
+            m_programs.set_va(call->arg(0).toUInt(), nullptr);
+        }
+    }
+
+            std::cerr << "Calling VertexAttribPointer without bound ARRAY_BUFFER, ignored\n";
 }
 
 void StateImpl::Viewport(PCall call)
