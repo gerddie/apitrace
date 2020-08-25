@@ -27,12 +27,12 @@ void FramebufferState::bind_draw(PCall call)
 }
 
 
-void FramebufferState::attach(unsigned attachment, PCall call,
+bool FramebufferState::attach(unsigned attachment, PCall call,
                               PSizedObjectState att)
 {
     if (m_attachments[attachment] && att &&
             (*m_attachments[attachment] == *att))
-        return;
+        return false;
 
     m_attachments[attachment] = att;
     m_attach_calls[attachment].clear();
@@ -67,6 +67,7 @@ void FramebufferState::attach(unsigned attachment, PCall call,
             }
         }
     }
+    return true;
 }
 
 void FramebufferState::draw(PCall call)
@@ -226,20 +227,24 @@ void FramebufferMap::renderbuffer(PCall call, RenderbufferMap& renderbuffers)
     auto rb = rb_id ? renderbuffers.get_by_id(rb_id) : nullptr;
 
     PFramebufferState  draw_fb;
-    bool read_rb = false;
+
+    bool attachment_changed = false;
 
     if (target == GL_FRAMEBUFFER || target == GL_DRAW_FRAMEBUFFER) {
-        m_draw_framebuffer->attach(attachment, call, rb);
+        attachment_changed |= m_draw_framebuffer->attach(attachment, call, rb);
         draw_fb = m_draw_framebuffer;
+        if (rb && attachment_changed)
+            rb->attach_as_rendertarget(draw_fb);
     }
 
     if (target == GL_FRAMEBUFFER || target == GL_READ_FRAMEBUFFER) {
-        m_read_framebuffer->attach(attachment, call, rb);
-        read_rb = true;
+        attachment_changed |= m_read_framebuffer->attach(attachment, call, rb);
     }
 
-    if (rb)
-        rb->attach(call, read_rb, draw_fb);
+    if (rb && attachment_changed) {
+        if(global_state().in_target_frame())
+            rb->emit_calls_to_list(global_state().global_callset());
+    }
 }
 
 void FramebufferMap::texture(PCall call, TextureStateMap& textures)
@@ -308,15 +313,9 @@ RenderbufferState::RenderbufferState(GLint glID, PCall gen_call):
 {
 }
 
-void RenderbufferState::attach(PCall call, bool read, PFramebufferState write_fb)
+void RenderbufferState::attach_as_rendertarget(PFramebufferState write_fb)
 {
-    if (read)
-        m_attach_read_fb_call = call;
-
-    if (write_fb) {
-        m_attach_write_fb_call = call;
         m_data_source = write_fb;
-    }
 }
 
 void RenderbufferState::set_used_as_blit_source()
@@ -338,12 +337,6 @@ void RenderbufferState::do_emit_calls_to_list(CallSet& list) const
 
     if (m_set_storage_call)
         list.insert(m_set_storage_call);
-
-    if (m_attach_read_fb_call)
-        list.insert(m_attach_read_fb_call);
-
-    if (m_attach_write_fb_call)
-        list.insert(m_attach_write_fb_call);
 
     if (m_is_blit_source) {
         assert(m_data_source);

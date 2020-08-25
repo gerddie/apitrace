@@ -18,7 +18,7 @@ public:
     void bind_read(PCall call);
     void bind_draw(PCall call);
 
-    void attach(unsigned attachment, PCall call, PSizedObjectState att);
+    bool attach(unsigned attachment, PCall call, PSizedObjectState att);
 
     void draw(PCall call);
 
@@ -92,7 +92,8 @@ public:
 
     RenderbufferState(GLint glID, PCall gen_call);
 
-    void attach(PCall call, bool read, PFramebufferState write_fb);
+    void attach_as_rendertarget(PFramebufferState write_fb);
+    void attach(PFramebufferState write_fb);
 
     void set_used_as_blit_source();
 
@@ -103,9 +104,6 @@ private:
     void do_emit_calls_to_list(CallSet& list) const override;
 
     PCall m_set_storage_call;
-
-    PCall m_attach_read_fb_call;
-    PCall m_attach_write_fb_call;
 
     /* If the renderbuffer is used in a draw framebuffer and later in
     * a read framebuffer for doing a blit, we have to keep the creation
