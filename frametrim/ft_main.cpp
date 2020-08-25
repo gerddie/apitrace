@@ -125,10 +125,12 @@ static int trim_to_frame(const char *filename,
 
         if (call->flags & trace::CALL_FLAG_END_FRAME) {
             frame++;
+            std::cerr << "\rScannimg frame " << frame;
         }
 
         call.reset(p.parse_call());
     }
+    std::cerr << "\rDone trimming frames     \n";
 
     trace::Writer writer;
     if (!writer.open(out_filename.c_str(), p.getVersion(), p.getProperties())) {
