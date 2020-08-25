@@ -16,10 +16,16 @@ FramebufferState::FramebufferState(GLint glID, PCall gen_call):
 {
 }
 
-void FramebufferState::bind(PCall call)
+void FramebufferState::bind_read(PCall call)
 {
-    m_bind_call = call;
+    m_bind_read_call = call;
 }
+
+void FramebufferState::bind_draw(PCall call)
+{
+    m_bind_draw_call = call;
+}
+
 
 void FramebufferState::attach(unsigned attachment, PCall call,
                               PSizedObjectState att)
@@ -30,14 +36,17 @@ void FramebufferState::attach(unsigned attachment, PCall call,
 
     m_attachments[attachment] = att;
     m_attach_calls[attachment].clear();
-    m_attach_calls[attachment].insert(m_bind_call);
-    m_attach_calls[attachment].insert(call);
 
     if (att) {
         m_width = att->width();
         m_height = att->height();
-    } else {
-        m_attach_calls[attachment].clear();
+
+        if (m_bind_read_call)
+            m_attach_calls[attachment].insert(m_bind_read_call);
+        if (m_bind_draw_call)
+            m_attach_calls[attachment].insert(m_bind_draw_call);
+
+        m_attach_calls[attachment].insert(call);
     }
 
     m_attached_buffer_types = 0;
@@ -93,7 +102,8 @@ void FramebufferState::clear(PCall call)
         reset_callset();
     }
 
-    append_call(m_bind_call);
+    append_call(m_bind_draw_call);
+    append_call(m_bind_read_call);
 
     append_call(call);
 }
@@ -107,13 +117,16 @@ void FramebufferState::depends(PGenObjectState read_buffer)
 
 void FramebufferState::do_emit_calls_to_list(CallSet& list) const
 {
-    if (m_bind_call)  {
+    if (m_bind_draw_call || m_bind_read_call)  {
         if (list.m_debug)
             std::cerr << "Emit calls for FBO " << id() << "\n";
 
         emit_gen_call(list);
 
-        list.insert(m_bind_call);
+        if (m_bind_read_call)
+            list.insert(m_bind_read_call);
+        if (m_bind_draw_call)
+            list.insert(m_bind_draw_call);
 
         for (auto& a : m_attach_calls)
             list.insert(a.second);
@@ -132,7 +145,6 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
         if (list.m_debug)
             std::cerr << "Done FBO " << id() << "\n";
     }
-
 }
 
 
@@ -140,6 +152,7 @@ void FramebufferMap::bind(PCall call)
 {
     unsigned target = call->arg(0).toUInt();
     unsigned id = call->arg(1).toUInt();
+    auto& gs = global_state();
 
     if (id)  {
 
@@ -148,7 +161,7 @@ void FramebufferMap::bind(PCall call)
                 (!m_draw_framebuffer ||
                  m_draw_framebuffer->id() != id)) {
             m_draw_framebuffer = get_by_id(id);
-            m_draw_framebuffer->bind(call);
+            m_draw_framebuffer->bind_draw(call);
             m_last_unbind_draw_fbo = nullptr;
 
             /* TODO: Create a copy of the current state and record all
@@ -158,9 +171,12 @@ void FramebufferMap::bind(PCall call)
 
             auto& calls = m_draw_framebuffer->state_calls();
             calls.clear();
-            global_state().collect_state_calls(calls);
-            std::cerr << "Currnet number of state calls:"
-                      << calls.size() << "\n\n";
+
+            gs.collect_state_calls(calls);
+
+            if (gs.in_target_frame())
+                m_draw_framebuffer->emit_calls_to_list(gs.global_callset());
+            //std::cerr << call->no <<  ": Currnet number of state calls:" << calls.size() << "\nco";
         }
 
         if ((target == GL_READ_FRAMEBUFFER ||
@@ -168,8 +184,10 @@ void FramebufferMap::bind(PCall call)
                 (!m_read_framebuffer ||
                  m_read_framebuffer->id() != id)) {
             m_read_framebuffer = get_by_id(id);
-            m_read_framebuffer->bind(call);
+            m_read_framebuffer->bind_read(call);
             m_last_unbind_read_fbo = nullptr;
+            if (gs.in_target_frame())
+                m_read_framebuffer->emit_calls_to_list(gs.global_callset());
         }
 
     } else {
@@ -235,26 +253,33 @@ void FramebufferMap::texture(PCall call, TextureStateMap& textures)
 
     if (has_tex_target)
         textarget = call->arg(2).toUInt();
+    else if (!strcmp(call->name(), "glFramebufferTexture2D"))
+        textarget = GL_TEXTURE_2D;
+    else if (!strcmp(call->name(), "glFramebufferTexture1D"))
+        textarget = GL_TEXTURE_2D;
+    else if (!strcmp(call->name(), "glFramebufferTexture3D"))  {
+        textarget = GL_TEXTURE_3D;
+        layer = call->arg(5).toUInt();
+    }
 
     unsigned texid = call->arg(2 + has_tex_target).toUInt();
     unsigned level = call->arg(3 + has_tex_target).toUInt();
 
-    if (!strcmp(call->name(), "glFramebufferTexture3D"))
-        layer = call->arg(5).toUInt();
-
     assert(level < 16);
-    assert(layer < 1 << 12);
+    assert(layer < (1 << 12));
 
     unsigned textargetid = (textarget << 16) | level << 12 | level;
 
     auto texture = textures.get_by_id(texid);
 
     if (target == GL_FRAMEBUFFER || target == GL_DRAW_FRAMEBUFFER) {
+        assert(m_draw_framebuffer);
         m_draw_framebuffer->attach(attachment, call, texture);
         texture->rendertarget_of(textargetid, m_draw_framebuffer);
     }
 
     if (target == GL_FRAMEBUFFER || target == GL_READ_FRAMEBUFFER) {
+        assert(m_read_framebuffer);
         m_read_framebuffer->attach(attachment, call, texture);
     }
 }

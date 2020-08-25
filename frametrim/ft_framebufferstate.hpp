@@ -15,7 +15,8 @@ public:
 
     FramebufferState(GLint glID, PCall gen_call);
 
-    void bind(PCall call);
+    void bind_read(PCall call);
+    void bind_draw(PCall call);
 
     void attach(unsigned attachment, PCall call, PSizedObjectState att);
 
@@ -33,7 +34,8 @@ private:
 
     void do_emit_calls_to_list(CallSet& list) const override;
 
-    PCall m_bind_call;
+    PCall m_bind_read_call;
+    PCall m_bind_draw_call;
     PCall m_viewport_call;
 
     std::unordered_map<unsigned, CallSet> m_attach_calls;
