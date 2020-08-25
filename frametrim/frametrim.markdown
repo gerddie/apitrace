@@ -37,6 +37,13 @@ The following types of calls need to be considered:
     texture/renderbuffer needs to keep track of its data source(s)  a circular
     reference is created, this needs to be handled when writing the calls.
 
+## Tricky things:
+
+* Civilization V
+  - A renderbuffer is bound to two different framebuffers, one is used for
+    drawing the data, and the other one is used as blit source to copy the
+    final data to the screen.
+
 ## Next steps:
 
 * code cleanups, move more code out of ft_state.cpp to the respective objects
