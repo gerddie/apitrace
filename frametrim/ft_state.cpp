@@ -4,6 +4,7 @@
 #include "ft_framebufferstate.hpp"
 #include "ft_matrixstate.hpp"
 #include "ft_programstate.hpp"
+#include "ft_samplerstate.hpp"
 #include "ft_texturestate.hpp"
 
 #include "trace_writer.hpp"
@@ -51,8 +52,6 @@ struct StateImpl {
     void EndList(PCall call);
 
     void GenLists(PCall call);
-    void GenSamplers(PCall call);
-
     void NewList(PCall call);
 
     void ReadBuffer(PCall call);
@@ -120,9 +119,7 @@ struct StateImpl {
     BufferStateMap m_buffers;
 
     TextureStateMap m_textures;
-
-    std::unordered_map<GLint, PGenObjectState> m_samplers;
-    std::unordered_map<GLint, PGenObjectState> m_bound_samplers;
+    SamplerStateMap m_samplers;
 
     TGenObjStateMap<ObjectState> m_vertex_arrays;
     std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
@@ -131,6 +128,8 @@ struct StateImpl {
     RenderbufferMap m_renderbuffers;
 
     std::unordered_map<std::string, PCall> m_state_calls;
+
+    std::set<std::string> m_unhandled_calls;
 
 };
 
@@ -216,6 +215,7 @@ void StateImpl::collect_state_calls(CallSet& list) const
     m_buffers.emit_calls_to_list(list);
     m_programs.emit_calls_to_list(list);
     m_legacy_programs.emit_calls_to_list(list);
+    m_samplers.emit_calls_to_list(list);
     m_textures.emit_calls_to_list(list);
 
 }
@@ -232,6 +232,7 @@ StateImpl::StateImpl(GlobalState *gs):
     m_programs(gs),
     m_legacy_programs(gs),
     m_buffers(gs),
+    m_samplers(gs),
     m_textures(gs),
     m_vertex_arrays(gs),
     m_framebuffers(gs),
@@ -367,16 +368,6 @@ void StateImpl::EndList(PCall call)
         m_active_display_list->append_call(call);
 
     m_active_display_list = nullptr;
-}
-
-void StateImpl::GenSamplers(PCall call)
-{
-    const auto ids = (call->arg(1)).toArray();
-    for (auto& v : ids->values) {
-        auto obj = make_shared<GenObjectState>(v->toUInt(), call);
-        obj->append_call(call);
-        m_samplers[v->toUInt()] = obj;
-    }
 }
 
 void StateImpl::GenLists(PCall call)
@@ -540,7 +531,6 @@ void StateImpl::register_callbacks()
     MAP(glDrawRangeElements, DrawElements);
     MAP(glEnableVertexAttribArray, record_va_enables);
 
-    MAP(glGenSamplers, GenSamplers);
     MAP_GENOBJ(glGenVertexArrays, m_vertex_arrays,
                TGenObjStateMap<ObjectState>::generate);
     MAP_GENOBJ(glDeleteVertexArrays, m_vertex_arrays,
@@ -611,6 +601,11 @@ void StateImpl::register_texture_calls()
     MAP_GENOBJ(glTexSubImage2D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ(glTexSubImage3D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ_DATA(glTexParameter, m_textures, TextureStateMap::set_state, 2);
+
+    MAP_GENOBJ(glBindSampler, m_samplers, SamplerStateMap::bind);
+    MAP_GENOBJ(glGenSamplers, m_samplers, SamplerStateMap::generate);
+    MAP_GENOBJ(glDeleteSamplers, m_samplers, SamplerStateMap::destroy);
+    MAP_GENOBJ_DATA(glSamplerParameter, m_samplers, SamplerStateMap::set_state, 2);
 }
 
 void StateImpl::register_framebuffer_calls()
