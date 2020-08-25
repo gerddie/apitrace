@@ -88,8 +88,10 @@ void FramebufferState::clear(PCall call)
     * its contents should be retained from earlier draw calls. */
     unsigned flags = m_attached_buffer_types & ~call->arg(0).toUInt();
 
-    if (m_viewport_full_size && !flags)
+    if (m_viewport_full_size && !flags) {
+        m_read_dependencies.clear();
         reset_callset();
+    }
 
     append_call(m_bind_call);
 
