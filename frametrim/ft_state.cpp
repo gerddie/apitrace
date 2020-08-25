@@ -56,6 +56,8 @@ struct StateImpl {
     void NewList(PCall call);
 
     void ReadBuffer(PCall call);
+    void DrawBuffers(PCall call);
+
     void ShadeModel(PCall call);
 
     void Vertex(PCall call);
@@ -408,6 +410,15 @@ void StateImpl::ReadBuffer(PCall call)
         record_state_call(call);
 }
 
+void StateImpl::DrawBuffers(PCall call)
+{
+    auto draw_fb = m_framebuffers.draw_fb();
+    if (draw_fb)
+        draw_fb->set_state_call(call, 0);
+    else
+        record_state_call(call);
+}
+
 void StateImpl::ShadeModel(PCall call)
 {
     if (m_active_display_list)
@@ -617,6 +628,9 @@ void StateImpl::register_framebuffer_calls()
     MAP_GENOBJ(glDeleteRenderbuffers, m_renderbuffers, RenderbufferMap::destroy);
     MAP_GENOBJ(glGenRenderbuffer, m_renderbuffers, RenderbufferMap::generate);
     MAP_GENOBJ(glRenderbufferStorage, m_renderbuffers, RenderbufferMap::storage);
+
+    MAP(glReadBuffer, ReadBuffer);
+    MAP(glDrawBuffers, DrawBuffers);
 }
 
 void StateImpl::register_legacy_calls()
@@ -717,7 +731,6 @@ void StateImpl::register_state_calls()
         "glDepthFunc",
         "glDepthMask",
         "glDepthRange",
-        "glDrawBuffers",
         "glFlush",
         "glFenceSync",
         "glFrontFace",
@@ -726,7 +739,6 @@ void StateImpl::register_state_calls()
         "glPolygonMode",
         "glPolygonMode",
         "glPolygonOffset",
-        "glReadBuffer",
         "glShadeModel",
         "glScissor",
         "glStencilFuncSeparate",
