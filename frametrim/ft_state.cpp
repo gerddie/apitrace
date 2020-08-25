@@ -153,6 +153,11 @@ State::State()
 
 State::~State()
 {
+    if (!impl->m_unhandled_calls.empty()) {
+        std::cerr << "Unhandled calls: ";
+        for (auto& call: impl->m_unhandled_calls)
+            std::cerr << "    '" << call << "'\n";
+    }
     delete impl;
 }
 
@@ -278,11 +283,13 @@ void StateImpl::call(PCall call)
         cb->second(call);
     } else {
         /* This should be some debug output only, because we might
-       * not handle some calls deliberately */
+         * not handle some calls deliberately */
+        std::cerr << call->name() << " unhandled ";
         if (cb_range.first != m_call_table.end())
-            std::cerr <<  "Found " << cb_range.first->first << " but don't like it\n";
+            std::cerr <<  "(Found " << cb_range.first->first << ")";
+        std::cerr << "\n";
 
-        std::cerr << call->name() << " unhandled\n";
+        m_unhandled_calls.insert(call->name());
     }
 
     if (m_in_target_frame)
