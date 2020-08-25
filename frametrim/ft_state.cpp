@@ -697,6 +697,7 @@ void StateImpl::register_ignore_history_calls()
         "glGetProgram",
         "glGetShader",
         "glGetString",
+        "glGetTexImage",
         "glIsEnabled",
         "glXGetClientString",
         "glXGetCurrentContext",
