@@ -405,7 +405,8 @@ PBufferState BufferStateMap::bound_to(unsigned target)
 void BufferStateMap::do_emit_calls_to_list(CallSet& list) const
 {
     for (auto& buf: m_bound_buffers)
-        buf.second->emit_calls_to_list(list);
+        if (buf.second)
+            buf.second->emit_calls_to_list(list);
 
 }
 
