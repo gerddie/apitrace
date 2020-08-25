@@ -129,7 +129,7 @@ private:
 
     CallSet m_gen_calls;
 
-    CallSet m_depenended_calls;
+    CallSet m_depenendet_calls;
 
     StateCallMap m_state_calls;
 
