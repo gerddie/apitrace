@@ -275,12 +275,13 @@ void FramebufferMap::texture(PCall call, TextureStateMap& textures)
 
     unsigned textargetid = (textarget << 16) | level << 12 | level;
 
-    auto texture = textures.get_by_id(texid);
+    auto texture = texid ? textures.get_by_id(texid) : nullptr;
 
     if (target == GL_FRAMEBUFFER || target == GL_DRAW_FRAMEBUFFER) {
         assert(m_draw_framebuffer);
         m_draw_framebuffer->attach(attachment, call, texture);
-        texture->rendertarget_of(textargetid, m_draw_framebuffer);
+        if (texture)
+            texture->rendertarget_of(textargetid, m_draw_framebuffer);
     }
 
     if (target == GL_FRAMEBUFFER || target == GL_READ_FRAMEBUFFER) {
