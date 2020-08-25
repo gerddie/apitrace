@@ -200,8 +200,12 @@ void LegacyProgramStateMap::bind(PCall call)
         prog->append_call(call);
         m_active_shaders[stage] = prog;
     } else {
+        /* If the active program is still connected somewehere, we want the
+         * unbind call to be used, so add it here, but then remove the
+         * shader from the active list. */
+        if (m_active_shaders[stage])
+            m_active_shaders[stage]->append_call(call);
         m_active_shaders.erase(stage);
-        std::cerr << "TODO: Unbind shader program\n";
     }
 }
 void LegacyProgramStateMap::do_emit_calls_to_list(CallSet& list) const
