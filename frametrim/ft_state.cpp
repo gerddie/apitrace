@@ -118,8 +118,9 @@ struct StateImpl {
 
     BufferStateMap m_buffers;
 
-    TextureStateMap m_textures;
     SamplerStateMap m_samplers;
+    TextureStateMap m_textures;
+
 
     TGenObjStateMap<ObjectState> m_vertex_arrays;
     std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
