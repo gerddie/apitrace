@@ -27,7 +27,7 @@ bool ObjectWithBindState::bound() const
     return m_bound;
 }
 
-void ObjectWithBindState::emit_bind(CallSet& out_list)
+void ObjectWithBindState::emit_bind(CallSet& out_list) const
 {
     if (m_bind_call)
         out_list.insert(m_bind_call);
