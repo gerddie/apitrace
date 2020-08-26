@@ -120,16 +120,14 @@ class RenderbufferMap : public TGenObjStateMap<RenderbufferState>
 public:
     using TGenObjStateMap<RenderbufferState>::TGenObjStateMap;
 
-    void bind(PCall call);
+    void post_bind(PCall call, PRenderbufferState obj) override;
+    void post_unbind(PCall call, PRenderbufferState obj) override;
 
     void storage(PCall call);
 
 private:
-    void do_emit_calls_to_list(CallSet& list) const override;
 
     PRenderbufferState m_active_renderbuffer;
-    PCall m_last_unbind_call;
-
 };
 
 }
