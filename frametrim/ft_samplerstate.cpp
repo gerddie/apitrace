@@ -21,6 +21,7 @@ void SamplerStateMap::set_state(PCall call, unsigned addr_params)
 
 void SamplerStateMap::do_emit_calls_to_list(CallSet& list) const
 {
+    (void)list;
 }
 
 }
