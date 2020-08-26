@@ -1,5 +1,6 @@
 #include "ft_framebufferstate.hpp"
 #include "ft_texturestate.hpp"
+#include "ft_globalstate.hpp"
 #include <GL/glext.h>
 #include <cstring>
 #include <iostream>

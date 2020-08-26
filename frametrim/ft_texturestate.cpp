@@ -1,4 +1,5 @@
 #include "ft_texturestate.hpp"
+#include "ft_globalstate.hpp"
 #include <cstring>
 #include <sstream>
 

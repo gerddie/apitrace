@@ -1,7 +1,7 @@
 #ifndef GENOBJECTSTATE_HPP
 #define GENOBJECTSTATE_HPP
 
-#include "ft_globalstate.hpp"
+#include "ft_objectwithbindstate.hpp"
 
 #include <unordered_map>
 
@@ -26,10 +26,10 @@ using PGenObjectState = GenObjectState::Pointer;
 
 
 template <typename T>
-class TGenObjStateMap : public TObjStateMap<T> {
+class TGenObjStateMap : public TObjectWithBindStateMap<T> {
 
 public:
-    using TObjStateMap<T>::TObjStateMap;
+    using TObjectWithBindStateMap<T>::TObjectWithBindStateMap;
 
     void generate(PCall call) {
         const auto ids = (call->arg(1)).toArray();

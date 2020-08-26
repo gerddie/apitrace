@@ -20,8 +20,8 @@ protected:
     void emit_bind(CallSet& out_list) const;
 
 private:
-    virtual void do_bind(PCall call);
-    virtual void do_unbind(PCall call);
+    virtual void post_bind(PCall call);
+    virtual void post_unbind(PCall call);
 
     bool m_bound;
     PCall m_bind_call;
