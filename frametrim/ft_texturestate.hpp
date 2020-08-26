@@ -49,8 +49,6 @@ public:
 
     void gen_mipmap(PCall call);
 
-    void set_state(PCall call, unsigned addr_params);
-
 private:
 
     void post_bind(PCall call, PTextureState obj) override;
@@ -60,6 +58,9 @@ private:
     unsigned m_active_texture_unit;
     PCall m_active_texture_unit_call;
 };
+
+using SamplerState = GenObjectState;
+using SamplerStateMap = TGenObjStateMap<SamplerState>;
 
 }
 

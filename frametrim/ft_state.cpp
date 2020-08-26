@@ -4,7 +4,6 @@
 #include "ft_framebufferstate.hpp"
 #include "ft_matrixstate.hpp"
 #include "ft_programstate.hpp"
-#include "ft_samplerstate.hpp"
 #include "ft_texturestate.hpp"
 
 #include "trace_writer.hpp"

@@ -68,6 +68,16 @@ public:
         return m_bound_objects[target];
     }
 
+    void set_state(PCall call, unsigned addr_params) {
+        auto obj = bound_in_call(call);
+        if (!obj) {
+            std::cerr << "No obj found in call " << call->no
+                      << " target:" << call->arg(0).toUInt();
+            assert(0);
+        }
+        obj->set_state_call(call, addr_params);
+    }
+
 private:
     virtual void post_bind(PCall call, typename T::Pointer obj) {
         (void)call;

@@ -185,18 +185,6 @@ void TextureStateMap::gen_mipmap(PCall call)
     texture->append_call(call);
 }
 
-void TextureStateMap::set_state(PCall call, unsigned addr_params)
-{
-    auto texture = bound_in_call(call);
-    if (!texture) {
-        std::cerr << "No texture found in call " << call->no
-                  << " target:" << call->arg(0).toUInt()
-                  << " U:" << m_active_texture_unit;
-        assert(0);
-    }
-    texture->set_state_call(call, addr_params);
-}
-
 unsigned TextureStateMap::composed_target_id(unsigned target) const
 {
     switch (target) {

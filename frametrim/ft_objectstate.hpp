@@ -176,6 +176,7 @@ public:
         do_emit_calls_to_list(list);
         m_emitting = false;
     }
+
 protected:
     GlobalState& global_state() {
         assert(m_global_state);
