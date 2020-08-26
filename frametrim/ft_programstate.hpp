@@ -18,8 +18,15 @@ public:
     void set_stage(unsigned stage);
 
     unsigned stage() const;
+
+    void attach();
+    void detach();
+    bool is_attached() const;
 private:
+    bool is_active() const override;
+
     unsigned m_stage;
+    int m_attach_count;
 };
 
 using PShaderState = ShaderState::Pointer;
@@ -47,6 +54,7 @@ public:
     void set_va(unsigned id, PObjectState va);
 
     void bind(PCall call);
+    void unbind(PCall call);
 
 private:
 

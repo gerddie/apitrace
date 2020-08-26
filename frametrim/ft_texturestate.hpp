@@ -23,6 +23,8 @@ public:
     void rendertarget_of(unsigned layer, PFramebufferState fbo);
 
 private:
+    bool is_active() const override;
+
     void do_emit_calls_to_list(CallSet& list) const override;
 
     bool  m_last_unit_call_dirty;

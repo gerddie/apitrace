@@ -4,6 +4,7 @@ namespace frametrim {
 
 void SamplerState::do_emit_calls_to_list(CallSet& list) const
 {
+    emit_gen_call(list);
 }
 
 void SamplerStateMap::set_state(PCall call, unsigned addr_params)

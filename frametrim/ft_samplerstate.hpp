@@ -13,9 +13,8 @@ public:
     using GenObjectState::GenObjectState;
 
 private:
+
     void do_emit_calls_to_list(CallSet& list) const override;
-
-
 };
 
 using PSamplwerState = SamplerState::Pointer;

@@ -123,6 +123,8 @@ protected:
 
 private:
 
+    virtual bool is_active() const;
+
     virtual void do_emit_calls_to_list(CallSet& list) const;
 
     GLint m_glID;

@@ -73,7 +73,6 @@ void TextureState::sub_data(PCall call)
     assert(level < 16);
     /* We should check like with buffers and remove old
      * sub data calls */
-    m_data_upload_set[level].clear();
     if (m_last_unit_call && m_last_unit_call_dirty) {
         m_data_upload_set[level].insert(m_last_unit_call);
         m_last_unit_call_dirty = false;
@@ -102,20 +101,23 @@ void TextureState::rendertarget_of(unsigned layer, PFramebufferState fbo)
 
 void TextureState::do_emit_calls_to_list(CallSet& list) const
 {
-    if (!m_data_use_set.empty() || bound() || is_attached()) {
+    emit_gen_call(list);
+    emit_bind(list);
+    for(unsigned i = 0; i < 16; ++i)
+        list.insert(m_data_upload_set[i]);
+    list.insert(m_data_use_set);
 
-        emit_gen_call(list);
-        emit_bind(list);
-        for(unsigned i = 0; i < 16; ++i)
-            list.insert(m_data_upload_set[i]);
-        list.insert(m_data_use_set);
+    /* This is a somewhat lazy approach, but we assume that if the texture
+     * was attached to a draw FBO then this was done to create the contents
+     * of the texture, so we need to record all calls used in the fbo */
+    for (auto& f : m_fbo)
+        f.second->emit_calls_to_list(list);
 
-        /* This is a somewhat lazy approach, but we assume that if the texture
-       * was attached to a draw FBO then this was done to create the contents
-       * of the texture, so we need to record all calls used in the fbo */
-        for (auto& f : m_fbo)
-            f.second->emit_calls_to_list(list);
-    }
+}
+
+bool TextureState::is_active() const
+{
+    return bound() || is_attached();
 }
 
 TextureStateMap::TextureStateMap(GlobalState *gs):
@@ -134,13 +136,6 @@ void TextureStateMap::post_bind(PCall call, PTextureState obj)
 {
     (void)call;
     obj->bind_unit(m_active_texture_unit_call);
-
-    if (global_state().in_target_frame()) {
-        obj->emit_calls_to_list(global_state().global_callset());
-    }
-    auto draw_fb = global_state().draw_framebuffer();
-    if (draw_fb)
-        obj->emit_calls_to_list(draw_fb->dependent_calls());
 }
 
 void TextureStateMap::post_unbind(PCall call, PTextureState obj)

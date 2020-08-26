@@ -20,6 +20,7 @@ protected:
     void emit_bind(CallSet& out_list) const;
 
 private:
+    bool is_active() const override;
     virtual void post_bind(PCall call);
     virtual void post_unbind(PCall call);
 
@@ -40,14 +41,28 @@ public:
             if (!m_bound_objects[target] ||
                     m_bound_objects[target]->id() != id) {
 
+                if (m_bound_objects[target])
+                            m_bound_objects[target]->unbind(call);
+
                 auto obj = this->get_by_id(id);
                 if (!obj) {
                     std::cerr << "Object " << id << " not found while binding\n";
                     return;
                 }
+
                 obj->bind(call);
                 m_bound_objects[target] = obj;
                 post_bind(call, m_bound_objects[target]);
+
+                auto& gs = this->global_state();
+
+                if (gs.in_target_frame()) {
+                    obj->emit_calls_to_list(gs.global_callset());
+                }
+                auto draw_fb = gs.draw_framebuffer();
+                if (draw_fb)
+                    obj->emit_calls_to_list(draw_fb->dependent_calls());
+
             }
         } else {
             if (m_bound_objects[target])  {

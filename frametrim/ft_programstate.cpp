@@ -30,6 +30,30 @@ unsigned ShaderState::stage() const
     return m_stage;
 }
 
+void ShaderState::attach()
+{
+    ++m_attach_count;
+}
+
+void ShaderState::detach()
+{
+    if (m_attach_count > 0)
+        --m_attach_count;
+    else
+        std::cerr << "Try to detach shader that is not attached\n";
+}
+
+bool ShaderState::is_attached() const
+{
+    return m_attach_count > 0;
+}
+
+
+bool ShaderState::is_active() const
+{
+    return bound() || is_attached();
+}
+
 void ShaderStateMap::create(PCall call)
 {
     GLint shader_id = call->ret->toUInt();
@@ -38,6 +62,7 @@ void ShaderStateMap::create(PCall call)
     shader->append_call(call);
     set(shader_id, shader);
 }
+
 
 void ShaderStateMap::data(PCall call)
 {
@@ -142,6 +167,7 @@ void ProgramStateMap::attach_shader(PCall call, ShaderStateMap& shaders)
     assert(shader);
 
     program->attach_shader(shader);
+    shader->attach();
     program->append_call(call);
 }
 

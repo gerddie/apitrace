@@ -37,7 +37,7 @@ void ObjectState::emit_calls_to_list(CallSet& list) const
     * gets used later) we need to make sure we only emit this series once,
     * otherwise we might end up with a stack overflow.
     */
-    if (!m_emitting) {
+    if (!m_emitting && is_active()) {
         m_emitting = true;
 
         list.insert(m_gen_calls);
@@ -79,6 +79,11 @@ void ObjectState::set_state_call(PCall call, unsigned nstate_id_params)
         state_call_name << "_" << call->arg(i).toUInt();
 
     m_state_calls[state_call_name.str()] = call;
+}
+
+bool ObjectState::is_active() const
+{
+    return true;
 }
 
 void ObjectState::do_emit_calls_to_list(CallSet &list) const
