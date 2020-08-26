@@ -7,7 +7,7 @@
 
 namespace frametrim {
 
-class GenObjectState : public ObjectState
+class GenObjectState : public ObjectWithBindState
 {
 public:     
     using Pointer = std::shared_ptr<GenObjectState>;
