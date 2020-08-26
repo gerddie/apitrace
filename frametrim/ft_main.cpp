@@ -106,6 +106,7 @@ static int trim_to_frame(const char *filename,
     State appstate;
 
     frame = 0;
+    uint64_t callid = 0;
     std::shared_ptr<trace::Call> call(p.parse_call());
     while (call) {
         /* There's no use doing any work past the last call and frame
@@ -125,8 +126,11 @@ static int trim_to_frame(const char *filename,
 
         if (call->flags & trace::CALL_FLAG_END_FRAME) {
             frame++;
-            std::cerr << "\rScannimg frame " << frame;
         }
+
+        callid++;
+        if (!(callid & 0xff))
+            std::cerr << "\rScanning frame:" << frame << " call:" << call->no;
 
         call.reset(p.parse_call());
     }
