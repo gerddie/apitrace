@@ -147,7 +147,7 @@ void TextureStateMap::post_unbind(PCall call, PTextureState obj)
 
 void TextureStateMap::set_data(PCall call)
 {
-    auto texture = bound_to(call->arg(0).toUInt());
+    auto texture = bound_in_call(call);
 
     if (!texture) {
         std::cerr << "No texture found in call " << call->no
@@ -161,7 +161,7 @@ void TextureStateMap::set_data(PCall call)
 void TextureStateMap::set_sub_data(PCall call)
 {
     /* This will need some better handling */
-    auto texture = bound_to(call->arg(0).toUInt());
+    auto texture = bound_in_call(call);
 
     if (!texture) {
         std::cerr << "No texture found in call " << call->no
@@ -174,7 +174,7 @@ void TextureStateMap::set_sub_data(PCall call)
 
 void TextureStateMap::gen_mipmap(PCall call)
 {
-    auto texture = bound_to(call->arg(0).toUInt());
+    auto texture = bound_in_call(call);
 
     if (!texture) {
         std::cerr << "No texture found in call " << call->no
@@ -187,7 +187,7 @@ void TextureStateMap::gen_mipmap(PCall call)
 
 void TextureStateMap::set_state(PCall call, unsigned addr_params)
 {
-    auto texture = bound_to(call->arg(0).toUInt());
+    auto texture = bound_in_call(call);
     if (!texture) {
         std::cerr << "No texture found in call " << call->no
                   << " target:" << call->arg(0).toUInt()
@@ -196,7 +196,6 @@ void TextureStateMap::set_state(PCall call, unsigned addr_params)
     }
     texture->set_state_call(call, addr_params);
 }
-
 
 unsigned TextureStateMap::composed_target_id(unsigned target) const
 {

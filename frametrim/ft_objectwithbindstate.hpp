@@ -63,6 +63,11 @@ public:
         return m_bound_objects[target];
     }
 
+    typename T::Pointer bound_in_call(const PCall& call) {
+        unsigned target = target_id_from_call(call);
+        return m_bound_objects[target];
+    }
+
 private:
     virtual void post_bind(PCall call, typename T::Pointer obj) {
         (void)call;
