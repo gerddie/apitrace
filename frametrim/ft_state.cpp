@@ -447,10 +447,13 @@ void StateImpl::VertexAttribPointer(PCall call)
         if (!call->arg(5).toUInt()) {
             m_vertex_attr_pointer[call->arg(0).toUInt()] = nullptr;
             m_programs.set_va(call->arg(0).toUInt(), nullptr);
+        } else {
+            std::cerr << "Calling VertexAttribPointer without bound "
+                         "ARRAY_BUFFER, and pointer is not NULL (ignored)\n";
         }
     }
 
-            std::cerr << "Calling VertexAttribPointer without bound ARRAY_BUFFER, ignored\n";
+
 }
 
 void StateImpl::Viewport(PCall call)
