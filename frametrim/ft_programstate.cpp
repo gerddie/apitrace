@@ -9,13 +9,15 @@ using std::make_shared;
 
 ShaderState::ShaderState(unsigned id, unsigned stage):
     ObjectWithBindState(id, nullptr),
-    m_stage(stage)
+    m_stage(stage),
+    m_attach_count(0)
 {
 }
 
 ShaderState::ShaderState(unsigned id, PCall call):
-    ObjectWithBindState(id, nullptr),
-    m_stage(0)
+    ObjectWithBindState(id, call),
+    m_stage(0),
+    m_attach_count(0)
 {
     append_call(call);
 }
