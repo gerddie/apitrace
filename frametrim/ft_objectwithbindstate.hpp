@@ -37,7 +37,7 @@ public:
         auto id = call->arg(1).toUInt();
 
         if (id > 0) {
-            if (!m_bound_objects[target] &&
+            if (!m_bound_objects[target] ||
                     m_bound_objects[target]->id() != id) {
 
                 auto obj = this->get_by_id(id);

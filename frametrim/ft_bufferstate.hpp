@@ -14,7 +14,6 @@ public:
     BufferState(GLint glID, PCall gen_call);
     ~BufferState();
 
-    void bind(PCall call);
     void data(PCall call);
     void append_data(PCall call);
 
@@ -27,8 +26,11 @@ public:
     void use(PCall call = nullptr);
 
 private:
+    void post_bind(PCall call) override;
+    void post_unbind(PCall call) override;
     void do_emit_calls_to_list(CallSet& list) const override;
 
+    friend struct BufferStateImpl;
     struct BufferStateImpl *impl;
 };
 
@@ -38,9 +40,6 @@ class BufferStateMap : public TGenObjStateMap<BufferState> {
   public:
     using TGenObjStateMap<BufferState>::TGenObjStateMap;
 
-    PBufferState bound_to(unsigned target);
-
-    void bind(PCall call);
     void data(PCall call);
     void sub_data(PCall call);
 
@@ -50,11 +49,8 @@ class BufferStateMap : public TGenObjStateMap<BufferState> {
     void unmap(PCall call);
 
 private:
-    void do_emit_calls_to_list(CallSet& list) const override;
-
     using BufferMap = std::unordered_map<GLint, PBufferState>;
 
-    BufferMap m_bound_buffers;
     std::unordered_map<GLint, BufferMap> m_mapped_buffers;
 };
 

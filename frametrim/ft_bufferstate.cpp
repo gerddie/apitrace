@@ -33,8 +33,8 @@ struct BufferMap {
 };
 
 struct BufferStateImpl {
+    BufferState *m_owner;
 
-    PCall m_last_bind_call;
     CallSet m_data_upload_set;
     CallSet m_data_use_set;
     bool m_last_bind_call_dirty;
@@ -49,7 +49,10 @@ struct BufferStateImpl {
     std::vector<PCall> m_map_calls;
     std::vector<PCall> m_unmap_calls;
 
-    void bind(PCall call);
+    BufferStateImpl(BufferState *owner);
+
+    void post_bind(PCall call);
+    void post_unbind(PCall call);
     void data(PCall call);
     void append_data(PCall call);
     void map(PCall call);
@@ -71,7 +74,8 @@ struct BufferStateImpl {
     impl->method(call); \
 }
 
-FORWARD_CALL(bind)
+FORWARD_CALL(post_bind)
+FORWARD_CALL(post_unbind)
 FORWARD_CALL(data)
 FORWARD_CALL(append_data)
 FORWARD_CALL(use)
@@ -96,7 +100,7 @@ void BufferState::do_emit_calls_to_list(CallSet& list) const
 BufferState::BufferState(GLint glID, PCall gen_call):
     GenObjectState(glID, gen_call)
 {
-    impl = new BufferStateImpl;
+    impl = new BufferStateImpl(this);
 }
 
 BufferState::~BufferState()
@@ -104,17 +108,31 @@ BufferState::~BufferState()
     delete impl;
 }
 
-void BufferStateImpl::bind(PCall call)
+BufferStateImpl::BufferStateImpl(BufferState *owner):
+    m_owner(owner)
 {
-    m_last_bind_call = call;
+
+}
+
+void BufferStateImpl::post_bind(PCall call)
+{
+    (void)call;
     m_last_bind_call_dirty = true;
 }
+
+void BufferStateImpl::post_unbind(PCall call)
+{
+    (void)call;
+    m_last_bind_call_dirty = true;
+}
+
 
 void BufferStateImpl::data(PCall call)
 {
     m_data_upload_set.clear();
 
-    m_data_upload_set.insert(m_last_bind_call);
+    m_owner->emit_bind(m_data_upload_set);
+
     m_last_bind_call_dirty = false;
     m_data_upload_set.insert(call);
     m_sub_buffers.clear();
@@ -125,7 +143,7 @@ void BufferStateImpl::data(PCall call)
 void BufferStateImpl::append_data(PCall call)
 {
     if (m_last_bind_call_dirty) {
-        m_sub_data_bind_calls.insert(m_last_bind_call);
+        m_owner->emit_bind(m_data_upload_set);
         m_last_bind_call_dirty = false;
     }
 
@@ -161,8 +179,8 @@ void BufferStateImpl::add_sub_range(uint64_t start, uint64_t end, PCall call, bo
 void BufferStateImpl::use(PCall call)
 {
     m_data_use_set.clear();
-    m_data_use_set.insert(m_last_bind_call);
-    if (call)
+    m_owner->emit_bind(m_data_use_set);
+        if (call)
         m_data_use_set.insert(call);
 }
 
@@ -222,7 +240,7 @@ CallSet BufferStateImpl::clean_bind_calls() const
 void BufferStateImpl::map(PCall call)
 {
     if (m_last_bind_call_dirty) {
-        m_sub_data_bind_calls.insert(m_last_bind_call);
+        m_owner->emit_bind(m_sub_data_bind_calls);
         m_last_bind_call_dirty = false;
     }
 
@@ -236,7 +254,7 @@ void BufferStateImpl::map(PCall call)
 void BufferStateImpl::map_range(PCall call)
 {
     if (m_last_bind_call_dirty) {
-        m_sub_data_bind_calls.insert(m_last_bind_call);
+        m_owner->emit_bind(m_sub_data_bind_calls);
         m_last_bind_call_dirty = false;
     }
     m_mapping = BufferMap(call);
@@ -321,42 +339,20 @@ bool BufferMap::contains(uint64_t start)
     return start >= range_begin && start < range_end;
 }
 
-
-void BufferStateMap::bind(PCall call)
-{
-    unsigned target = call->arg(0).toUInt();
-    unsigned id = call->arg(1).toUInt();
-
-    if (id) {
-        if (!m_bound_buffers[target] ||
-                m_bound_buffers[target]->id() != id) {
-            m_bound_buffers[target] = get_by_id(id);
-            m_bound_buffers[target] ->bind(call);
-        }
-    } else {
-        if (m_bound_buffers[target])
-            m_bound_buffers[target]->append_call(call);
-        m_bound_buffers.erase(target);
-    }
-
-}
-
 void BufferStateMap::data(PCall call)
 {
-    unsigned target = call->arg(0).toUInt();
-    m_bound_buffers[target]->data(call);
+    bound_to(call->arg(0).toUInt())->data(call);
 }
 
 void BufferStateMap::sub_data(PCall call)
 {
-    unsigned target = call->arg(0).toUInt();
-    m_bound_buffers[target]->append_data(call);
+    bound_to(call->arg(0).toUInt())->append_data(call);
 }
 
 void BufferStateMap::map(PCall call)
 {
     unsigned target = call->arg(0).toUInt();
-    auto buf = m_bound_buffers[target];
+    auto buf = bound_to(target);
     if (buf) {
         m_mapped_buffers[target][buf->id()] = buf;
         buf->map(call);
@@ -366,7 +362,7 @@ void BufferStateMap::map(PCall call)
 void BufferStateMap::map_range(PCall call)
 {
     unsigned target = call->arg(0).toUInt();
-    auto buf = m_bound_buffers[target];
+    auto buf = bound_to(target);
     if (buf) {
         m_mapped_buffers[target][buf->id()] = buf;
         buf->map_range(call);
@@ -390,25 +386,11 @@ void BufferStateMap::memcpy(PCall call)
 void BufferStateMap::unmap(PCall call)
 {
     unsigned target = call->arg(0).toUInt();
-    auto buf = m_bound_buffers[target];
+    auto buf = bound_to(target);
     if (buf) {
         auto& mapped = m_mapped_buffers[target];
         mapped.erase(buf->id());
     }
 }
-
-PBufferState BufferStateMap::bound_to(unsigned target)
-{
-   return m_bound_buffers[target];
-}
-
-void BufferStateMap::do_emit_calls_to_list(CallSet& list) const
-{
-    for (auto& buf: m_bound_buffers)
-        if (buf.second)
-            buf.second->emit_calls_to_list(list);
-
-}
-
 
 }
