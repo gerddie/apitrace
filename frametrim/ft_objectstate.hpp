@@ -7,7 +7,7 @@
 #include <GL/gl.h>
 #include <vector>
 #include <memory>
-#include <set>
+#include <unordered_set>
 #include <unordered_map>
 
 #include <iostream>
@@ -28,6 +28,12 @@ struct pcall_less {
     }
 };
 
+struct call_hash {
+    std::size_t operator () (const PCall& call) const noexcept {
+        return std::hash<unsigned>{}(call->no);
+    }
+};
+
 class CallSet {
 
 public:
@@ -36,8 +42,9 @@ public:
 
     bool m_debug;
 
-    using iterator = std::set<PCall>::iterator;
-    using const_iterator = std::set<PCall>::const_iterator;
+    using Container = std::unordered_set<PCall, call_hash>;
+    using iterator = Container::iterator;
+    using const_iterator = Container::const_iterator;
 
     void insert(PCall call) {
         if (m_debug)
@@ -92,7 +99,7 @@ public:
     }
 
 private:
-    std::set<PCall> m_calls;
+    Container m_calls;
 };
 
 
