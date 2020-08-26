@@ -33,7 +33,7 @@ public:
     using TObjStateMap<T>::TObjStateMap;
 
     void bind(PCall call) {
-        auto target = composed_target_id(call->arg(0).toUInt());
+        auto target = target_id_from_call(call);
         auto id = call->arg(1).toUInt();
 
         if (id > 0) {
@@ -79,6 +79,10 @@ private:
             if (obj.second)
                 obj.second->emit_calls_to_list(list);
         }
+    }
+
+    virtual unsigned target_id_from_call(const PCall& call) const {
+        return composed_target_id(call->arg(0).toUInt());
     }
 
     virtual unsigned composed_target_id(unsigned id) const {
