@@ -47,25 +47,31 @@ public:
                 }
                 obj->bind(call);
                 m_bound_objects[target] = obj;
+                post_bind(call, m_bound_objects[target]);
             }
         } else {
-            if (m_bound_objects[target])
+            if (m_bound_objects[target])  {
                 m_bound_objects[target]->unbind(call);
+                post_unbind(call, m_bound_objects[target]);
+            }
             m_bound_objects[target] = nullptr;
         }
     }
 
     typename T::Pointer bound_to(unsigned target) {
+        target = composed_target_id(target);
         return m_bound_objects[target];
     }
 
 private:
-    virtual void do_bind(PCall call) {
+    virtual void post_bind(PCall call, typename T::Pointer obj) {
         (void)call;
+        (void)obj;
     }
 
-    virtual void do_unbind(PCall call){
+    virtual void post_unbind(PCall call, typename T::Pointer obj){
         (void)call;
+        (void)obj;
     }
 
     void do_emit_calls_to_list(CallSet& list) const override {
