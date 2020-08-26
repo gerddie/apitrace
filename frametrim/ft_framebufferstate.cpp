@@ -35,6 +35,10 @@ bool FramebufferState::attach(unsigned attachment, PCall call,
             (*m_attachments[attachment] == *att))
         return false;
 
+    if (m_attachments[attachment]) {
+        m_attachments[attachment]->unattach();
+    }
+
     m_attachments[attachment] = att;
     m_attach_calls[attachment].clear();
 
@@ -48,6 +52,7 @@ bool FramebufferState::attach(unsigned attachment, PCall call,
             m_attach_calls[attachment].insert(m_bind_draw_call);
 
         m_attach_calls[attachment].insert(call);
+        att->attach();
     }
 
     m_attached_buffer_types = 0;
@@ -335,15 +340,17 @@ void RenderbufferState::set_storage(PCall call)
 
 void RenderbufferState::do_emit_calls_to_list(CallSet& list) const
 {
-    emit_gen_call(list);
-    emit_bind(list);
+    if (is_attached()) {
+        emit_gen_call(list);
+        emit_bind(list);
 
-    if (m_set_storage_call)
-        list.insert(m_set_storage_call);
+        if (m_set_storage_call)
+            list.insert(m_set_storage_call);
 
-    if (m_is_blit_source) {
-        assert(m_data_source);
-        m_data_source->emit_calls_to_list(list);
+        if (m_is_blit_source) {
+            assert(m_data_source);
+            m_data_source->emit_calls_to_list(list);
+        }
     }
 }
 

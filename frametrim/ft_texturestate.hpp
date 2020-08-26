@@ -30,6 +30,7 @@ private:
     bool  m_last_bind_call_dirty;
     CallSet m_data_upload_set[16];
     CallSet m_data_use_set;
+    int m_attach_count;
 
     std::unordered_map<unsigned, PFramebufferState> m_fbo;
 };
@@ -58,9 +59,6 @@ private:
     unsigned m_active_texture_unit;
     PCall m_active_texture_unit_call;
 };
-
-using SamplerState = GenObjectState;
-using SamplerStateMap = TGenObjStateMap<SamplerState>;
 
 }
 

@@ -11,7 +11,8 @@ using std::stringstream;
 
 TextureState::TextureState(GLint glID, PCall gen_call):
     SizedObjectState(glID, gen_call, texture),
-    m_last_bind_call_dirty(true)
+    m_last_bind_call_dirty(true),
+    m_attach_count(0)
 {
 
 }
@@ -48,8 +49,10 @@ void TextureState::data(PCall call)
         m_last_unit_call_dirty = false;
     }
 
-    emit_bind(m_data_upload_set[level]);
-    m_last_bind_call_dirty = false;
+    if (m_last_bind_call_dirty) {
+        emit_bind(m_data_upload_set[level]);
+        m_last_bind_call_dirty = false;
+    }
 
     m_data_upload_set[level].insert(call);
 
@@ -99,7 +102,8 @@ void TextureState::rendertarget_of(unsigned layer, PFramebufferState fbo)
 
 void TextureState::do_emit_calls_to_list(CallSet& list) const
 {
-    if (!m_data_use_set.empty() || bound()) {
+    if (!m_data_use_set.empty() || bound() || is_attached()) {
+
         emit_gen_call(list);
         emit_bind(list);
         for(unsigned i = 0; i < 16; ++i)

@@ -75,6 +75,10 @@ public:
     friend bool operator == (const SizedObjectState& lhs,
                              const SizedObjectState& rhs);
 
+    void unattach();
+    void attach();
+    bool is_attached() const;
+
 protected:
 
     void set_size(unsigned level, unsigned w, unsigned h);
@@ -83,7 +87,7 @@ private:
     std::vector<std::pair<unsigned, unsigned>> m_size;
 
     EAttachmentType m_attachment_type;
-
+    int m_attach_count;
 };
 
 using PSizedObjectState = std::shared_ptr<SizedObjectState>;

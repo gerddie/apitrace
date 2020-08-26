@@ -19,8 +19,28 @@ void GenObjectState::emit_gen_call(CallSet& list) const
 SizedObjectState::SizedObjectState(GLint glID, PCall gen_call, EAttachmentType at):
     GenObjectState(glID, gen_call),
     m_size(16), // this should be enough
-    m_attachment_type(at)
+    m_attachment_type(at),
+    m_attach_count(0)
 {
+}
+
+void SizedObjectState::unattach()
+{
+    if (is_attached())
+        --m_attach_count;
+    else
+        std::cerr << "Trying to un-attach " << id()
+                  << " but it is not attached\n";
+}
+
+void SizedObjectState::attach()
+{
+    ++m_attach_count;
+}
+
+bool SizedObjectState::is_attached() const
+{
+    return m_attach_count > 0;
 }
 
 unsigned SizedObjectState::width(unsigned level) const

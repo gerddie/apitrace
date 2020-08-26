@@ -285,11 +285,6 @@ void StateImpl::call(PCall call)
     } else {
         /* This should be some debug output only, because we might
          * not handle some calls deliberately */
-        std::cerr << call->name() << " unhandled ";
-        if (cb_range.first != m_call_table.end())
-            std::cerr <<  "(Found " << cb_range.first->first << ")";
-        std::cerr << "\n";
-
         m_unhandled_calls.insert(call->name());
     }
 
@@ -433,10 +428,10 @@ void StateImpl::Vertex(PCall call)
 void StateImpl::VertexAttribPointer(PCall call)
 {
     auto buf = m_buffers.bound_to(GL_ARRAY_BUFFER);
+    auto draw_fb = m_framebuffers.draw_fb();
+
     if (buf) {
         m_vertex_attr_pointer[call->arg(0).toUInt()] = buf;
-        auto draw_fb = m_framebuffers.draw_fb();
-
         m_programs.set_va(call->arg(0).toUInt(), buf);
         if (m_in_target_frame)
             buf->emit_calls_to_list(m_required_calls);
@@ -444,16 +439,9 @@ void StateImpl::VertexAttribPointer(PCall call)
             buf->emit_calls_to_list(draw_fb->state_calls());
         buf->use(call);
     } else {
-        if (!call->arg(5).toUInt()) {
-            m_vertex_attr_pointer[call->arg(0).toUInt()] = nullptr;
-            m_programs.set_va(call->arg(0).toUInt(), nullptr);
-        } else {
-            std::cerr << "Calling VertexAttribPointer without bound "
-                         "ARRAY_BUFFER, and pointer is not NULL (ignored)\n";
-        }
+        m_vertex_attr_pointer[call->arg(0).toUInt()] = nullptr;
+        m_programs.set_va(call->arg(0).toUInt(), nullptr);
     }
-
-
 }
 
 void StateImpl::Viewport(PCall call)
