@@ -16,16 +16,25 @@ TextureState::TextureState(GLint glID, PCall gen_call):
 
 }
 
-void TextureState::bind_unit(PCall b, PCall unit)
+void TextureState::bind_unit(PCall unit)
 {
     if (m_last_unit_call && unit)
         m_last_unit_call_dirty = true;
 
-    m_last_bind_call = b;
     m_last_unit_call = unit;
+
+}
+
+void TextureState::post_bind(PCall call)
+{
+    (void)call;
     m_last_bind_call_dirty = true;
+}
 
-
+void TextureState::post_unbind(PCall call)
+{
+    (void)call;
+    m_last_bind_call_dirty = true;
 }
 
 void TextureState::data(PCall call)
@@ -39,7 +48,7 @@ void TextureState::data(PCall call)
         m_last_unit_call_dirty = false;
     }
 
-    m_data_upload_set[level].insert(m_last_bind_call);
+    emit_bind(m_data_upload_set[level]);
     m_last_bind_call_dirty = false;
 
     m_data_upload_set[level].insert(call);
@@ -68,7 +77,7 @@ void TextureState::sub_data(PCall call)
     }
 
     if (m_last_bind_call_dirty ) {
-        m_data_upload_set[level].insert(m_last_bind_call);
+        emit_bind(m_data_upload_set[level]);
         m_last_bind_call_dirty = false;
     }
     m_data_upload_set[level].insert(call);
@@ -79,7 +88,7 @@ void TextureState::use(PCall call)
     m_data_use_set.clear();
     if (m_last_unit_call)
         m_data_use_set.insert(m_last_unit_call);
-    m_data_use_set.insert(m_last_bind_call);
+    emit_bind(m_data_use_set);
     m_data_use_set.insert(call);
 }
 
@@ -90,8 +99,9 @@ void TextureState::rendertarget_of(unsigned layer, PFramebufferState fbo)
 
 void TextureState::do_emit_calls_to_list(CallSet& list) const
 {
-    if (!m_data_use_set.empty() || m_last_bind_call) {
+    if (!m_data_use_set.empty() || bound()) {
         emit_gen_call(list);
+        emit_bind(list);
         for(unsigned i = 0; i < 16; ++i)
             list.insert(m_data_upload_set[i]);
         list.insert(m_data_use_set);
@@ -116,40 +126,28 @@ void TextureStateMap::active_texture(PCall call)
     m_active_texture_unit_call = call;
 }
 
-void TextureStateMap::bind(PCall call)
+void TextureStateMap::post_bind(PCall call, PTextureState obj)
 {
-    unsigned id = call->arg(1).toUInt();
-    unsigned target_unit = get_target_unit(call);
+    (void)call;
+    obj->bind_unit(m_active_texture_unit_call);
 
-    if (id) {
-        if (!m_bound_texture[target_unit] ||
-                m_bound_texture[target_unit]->id() != id) {
-
-            auto tex = get_by_id(id);
-            m_bound_texture[target_unit] = tex;
-            tex->bind_unit(call, m_active_texture_unit_call);
-
-            if (global_state().in_target_frame()) {
-                tex->emit_calls_to_list(global_state().global_callset());
-            }
-            auto draw_fb = global_state().draw_framebuffer();
-            if (draw_fb)
-                tex->emit_calls_to_list(draw_fb->dependent_calls());
-        }
-    } else {
-        if (m_bound_texture[target_unit]) {
-            m_unbind_calls[target_unit].clear();
-            if (m_active_texture_unit_call)
-                m_unbind_calls[target_unit].insert(m_active_texture_unit_call);
-            m_unbind_calls[target_unit].insert(call);
-        }
-        m_bound_texture.erase(target_unit);
+    if (global_state().in_target_frame()) {
+        obj->emit_calls_to_list(global_state().global_callset());
     }
+    auto draw_fb = global_state().draw_framebuffer();
+    if (draw_fb)
+        obj->emit_calls_to_list(draw_fb->dependent_calls());
+}
+
+void TextureStateMap::post_unbind(PCall call, PTextureState obj)
+{
+    (void)call;
+    obj->bind_unit(m_active_texture_unit_call);
 }
 
 void TextureStateMap::set_data(PCall call)
 {
-    auto texture = m_bound_texture[get_target_unit(call)];
+    auto texture = bound_to(call->arg(0).toUInt());
 
     if (!texture) {
         std::cerr << "No texture found in call " << call->no
@@ -163,7 +161,7 @@ void TextureStateMap::set_data(PCall call)
 void TextureStateMap::set_sub_data(PCall call)
 {
     /* This will need some better handling */
-    auto texture = m_bound_texture[get_target_unit(call)];
+    auto texture = bound_to(call->arg(0).toUInt());
 
     if (!texture) {
         std::cerr << "No texture found in call " << call->no
@@ -176,7 +174,7 @@ void TextureStateMap::set_sub_data(PCall call)
 
 void TextureStateMap::gen_mipmap(PCall call)
 {
-    auto texture = m_bound_texture[get_target_unit(call)];
+    auto texture = bound_to(call->arg(0).toUInt());
 
     if (!texture) {
         std::cerr << "No texture found in call " << call->no
@@ -189,7 +187,7 @@ void TextureStateMap::gen_mipmap(PCall call)
 
 void TextureStateMap::set_state(PCall call, unsigned addr_params)
 {
-    auto texture = m_bound_texture[get_target_unit(call)];
+    auto texture = bound_to(call->arg(0).toUInt());
     if (!texture) {
         std::cerr << "No texture found in call " << call->no
                   << " target:" << call->arg(0).toUInt()
@@ -200,9 +198,8 @@ void TextureStateMap::set_state(PCall call, unsigned addr_params)
 }
 
 
-unsigned TextureStateMap::get_target_unit(PCall call) const
+unsigned TextureStateMap::composed_target_id(unsigned target) const
 {
-    auto target = call->arg(0).toUInt();
     switch (target) {
     case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
     case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
@@ -217,18 +214,6 @@ unsigned TextureStateMap::get_target_unit(PCall call) const
     }
     return (target << 8) | m_active_texture_unit;
 }
-
-void TextureStateMap::do_emit_calls_to_list(CallSet& list) const
-{
-    for (auto& tex: m_bound_texture) {
-        tex.second->emit_calls_to_list(list);
-    }
-
-    for (auto& clear_unit : m_unbind_calls) {
-        list.insert(clear_unit.second);
-    }
-}
-
 
 }
 
