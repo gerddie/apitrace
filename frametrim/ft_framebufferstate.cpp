@@ -122,6 +122,11 @@ void FramebufferState::depends(PGenObjectState read_buffer)
     m_read_dependencies.insert(read_buffer);
 }
 
+bool FramebufferState::is_active() const
+{
+    return bound() ||  m_bind_draw_call || m_bind_read_call;
+}
+
 void FramebufferState::do_emit_calls_to_list(CallSet& list) const
 {
     if (m_bind_draw_call || m_bind_read_call)  {
@@ -316,13 +321,23 @@ void FramebufferMap::do_emit_calls_to_list(CallSet& list) const
 }
 
 RenderbufferState::RenderbufferState(GLint glID, PCall gen_call):
-    SizedObjectState(glID, gen_call, renderbuffer)
+    SizedObjectState(glID, gen_call, renderbuffer),
+    m_attach_count(0)
 {
 }
 
 void RenderbufferState::attach_as_rendertarget(PFramebufferState write_fb)
 {
-        m_data_source = write_fb;
+    ++m_attach_count;
+    m_data_source = write_fb;
+}
+
+void RenderbufferState::detach()
+{
+    if (m_attach_count > 0)
+        --m_attach_count;
+    else
+        std::cerr << "Try to detach unattached renderbuffer\n";
 }
 
 void RenderbufferState::set_used_as_blit_source()
@@ -358,6 +373,11 @@ void RenderbufferMap::storage(PCall call)
 {
     assert(m_active_renderbuffer);
     m_active_renderbuffer->set_storage(call);
+}
+
+bool RenderbufferState::is_active() const
+{
+    return bound() || m_attach_count > 0;
 }
 
 void RenderbufferMap::post_bind(PCall call, PRenderbufferState obj)

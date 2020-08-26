@@ -31,6 +31,8 @@ public:
     void depends(PGenObjectState read_buffer);
 
 private:
+    bool is_active() const override;
+
 
     void do_emit_calls_to_list(CallSet& list) const override;
 
@@ -93,13 +95,15 @@ public:
     RenderbufferState(GLint glID, PCall gen_call);
 
     void attach_as_rendertarget(PFramebufferState write_fb);
-    void attach(PFramebufferState write_fb);
+    void detach();
 
     void set_used_as_blit_source();
 
     void set_storage(PCall call);
 
 private:
+
+    bool is_active() const override;
 
     void do_emit_calls_to_list(CallSet& list) const override;
 
@@ -110,6 +114,8 @@ private:
     * of the data here */
     bool m_is_blit_source;
     PFramebufferState m_data_source;
+
+    int m_attach_count;
 };
 
 using PRenderbufferState = RenderbufferState::Pointer;
