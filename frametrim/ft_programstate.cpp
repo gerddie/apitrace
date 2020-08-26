@@ -8,13 +8,13 @@ namespace frametrim {
 using std::make_shared;
 
 ShaderState::ShaderState(unsigned id, unsigned stage):
-    ObjectState(id),
+    ObjectWithBindState(id, nullptr),
     m_stage(stage)
 {
 }
 
 ShaderState::ShaderState(unsigned id, PCall call):
-    ObjectState(id),
+    ObjectWithBindState(id, nullptr),
     m_stage(0)
 {
     append_call(call);
@@ -179,40 +179,14 @@ void ProgramStateMap::do_emit_calls_to_list(CallSet& list) const
 
 void LegacyProgramStateMap::program_string(PCall call)
 {
-    auto stage = call->arg(0).toUInt();
-    auto shader = m_active_shaders[stage];
+    auto shader = bound_in_call(call);
     assert(shader);
     shader->append_call(call);
 }
 
-void LegacyProgramStateMap::bind(PCall call)
-{
-    GLint stage = call->arg(0).toSInt();
-    GLint shader_id = call->arg(1).toSInt();
-
-    if (shader_id > 0) {
-        auto prog = get_by_id(shader_id);
-        if (!prog) {
-            // some old programs don't call GenProgram
-            auto prog = make_shared<ShaderState>(shader_id, stage);
-            set(shader_id, prog);
-        } else
-            prog->set_stage(stage);
-        prog->append_call(call);
-        m_active_shaders[stage] = prog;
-    } else {
-        /* If the active program is still connected somewehere, we want the
-         * unbind call to be used, so add it here, but then remove the
-         * shader from the active list. */
-        if (m_active_shaders[stage])
-            m_active_shaders[stage]->append_call(call);
-        m_active_shaders.erase(stage);
-    }
-}
 void LegacyProgramStateMap::do_emit_calls_to_list(CallSet& list) const
 {
-    for(auto& s: m_active_shaders)
-        s.second->emit_calls_to_list(list);
+    (void)list;
 }
 
 }

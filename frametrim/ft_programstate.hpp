@@ -7,7 +7,7 @@
 
 namespace frametrim {
 
-class ShaderState: public ObjectState {
+class ShaderState: public ObjectWithBindState {
 public:
     using Pointer = std::shared_ptr<ShaderState>;
 
@@ -34,7 +34,6 @@ public:
 private:
     void do_emit_calls_to_list(CallSet& list) const override;
 };
-
 
 class ProgramState : public ObjectState
 {
@@ -90,14 +89,11 @@ public:
     using TGenObjStateMap<ShaderState>::TGenObjStateMap;
 
     void program_string(PCall call);
-    void bind(PCall call);
+
 private:
     void do_emit_calls_to_list(CallSet& list) const override;
 
-    std::unordered_map<unsigned, PShaderState> m_active_shaders;
 };
-
-
 
 }
 
