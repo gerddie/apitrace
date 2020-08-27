@@ -206,9 +206,9 @@ CallSet BufferStateImpl::clean_bind_calls() const
 
     unsigned first_needed_bind_call_no = 0;
     for(auto& b : m_sub_data_bind_calls) {
-        if (b->no < oldest_sub_buffer_call &&
-                b->no > first_needed_bind_call_no)
-            first_needed_bind_call_no = b->no;
+        if (b < oldest_sub_buffer_call &&
+                b> first_needed_bind_call_no)
+            first_needed_bind_call_no = b;
     }
 
     unsigned first_needed_map_call_no = 0;
@@ -220,7 +220,7 @@ CallSet BufferStateImpl::clean_bind_calls() const
 
     CallSet retval;
     for (auto b: m_sub_data_bind_calls) {
-        if (b->no > first_needed_bind_call_no)
+        if (b > first_needed_bind_call_no)
             retval.insert(b);
     }
 

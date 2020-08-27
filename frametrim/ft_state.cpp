@@ -7,8 +7,6 @@
 #include "ft_samplerstate.hpp"
 #include "ft_texturestate.hpp"
 
-#include "trace_writer.hpp"
-
 
 #include <unordered_set>
 #include <iostream>
@@ -77,8 +75,6 @@ struct StateImpl {
     void record_state_call_ex2(PCall call);
     void record_required_call(PCall call);
 
-
-    void write(trace::Writer& writer);
     void start_target_farme();
 
     void collect_state_calls(CallSet& lisr) const;
@@ -96,6 +92,8 @@ struct StateImpl {
 
     void update_call_table(const std::vector<const char*>& names,
                            ft_callback cb);
+
+    std::vector<unsigned> get_sorted_call_ids() const;
 
     using CallTable = std::multimap<const char *, ft_callback, string_part_less>;
     CallTable m_call_table;
@@ -145,11 +143,6 @@ void State::call(PCall call)
     impl->call(call);
 }
 
-void State::write(trace::Writer& writer)
-{
-    impl->write(writer);
-}
-
 State::State()
 {
     impl = new StateImpl(this);
@@ -191,6 +184,11 @@ PObjectState State::read_framebuffer() const
 void State::collect_state_calls(CallSet& list)
 {
     impl->collect_state_calls(list);
+}
+
+std::vector<unsigned> State::get_sorted_call_ids() const
+{
+    return impl->get_sorted_call_ids();
 }
 
 void State::target_frame_started()
@@ -517,22 +515,12 @@ void StateImpl::todo(PCall call)
     std::cerr << "TODO:" << call->name() << "\n";
 }
 
-void StateImpl::write(trace::Writer& writer)
+std::vector<unsigned> StateImpl::get_sorted_call_ids() const
 {
-    std::vector<PCall> sorted_calls(m_required_calls.begin(),
+    std::vector<unsigned> sorted_calls(m_required_calls.begin(),
                                     m_required_calls.end());
-
-    std::sort(sorted_calls.begin(), sorted_calls.end(),
-              [](PCall lhs, PCall rhs) {return lhs->no < rhs->no;});
-
-    auto last_call = *sorted_calls.rbegin();
-    for(auto& call: sorted_calls) {
-        if (call) {
-            writer.writeCall(call.get());
-        }
-        else
-            std::cerr << "NULL call in callset\n";
-    }
+    std::sort(sorted_calls.begin(), sorted_calls.end());
+    return sorted_calls;
 }
 
 void StateImpl::register_callbacks()

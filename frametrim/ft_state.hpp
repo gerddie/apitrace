@@ -24,8 +24,6 @@ public:
 
     void call(PCall call);
 
-    void write(trace::Writer& writer);
-
     bool in_target_frame() const override;
 
     CallSet& global_callset() override;
@@ -35,6 +33,8 @@ public:
     PObjectState read_framebuffer() const  override;
 
     void collect_state_calls(CallSet& list) override;
+
+    std::vector<unsigned> get_sorted_call_ids() const;
 
 private:
     struct StateImpl *impl;

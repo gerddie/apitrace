@@ -42,21 +42,17 @@ public:
 
     bool m_debug;
 
-    using Container = std::unordered_set<PCall, call_hash>;
+    using Container = std::unordered_set<unsigned>;
     using iterator = Container::iterator;
     using const_iterator = Container::const_iterator;
 
     void insert(PCall call) {
         if (m_debug)
             std::cerr << "Insert: " << call->no << " " << call->name() << "\n";
-        m_calls.insert(call);
+        m_calls.insert(call->no);
     }
 
     void insert(const CallSet& calls) {
-        if (m_debug) {
-            for (auto& c: calls)
-                std::cerr << "Insert: " << c->no << " " << c->name() << "\n";
-        }
         m_calls.insert(calls.begin(), calls.end());
     }
 
@@ -67,7 +63,7 @@ public:
                           << " " << c.second->name() << "\n";
         }
         for (auto& c: calls)
-            m_calls.insert(c.second);
+            m_calls.insert(c.second->no);
     }
 
     iterator begin() {

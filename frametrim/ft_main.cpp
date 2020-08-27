@@ -142,8 +142,21 @@ static int trim_to_frame(const char *filename,
         return 2;
     }
 
-    appstate.write(writer);
+    auto call_ids = appstate.get_sorted_call_ids();
 
+    p.close();
+    p.open(filename);
+    call.reset(p.parse_call());
+
+    auto callid_itr = call_ids.begin();
+
+    while (call && callid_itr != call_ids.end()) {
+        while (call->no != *callid_itr)
+            call.reset(p.parse_call());
+        writer.writeCall(call.get());
+        call.reset(p.parse_call());
+        ++callid_itr;
+    }
 
     return 0;
 }
