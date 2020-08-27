@@ -673,6 +673,7 @@ void StateImpl::register_legacy_calls()
     MAP_GENOBJ(glLoadMatrix, m_matrix_states, AllMatrisStates::LoadMatrix);
     MAP_GENOBJ(glMatrixMode, m_matrix_states, AllMatrisStates::MatrixMode);
     MAP_GENOBJ(glMultMatrix, m_matrix_states, AllMatrisStates::matrix_op);
+    MAP_GENOBJ(glOrtho, m_matrix_states, AllMatrisStates::matrix_op);
     MAP_GENOBJ(glRotate, m_matrix_states, AllMatrisStates::matrix_op);
     MAP_GENOBJ(glScale, m_matrix_states, AllMatrisStates::matrix_op);
     MAP_GENOBJ(glTranslate, m_matrix_states, AllMatrisStates::matrix_op);
