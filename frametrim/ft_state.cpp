@@ -292,7 +292,11 @@ void StateImpl::call(PCall call)
     } else {
         /* This should be some debug output only, because we might
          * not handle some calls deliberately */
-        m_unhandled_calls.insert(call->name());
+        if (m_unhandled_calls.find(call->name()) == m_unhandled_calls.end()) {
+            std::cerr << "Call " << call->no
+                      << " " << call->name() << " not handled\n";
+            m_unhandled_calls.insert(call->name());
+        }
     }
 
     if (m_in_target_frame)
@@ -611,6 +615,7 @@ void StateImpl::register_texture_calls()
     MAP_GENOBJ(glTexSubImage2D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ(glTexSubImage3D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ_DATA(glTexParameter, m_textures, TextureStateMap::set_state, 2);
+    MAP_GENOBJ_DATA(glTexEnv, m_textures, TextureStateMap::set_state, 2);
 
     MAP_GENOBJ(glBindSampler, m_samplers, SamplerStateMap::bind);
     MAP_GENOBJ(glGenSamplers, m_samplers, SamplerStateMap::generate);
@@ -647,6 +652,12 @@ void StateImpl::register_legacy_calls()
     MAP(glColor4, Vertex);
     MAP(glEnd, End);
     MAP(glNormal, Vertex);
+    MAP(glRect, Vertex);
+    MAP(glTexCoord2, Vertex);
+    MAP(glTexCoord3, Vertex);
+    MAP(glTexCoord4, Vertex);
+    MAP(glVertex3, Vertex);
+    MAP(glVertex4, Vertex);
     MAP(glVertex2, Vertex);
     MAP(glVertex3, Vertex);
     MAP(glVertex4, Vertex);
@@ -657,6 +668,10 @@ void StateImpl::register_legacy_calls()
     MAP(glEndList, EndList);
     MAP(glGenLists, GenLists);
     MAP(glNewList, NewList);
+
+    MAP(glPushClientAttr, todo);
+    MAP(glPopClientAttr, todo);
+
 
     // shader calls
     MAP_GENOBJ(glGenPrograms, m_legacy_programs,
@@ -701,6 +716,7 @@ void StateImpl::register_ignore_history_calls()
         "glGetProgram",
         "glGetShader",
         "glGetString",
+        "glGetTexLevelParameter",
         "glGetTexImage",
         "glIsEnabled",
         "glXGetClientString",
@@ -734,6 +750,7 @@ void StateImpl::register_state_calls()
         "glClearStencil",
         "glClientWaitSync",
         "glColorMask",
+        "glColorPointer",
         "glCullFace",
         "glDepthFunc",
         "glDepthMask",
@@ -742,8 +759,9 @@ void StateImpl::register_state_calls()
         "glFenceSync",
         "glFrontFace",
         "glFrustum",
+        "glLineStipple",
         "glLineWidth",
-        "glPolygonMode",
+        "glPointSize",
         "glPolygonMode",
         "glPolygonOffset",
         "glShadeModel",
@@ -751,6 +769,7 @@ void StateImpl::register_state_calls()
         "glStencilFuncSeparate",
         "glStencilMask",
         "glStencilOpSeparate",
+        "glVertexPointer",
     };
 
     auto state_call_func = bind(&StateImpl::record_state_call, this, _1);
@@ -761,13 +780,17 @@ void StateImpl::register_state_calls()
     const std::vector<const char *> state_calls_ex  = {
         "glClipPlane",
         "glColorMaskIndexedEXT",
+        "glColorMaterial",
+        "glDisableClientState",
+        "glEnableClientState",
         "glLight",
         "glPixelStorei",
+        "glPixelTransfer",
     };
     update_call_table(state_calls_ex, state_call_ex_func);
 
     MAP(glDisable, record_enable);
-    MAP(glEnable, record_enable);
+    MAP(glEnable, record_enable);  
     MAP(glMaterial, record_state_call_ex2);
 }
 
