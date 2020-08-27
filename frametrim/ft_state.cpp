@@ -70,6 +70,8 @@ struct StateImpl {
     void record_enable(PCall call);
     void record_va_enables(PCall call);
 
+    void record_default_fb_state_call(PCall call);
+
     void record_state_call(PCall call);
     void record_state_call_ex(PCall call);
     void record_state_call_ex2(PCall call);
@@ -129,6 +131,9 @@ struct StateImpl {
     RenderbufferMap m_renderbuffers;
 
     std::unordered_map<std::string, PCall> m_state_calls;
+    // These state calls make no sense with fbos, and must not be emitted
+    // to the draw_fbo
+    std::unordered_map<std::string, PCall> m_default_fb_state_calls;
 
     std::set<std::string> m_unhandled_calls;
 
@@ -229,6 +234,10 @@ void StateImpl::collect_state_calls(CallSet& list) const
 void StateImpl::start_target_farme()
 {
     collect_state_calls(m_required_calls);
+    for(auto& c: m_default_fb_state_calls) {
+        if (c.second)
+            m_required_calls.insert(c.second);
+    }
 }
 
 StateImpl::StateImpl(GlobalState *gs):
@@ -410,7 +419,7 @@ void StateImpl::DrawBuffers(PCall call)
     if (draw_fb)
         draw_fb->set_state_call(call, 0);
     else
-        record_state_call(call);
+        record_default_fb_state_call(call);
 }
 
 void StateImpl::ShadeModel(PCall call)
@@ -460,6 +469,14 @@ void StateImpl::record_state_call(PCall call)
     if (m_active_display_list)
         m_active_display_list->append_call(call);
 }
+
+void StateImpl::record_default_fb_state_call(PCall call)
+{
+    m_default_fb_state_calls[call->name()] = call;
+    if (m_active_display_list)
+        m_active_display_list->append_call(call);
+}
+
 
 void StateImpl::record_state_call_ex(PCall call)
 {
