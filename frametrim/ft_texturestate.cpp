@@ -195,6 +195,15 @@ unsigned TextureStateMap::composed_target_id(unsigned target) const
     case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
         target = GL_TEXTURE_CUBE_MAP;
         break;
+    case GL_PROXY_TEXTURE_1D:
+        target = GL_TEXTURE_1D;
+        break;
+    case GL_PROXY_TEXTURE_2D:
+        target = GL_TEXTURE_2D;
+        break;
+    case GL_PROXY_TEXTURE_3D:
+        target = GL_TEXTURE_3D;
+        break;
     default:
         ;
     }
