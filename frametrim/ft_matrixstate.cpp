@@ -23,9 +23,18 @@ void MatrixState::set_matrix(PCall call)
     assert(!strcmp(call->name(), "glLoadIdentity") ||
            !strncmp(call->name(), "glLoadMatrix", 12));
 
+    /* Remember matrix type when doing
+     * glMatrixMode
+     * glPushMatrix
+     * glLoad*
+     */
+    if (!m_type_select_call && m_parent)
+        m_type_select_call = m_parent->m_type_select_call;
+
     m_parent = nullptr;
     reset_callset();
-    append_call(m_type_select_call);
+    if (m_type_select_call)
+        append_call(m_type_select_call);
     append_call(call);
 }
 
