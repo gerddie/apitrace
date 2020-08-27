@@ -88,6 +88,7 @@ void TextureState::sub_data(PCall call)
 void TextureState::copy_sub_data(PCall call, PFramebufferState read_buffer)
 {
     auto level = call->arg(1).toUInt();
+    m_data_upload_set[level].insert(call);
     m_fbo[level] = read_buffer;
 }
 
