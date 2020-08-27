@@ -43,6 +43,9 @@ The following types of calls need to be considered:
   - A renderbuffer is bound to two different framebuffers, one is used for
     drawing the data, and the other one is used as blit source to copy the
     final data to the screen.
+  - It seems the game draws some state display to the default framebuffer
+    and then blits the game part to partially fill the defulat framebuffer.
+    Problem: The state display is not updated with each frame.
 
 ## Next steps:
 
