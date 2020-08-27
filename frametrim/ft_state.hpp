@@ -28,9 +28,9 @@ public:
 
     CallSet& global_callset() override;
 
-    PObjectState draw_framebuffer() const  override;
+    PFramebufferState draw_framebuffer() const  override;
 
-    PObjectState read_framebuffer() const  override;
+    PFramebufferState read_framebuffer() const  override;
 
     void collect_state_calls(CallSet& list) override;
 

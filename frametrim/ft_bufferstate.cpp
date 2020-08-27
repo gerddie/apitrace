@@ -244,7 +244,6 @@ void BufferStateImpl::map(PCall call)
         m_last_bind_call_dirty = false;
     }
 
-    assert(0);
     m_mapping.range_begin = m_mapping.buffer_base = call->ret->toUInt();
     m_mapping.range_end = m_mapping.range_begin + call->arg(0).toUInt();
     m_map_calls.push_back(call);

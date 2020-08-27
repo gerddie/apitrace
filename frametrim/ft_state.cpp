@@ -170,13 +170,12 @@ CallSet &State::global_callset()
     return impl->m_required_calls;
 }
 
-
-PObjectState State::draw_framebuffer() const
+PFramebufferState State::draw_framebuffer() const
 {
     return impl->m_framebuffers.draw_fb();
 }
 
-PObjectState State::read_framebuffer() const
+PFramebufferState State::read_framebuffer() const
 {
     return impl->m_framebuffers.read_fb();
 }
@@ -614,8 +613,8 @@ void StateImpl::register_texture_calls()
     MAP_GENOBJ(glTexSubImage1D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ(glTexSubImage2D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ(glTexSubImage3D, m_textures, TextureStateMap::set_sub_data);
+    MAP_GENOBJ(glCopyTexSubImage2D, m_textures, TextureStateMap::copy_sub_data);
     MAP_GENOBJ_DATA(glTexParameter, m_textures, TextureStateMap::set_state, 2);
-    MAP_GENOBJ_DATA(glTexEnv, m_textures, TextureStateMap::set_state, 2);
 
     MAP_GENOBJ(glBindSampler, m_samplers, SamplerStateMap::bind);
     MAP_GENOBJ(glGenSamplers, m_samplers, SamplerStateMap::generate);
@@ -761,9 +760,11 @@ void StateImpl::register_state_calls()
         "glFrustum",
         "glLineStipple",
         "glLineWidth",
+        "glPixelZoom",
         "glPointSize",
         "glPolygonMode",
         "glPolygonOffset",
+        "glPolygonStipple",
         "glShadeModel",
         "glScissor",
         "glStencilFuncSeparate",
@@ -792,6 +793,7 @@ void StateImpl::register_state_calls()
     MAP(glDisable, record_enable);
     MAP(glEnable, record_enable);  
     MAP(glMaterial, record_state_call_ex2);
+    MAP(glTexEnv, record_state_call_ex2);
 }
 
 void StateImpl::register_required_calls()

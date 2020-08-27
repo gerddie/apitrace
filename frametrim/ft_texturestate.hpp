@@ -18,7 +18,7 @@ public:
 
     void data(PCall call);
     void sub_data(PCall call);
-    void use(PCall call);
+    void copy_sub_data(PCall call, PFramebufferState fbo);
 
     void rendertarget_of(unsigned layer, PFramebufferState fbo);
 
@@ -49,6 +49,7 @@ public:
     void set_data(PCall call);
 
     void set_sub_data(PCall call);
+    void copy_sub_data(PCall call);
 
     void gen_mipmap(PCall call);
 

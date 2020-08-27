@@ -85,13 +85,10 @@ void TextureState::sub_data(PCall call)
     m_data_upload_set[level].insert(call);
 }
 
-void TextureState::use(PCall call)
+void TextureState::copy_sub_data(PCall call, PFramebufferState read_buffer)
 {
-    m_data_use_set.clear();
-    if (m_last_unit_call)
-        m_data_use_set.insert(m_last_unit_call);
-    emit_bind(m_data_use_set);
-    m_data_use_set.insert(call);
+    auto level = call->arg(1).toUInt();
+    m_fbo[level] = read_buffer;
 }
 
 void TextureState::rendertarget_of(unsigned layer, PFramebufferState fbo)
@@ -111,7 +108,8 @@ void TextureState::do_emit_calls_to_list(CallSet& list) const
      * was attached to a draw FBO then this was done to create the contents
      * of the texture, so we need to record all calls used in the fbo */
     for (auto& f : m_fbo)
-        f.second->emit_calls_to_list(list);
+        if (f.second)
+            f.second->emit_calls_to_list(list);
 
 }
 
@@ -170,6 +168,24 @@ void TextureStateMap::set_sub_data(PCall call)
     }
     texture->sub_data(call);
 }
+
+void TextureStateMap::copy_sub_data(PCall call)
+{
+    auto texture = bound_in_call(call);
+    if (!texture) {
+        std::cerr << "No texture found in call " << call->no
+                  << " target:" << call->arg(0).toUInt()
+                  << " U:" << m_active_texture_unit;
+        assert(0);
+    }
+    auto read_buffer = global_state().read_framebuffer();
+    if (!read_buffer) {
+        std::cerr << "TODO: Handle if the read buffer "
+                     "is the default framebuffer\n";
+    }
+    texture->copy_sub_data(call, read_buffer);
+}
+
 
 void TextureStateMap::gen_mipmap(PCall call)
 {
