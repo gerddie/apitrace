@@ -160,6 +160,17 @@ void ProgramStateMap::use(PCall call)
     }
 }
 
+void ProgramStateMap::set_state(PCall call, unsigned addr_params)
+{
+    auto program = get_by_id(call->arg(0).toUInt());
+    if (!program) {
+        std::cerr << "No program found in call " << call->no
+                  << " target:" << call->arg(0).toUInt();
+        assert(0);
+    }
+    program->set_state_call(call, addr_params);
+}
+
 void ProgramStateMap::attach_shader(PCall call, ShaderStateMap& shaders)
 {
     auto program = get_by_id(call->arg(0).toUInt());

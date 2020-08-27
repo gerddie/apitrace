@@ -594,8 +594,10 @@ void StateImpl::register_program_calls()
     MAP_GENOBJ(glGetUniformLocation, m_programs, ProgramStateMap::data);
     MAP_GENOBJ(glBindFragDataLocation, m_programs, ProgramStateMap::data);
     MAP_GENOBJ(glLinkProgram, m_programs, ProgramStateMap::data);
+    MAP_GENOBJ(glProgramBinary, m_programs, ProgramStateMap::data);
     MAP_GENOBJ(glUniform, m_programs, ProgramStateMap::uniform);
     MAP_GENOBJ(glUseProgram, m_programs, ProgramStateMap::use);
+    MAP_GENOBJ_DATA(glProgramParameter, m_programs, ProgramStateMap::set_state, 2);
 }
 
 void StateImpl::register_texture_calls()
@@ -604,6 +606,7 @@ void StateImpl::register_texture_calls()
     MAP_GENOBJ(glDeleteTextures, m_textures, TextureStateMap::destroy);
 
     MAP_GENOBJ(glActiveTexture, m_textures, TextureStateMap::active_texture);
+    MAP_GENOBJ(glClientActiveTexture, m_textures, TextureStateMap::active_texture);
     MAP_GENOBJ(glBindTexture, m_textures, TextureStateMap::bind);
     MAP_GENOBJ(glCompressedTexImage2D, m_textures, TextureStateMap::set_data);
     MAP_GENOBJ(glGenerateMipmap, m_textures, TextureStateMap::gen_mipmap);
@@ -709,6 +712,7 @@ void StateImpl::register_ignore_history_calls()
         "glDrawArrays",
         "glGetError",
         "glGetFloat",
+        "glGetFramebufferAttachmentParameter",
         "glGetInfoLog",
         "glGetInteger",
         "glGetObjectParameter",

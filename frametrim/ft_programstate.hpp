@@ -84,6 +84,7 @@ public:
     void data(PCall call);
     void uniform(PCall call);
     void set_va(unsigned attrid, PBufferState buf);
+    void set_state(PCall call, unsigned addr_params);
 
 private:
     void do_emit_calls_to_list(CallSet& list) const override;
