@@ -33,6 +33,8 @@ protected:
 private:
     bool is_active() const override;
 
+    virtual void first_time_viewport(PCall call);
+
     virtual bool has_active_buffers() const;
 
     void do_emit_calls_to_list(CallSet& list) const override;
@@ -85,11 +87,15 @@ using PFBOState = FBOState::Pointer;
 class DefaultFramebufferState : public FramebufferStateBase
 {
 public:
-    using Pointer = std::shared_ptr<DefaultFramebufferState>;
+    DefaultFramebufferState(unsigned buffer_types, PCall call);
 
     using FramebufferStateBase::FramebufferStateBase;
+private:
+    bool is_active() const override;
+    void first_time_viewport(PCall call) override;
+    void emit_buffer_calls_to_list(CallSet& list) const override;
 
-
+    bool m_viewport_set;
 };
 
 using PDefaultFramebufferState = DefaultFramebufferState::Pointer;
@@ -107,7 +113,8 @@ public:
     void renderbuffer(PCall call, RenderbufferMap& renderbuffers);
     void texture(PCall call, TextureStateMap& textures);
 
-    void glx_init_default_framebuffer(PCall call);
+    void glx_init_default_framebuffer_from_visual(PCall call);
+    void glx_init_default_framebuffer_from_attr(PCall call);
 
     PFramebufferState draw_fb();
     PFramebufferState read_fb();
