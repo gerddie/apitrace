@@ -7,28 +7,59 @@
 
 namespace frametrim {
 
-FramebufferState::FramebufferState(GLint glID, PCall gen_call):
+FramebufferStateBase::FramebufferStateBase(GLint glID, PCall gen_call):
     GenObjectState(glID, gen_call),
     m_width(0),
     m_height(0),
     m_viewport_full_size(false),
-    m_attached_buffer_types(0),
-    m_attached_color_buffer_mask(0)
+    m_attached_buffer_types(0)
 {
 }
 
-void FramebufferState::bind_read(PCall call)
+void FramebufferStateBase::set_size(unsigned width, unsigned heigh)
+{
+    m_width = width;
+    m_height = heigh;
+}
+
+void FramebufferStateBase::set_attachment_types(unsigned buffer_types)
+{
+    m_attached_buffer_types = buffer_types;
+}
+
+void FBOState::bind_read(PCall call)
 {
     m_bind_read_call = call;
 }
 
-void FramebufferState::bind_draw(PCall call)
+void FBOState::bind_draw(PCall call)
 {
     m_bind_draw_call = call;
 }
 
+FBOState::FBOState(GLint glID, PCall gen_call):
+    FramebufferStateBase(glID, gen_call),
+    m_attached_color_buffer_mask(0)
+{
 
-bool FramebufferState::attach(unsigned attachment, PCall call,
+}
+
+void FBOState::emit_buffer_calls_to_list(CallSet& list) const
+{
+    if (m_bind_read_call)
+        list.insert(m_bind_read_call);
+    if (m_bind_draw_call)
+        list.insert(m_bind_draw_call);
+
+    for (auto& a : m_attach_calls)
+        list.insert(a.second);
+
+    for(auto& a: m_attachments)
+        if (a.second)
+            a.second->emit_calls_to_list(list);
+}
+
+bool FBOState::attach(unsigned attachment, PCall call,
                               PSizedObjectState att)
 {
     if (m_attachments[attachment] && att &&
@@ -43,8 +74,7 @@ bool FramebufferState::attach(unsigned attachment, PCall call,
     m_attach_calls[attachment].clear();
 
     if (att) {
-        m_width = att->width();
-        m_height = att->height();
+        set_size(att->width(), att->height());
 
         if (m_bind_read_call)
             m_attach_calls[attachment].insert(m_bind_read_call);
@@ -55,38 +85,50 @@ bool FramebufferState::attach(unsigned attachment, PCall call,
         att->attach();
     }
 
-    m_attached_buffer_types = 0;
+    unsigned attached_buffer_types = 0;
     m_attached_color_buffer_mask = 0;
 
     for(auto& a: m_attachments) {
         if (a.second) {
             switch (a.first) {
             case GL_DEPTH_ATTACHMENT:
-                m_attached_buffer_types |= GL_DEPTH_BUFFER_BIT;
+                attached_buffer_types |= GL_DEPTH_BUFFER_BIT;
                 break;
             case GL_STENCIL_ATTACHMENT:
-                m_attached_buffer_types |= GL_STENCIL_BUFFER_BIT;
+                attached_buffer_types |= GL_STENCIL_BUFFER_BIT;
                 break;
             default:
-                m_attached_buffer_types |= GL_COLOR_BUFFER_BIT;
+                attached_buffer_types |= GL_COLOR_BUFFER_BIT;
                 m_attached_color_buffer_mask |= 1 << (a.first - GL_COLOR_ATTACHMENT0);
             }
         }
     }
+    set_attachment_types(attached_buffer_types);
     return true;
 }
 
-void FramebufferState::draw(PCall call)
+void FBOState::do_clear()
+{
+    append_call(m_bind_draw_call);
+    append_call(m_bind_read_call);
+}
+
+bool FBOState::has_active_buffers() const
+{
+    return m_bind_draw_call || m_bind_read_call;
+}
+
+void FramebufferStateBase::draw(PCall call)
 {
     append_call(call);
 }
 
-CallSet& FramebufferState::state_calls()
+CallSet& FramebufferStateBase::state_calls()
 {
     return m_draw_prepare;
 }
 
-void FramebufferState::set_viewport(PCall call)
+void FramebufferStateBase::set_viewport(PCall call)
 {
     m_viewport_call = call;
     m_viewport_full_size =
@@ -96,7 +138,7 @@ void FramebufferState::set_viewport(PCall call)
             call->arg(3).toUInt() == m_height;
 }
 
-void FramebufferState::clear(PCall call)
+void FramebufferStateBase::clear(PCall call)
 {
     /* If the viewport covers the full size, and we clear all buffer tyoes
     * so we can forget all older draw calls
@@ -109,56 +151,49 @@ void FramebufferState::clear(PCall call)
         reset_callset();
     }
 
-    append_call(m_bind_draw_call);
-    append_call(m_bind_read_call);
-
     append_call(call);
 }
 
-void FramebufferState::depends(PGenObjectState read_buffer)
+void FramebufferStateBase::emit_buffer_calls_to_list(CallSet& list) const
+{
+    (void)list;
+}
+
+void FramebufferStateBase::do_clear()
+{
+}
+
+void FramebufferStateBase::depends(PGenObjectState read_buffer)
 {
     // TODO: we should check whether the drawn region is covering the
     // whole target so that we can remove un-needed calls
     m_read_dependencies.insert(read_buffer);
 }
 
-bool FramebufferState::is_active() const
+bool FramebufferStateBase::is_active() const
 {
-    return bound() ||  m_bind_draw_call || m_bind_read_call;
+    return bound() ||  has_active_buffers();
 }
 
-void FramebufferState::do_emit_calls_to_list(CallSet& list) const
+bool FramebufferStateBase::has_active_buffers() const
 {
-    if (m_bind_draw_call || m_bind_read_call)  {
-        if (list.m_debug)
-            std::cerr << "Emit calls for FBO " << id() << "\n";
+    return true;
+}
 
-        emit_gen_call(list);
+void FramebufferStateBase::do_emit_calls_to_list(CallSet& list) const
+{
+    emit_gen_call(list);
+    emit_buffer_calls_to_list(list);
 
-        if (m_bind_read_call)
-            list.insert(m_bind_read_call);
-        if (m_bind_draw_call)
-            list.insert(m_bind_draw_call);
+    list.insert(m_draw_prepare);
 
-        for (auto& a : m_attach_calls)
-            list.insert(a.second);
-
-        list.insert(m_draw_prepare);
-
-        for (auto& d : m_read_dependencies) {
-            if (d)
-                d->emit_calls_to_list(list);
-        }
-
-        for(auto& a: m_attachments)
-            if (a.second)
-                a.second->emit_calls_to_list(list);
-
-        if (list.m_debug)
-            std::cerr << "Done FBO " << id() << "\n";
+    for (auto& d : m_read_dependencies) {
+        if (d)
+            d->emit_calls_to_list(list);
     }
-}
 
+    emit_buffer_calls_to_list(list);
+}
 
 void FramebufferMap::bind(PCall call)
 {

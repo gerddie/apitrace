@@ -7,63 +7,89 @@
 
 namespace frametrim {
 
-class FramebufferState : public GenObjectState
+class FramebufferStateBase : public GenObjectState
 {
 public:
 
-    using Pointer = std::shared_ptr<FramebufferState>;
+    using Pointer = std::shared_ptr<FramebufferStateBase>;
 
-    FramebufferState(GLint glID, PCall gen_call);
-
-    void bind_read(PCall call);
-    void bind_draw(PCall call);
-
-    bool attach(unsigned attachment, PCall call, PSizedObjectState att);
+    FramebufferStateBase(GLint glID, PCall gen_call);
 
     void draw(PCall call);
 
     void set_viewport(PCall call);
+
+    void set_size(unsigned width, unsigned heigh);
 
     void clear(PCall call);
 
     CallSet& state_calls();
 
     void depends(PGenObjectState read_buffer);
+protected:
+
+    void set_attachment_types(unsigned buffer_types);
 
 private:
     bool is_active() const override;
 
+    virtual bool has_active_buffers() const;
 
     void do_emit_calls_to_list(CallSet& list) const override;
+    virtual void emit_buffer_calls_to_list(CallSet& list) const;
 
-    PCall m_bind_read_call;
-    PCall m_bind_draw_call;
+    virtual void do_clear();
+
     PCall m_viewport_call;
 
-    std::unordered_map<unsigned, CallSet> m_attach_calls;
     CallSet m_draw_prepare;
 
     unsigned m_width, m_height;
     bool m_viewport_full_size;
 
     unsigned m_attached_buffer_types;
-    unsigned m_attached_color_buffer_mask;
-
-    std::unordered_map<unsigned, PSizedObjectState> m_attachments;
 
     std::unordered_set<PGenObjectState> m_read_dependencies;
 
 };
 
-using PFramebufferState = FramebufferState::Pointer;
+class FBOState : public FramebufferStateBase
+{
+public:
+    using Pointer = std::shared_ptr<FBOState>;
+
+    FBOState(GLint glID, PCall gen_call);
+
+    void bind_read(PCall call);
+    void bind_draw(PCall call);
+
+    bool attach(unsigned attachment, PCall call, PSizedObjectState att);
+private:
+
+    void do_clear() override;
+    bool has_active_buffers() const override;
+    void emit_buffer_calls_to_list(CallSet& list) const override;
+
+    unsigned m_attached_color_buffer_mask;
+
+    PCall m_bind_read_call;
+    PCall m_bind_draw_call;
+
+    std::unordered_map<unsigned, CallSet> m_attach_calls;
+    std::unordered_map<unsigned, PSizedObjectState> m_attachments;
+};
+
+using PFBOState = FBOState::Pointer;
+
+using PFramebufferState = FramebufferStateBase::Pointer;
 
 class RenderbufferMap;
 class TextureStateMap;
 
-class FramebufferMap : public TGenObjStateMap<FramebufferState>
+class FramebufferMap : public TGenObjStateMap<FBOState>
 {
 public:
-    using TGenObjStateMap<FramebufferState>::TGenObjStateMap;
+    using TGenObjStateMap<FBOState>::TGenObjStateMap;
 
     void bind(PCall call);
     void blit(PCall call);
@@ -76,8 +102,8 @@ public:
 private:
     void do_emit_calls_to_list(CallSet& list) const override;
 
-    PFramebufferState m_draw_framebuffer;
-    PFramebufferState m_read_framebuffer;
+    PFBOState m_draw_framebuffer;
+    PFBOState m_read_framebuffer;
 
     PCall m_last_unbind_draw_fbo;
     PCall m_last_unbind_read_fbo;
