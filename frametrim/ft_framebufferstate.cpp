@@ -2,10 +2,13 @@
 #include "ft_texturestate.hpp"
 #include "ft_globalstate.hpp"
 #include <GL/glext.h>
+#include <GL/glx.h>
 #include <cstring>
 #include <iostream>
 
 namespace frametrim {
+
+using std::make_shared;
 
 FramebufferStateBase::FramebufferStateBase(GLint glID, PCall gen_call):
     GenObjectState(glID, gen_call),
@@ -39,6 +42,8 @@ CallSet& FramebufferStateBase::state_calls()
 
 void FramebufferStateBase::set_viewport(PCall call)
 {
+    first_time_viewport(call);
+
     m_viewport_call = call;
     m_viewport_full_size =
             call->arg(0).toUInt() == 0 &&
@@ -61,6 +66,11 @@ void FramebufferStateBase::clear(PCall call)
     }
 
     append_call(call);
+}
+
+void FramebufferStateBase::first_time_viewport(PCall call)
+{
+    (void)call;
 }
 
 void FramebufferStateBase::emit_buffer_calls_to_list(CallSet& list) const
@@ -100,8 +110,7 @@ void FramebufferStateBase::do_emit_calls_to_list(CallSet& list) const
         if (d)
             d->emit_calls_to_list(list);
     }
-
-    emit_buffer_calls_to_list(list);
+    std::cerr << "Emit a frameuffer call series\n";
 }
 
 FBOState::FBOState(GLint glID, PCall gen_call):
@@ -193,6 +202,38 @@ void FBOState::do_clear()
 bool FBOState::has_active_buffers() const
 {
     return m_bind_draw_call || m_bind_read_call;
+}
+
+DefaultFramebufferState::DefaultFramebufferState(unsigned buffer_types, PCall call):
+    FramebufferStateBase(0, call),
+    m_viewport_set(false)
+{
+    set_attachment_types(buffer_types);
+}
+
+bool DefaultFramebufferState::is_active() const
+{
+    return true;
+}
+
+void DefaultFramebufferState::first_time_viewport(PCall call)
+{
+    /* TODO: here we assume that the first time the default framebuffer
+     * gets a viewport it is full size. This is probably true for games,
+     * but for other applications this is most likely an error, so we should
+     * get the window size information from the intialization code, but
+     * this can't be queried from OpenGL calls.
+     */
+    if (m_viewport_set)
+        return;
+
+    set_size(call->arg(2).toUInt(), call->arg(3).toUInt());
+    m_viewport_set = true;
+}
+
+void DefaultFramebufferState::emit_buffer_calls_to_list(CallSet& list) const
+{
+    std::cerr << "Emit default fbo calls to list ...\n";
 }
 
 void FramebufferMap::bind(PCall call)
@@ -346,8 +387,40 @@ PFramebufferState FramebufferMap::read_fb()
     return m_read_framebuffer;
 }
 
-void FramebufferMap::glx_init_default_framebuffer(PCall call)
+void FramebufferMap::glx_init_default_framebuffer_from_visual(PCall call)
 {
+    // Check how to get the correct visual info type from the trace
+
+    m_default_framebuffer = make_shared<DefaultFramebufferState>(GL_STENCIL_BUFFER_BIT |GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT, call);
+}
+
+void FramebufferMap::glx_init_default_framebuffer_from_attr(PCall call)
+{
+    assert(!strcmp(call->name(), "glXCreateContextAttribsARB"));
+
+#ifdef HAVE_FIGURED_IT_OUT
+    Display *dpy = static_cast<Display *>(call->arg(0).toPointer());
+    GLXFBConfig config = static_cast<GLXFBConfig>(call->arg(1).toPointer());
+
+    int value = 0;
+    unsigned flags = 0;
+
+    if (!glXGetFBConfigAttrib(dpy, config, GLX_RED_SIZE, &value) && value > 0)
+        flags |= GL_COLOR_BUFFER_BIT;
+
+    if (!glXGetFBConfigAttrib(dpy, config, GLX_DEPTH_SIZE, &value) && value > 0)
+        flags |= GL_DEPTH_BUFFER_BIT;
+
+    if (!glXGetFBConfigAttrib(dpy, config, GLX_STENCIL_SIZE, &value) && value > 0)
+        flags |= GL_STENCIL_BUFFER_BIT;
+
+    m_default_framebuffer = make_shared<DefaultFramebufferState>(flags, call);
+#else
+    m_default_framebuffer = make_shared<DefaultFramebufferState>(GL_STENCIL_BUFFER_BIT |GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT, call);
+    std::cerr << "Create default framebuffer from " << __func__ << "\n";
+#endif
+
+
 
 }
 
@@ -358,6 +431,11 @@ void FramebufferMap::do_emit_calls_to_list(CallSet& list) const
 
     if (m_last_unbind_read_fbo)
         list.insert(m_last_unbind_read_fbo);
+
+    if (m_default_framebuffer)
+        m_default_framebuffer->emit_calls_to_list(list);
+    else
+        std::cerr << "No default framebuffer\n";
 }
 
 RenderbufferState::RenderbufferState(GLint glID, PCall gen_call):
