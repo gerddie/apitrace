@@ -50,8 +50,9 @@ private:
     unsigned m_attached_buffer_types;
 
     std::unordered_set<PGenObjectState> m_read_dependencies;
-
 };
+
+using PFramebufferState = FramebufferStateBase::Pointer;
 
 class FBOState : public FramebufferStateBase
 {
@@ -81,7 +82,17 @@ private:
 
 using PFBOState = FBOState::Pointer;
 
-using PFramebufferState = FramebufferStateBase::Pointer;
+class DefaultFramebufferState : public FramebufferStateBase
+{
+public:
+    using Pointer = std::shared_ptr<DefaultFramebufferState>;
+
+    using FramebufferStateBase::FramebufferStateBase;
+
+
+};
+
+using PDefaultFramebufferState = DefaultFramebufferState::Pointer;
 
 class RenderbufferMap;
 class TextureStateMap;
@@ -96,6 +107,8 @@ public:
     void renderbuffer(PCall call, RenderbufferMap& renderbuffers);
     void texture(PCall call, TextureStateMap& textures);
 
+    void glx_init_default_framebuffer(PCall call);
+
     PFramebufferState draw_fb();
     PFramebufferState read_fb();
 
@@ -104,6 +117,8 @@ private:
 
     PFBOState m_draw_framebuffer;
     PFBOState m_read_framebuffer;
+
+    PDefaultFramebufferState m_default_framebuffer;
 
     PCall m_last_unbind_draw_fbo;
     PCall m_last_unbind_read_fbo;

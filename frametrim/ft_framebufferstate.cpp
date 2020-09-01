@@ -27,97 +27,6 @@ void FramebufferStateBase::set_attachment_types(unsigned buffer_types)
     m_attached_buffer_types = buffer_types;
 }
 
-void FBOState::bind_read(PCall call)
-{
-    m_bind_read_call = call;
-}
-
-void FBOState::bind_draw(PCall call)
-{
-    m_bind_draw_call = call;
-}
-
-FBOState::FBOState(GLint glID, PCall gen_call):
-    FramebufferStateBase(glID, gen_call),
-    m_attached_color_buffer_mask(0)
-{
-
-}
-
-void FBOState::emit_buffer_calls_to_list(CallSet& list) const
-{
-    if (m_bind_read_call)
-        list.insert(m_bind_read_call);
-    if (m_bind_draw_call)
-        list.insert(m_bind_draw_call);
-
-    for (auto& a : m_attach_calls)
-        list.insert(a.second);
-
-    for(auto& a: m_attachments)
-        if (a.second)
-            a.second->emit_calls_to_list(list);
-}
-
-bool FBOState::attach(unsigned attachment, PCall call,
-                              PSizedObjectState att)
-{
-    if (m_attachments[attachment] && att &&
-            (*m_attachments[attachment] == *att))
-        return false;
-
-    if (m_attachments[attachment]) {
-        m_attachments[attachment]->unattach();
-    }
-
-    m_attachments[attachment] = att;
-    m_attach_calls[attachment].clear();
-
-    if (att) {
-        set_size(att->width(), att->height());
-
-        if (m_bind_read_call)
-            m_attach_calls[attachment].insert(m_bind_read_call);
-        if (m_bind_draw_call)
-            m_attach_calls[attachment].insert(m_bind_draw_call);
-
-        m_attach_calls[attachment].insert(call);
-        att->attach();
-    }
-
-    unsigned attached_buffer_types = 0;
-    m_attached_color_buffer_mask = 0;
-
-    for(auto& a: m_attachments) {
-        if (a.second) {
-            switch (a.first) {
-            case GL_DEPTH_ATTACHMENT:
-                attached_buffer_types |= GL_DEPTH_BUFFER_BIT;
-                break;
-            case GL_STENCIL_ATTACHMENT:
-                attached_buffer_types |= GL_STENCIL_BUFFER_BIT;
-                break;
-            default:
-                attached_buffer_types |= GL_COLOR_BUFFER_BIT;
-                m_attached_color_buffer_mask |= 1 << (a.first - GL_COLOR_ATTACHMENT0);
-            }
-        }
-    }
-    set_attachment_types(attached_buffer_types);
-    return true;
-}
-
-void FBOState::do_clear()
-{
-    append_call(m_bind_draw_call);
-    append_call(m_bind_read_call);
-}
-
-bool FBOState::has_active_buffers() const
-{
-    return m_bind_draw_call || m_bind_read_call;
-}
-
 void FramebufferStateBase::draw(PCall call)
 {
     append_call(call);
@@ -193,6 +102,97 @@ void FramebufferStateBase::do_emit_calls_to_list(CallSet& list) const
     }
 
     emit_buffer_calls_to_list(list);
+}
+
+FBOState::FBOState(GLint glID, PCall gen_call):
+    FramebufferStateBase(glID, gen_call),
+    m_attached_color_buffer_mask(0)
+{
+
+}
+
+void FBOState::bind_read(PCall call)
+{
+    m_bind_read_call = call;
+}
+
+void FBOState::bind_draw(PCall call)
+{
+    m_bind_draw_call = call;
+}
+
+void FBOState::emit_buffer_calls_to_list(CallSet& list) const
+{
+    if (m_bind_read_call)
+        list.insert(m_bind_read_call);
+    if (m_bind_draw_call)
+        list.insert(m_bind_draw_call);
+
+    for (auto& a : m_attach_calls)
+        list.insert(a.second);
+
+    for(auto& a: m_attachments)
+        if (a.second)
+            a.second->emit_calls_to_list(list);
+}
+
+bool FBOState::attach(unsigned attachment, PCall call,
+                              PSizedObjectState att)
+{
+    if (m_attachments[attachment] && att &&
+            (*m_attachments[attachment] == *att))
+        return false;
+
+    if (m_attachments[attachment]) {
+        m_attachments[attachment]->unattach();
+    }
+
+    m_attachments[attachment] = att;
+    m_attach_calls[attachment].clear();
+
+    if (att) {
+        set_size(att->width(), att->height());
+
+        if (m_bind_read_call)
+            m_attach_calls[attachment].insert(m_bind_read_call);
+        if (m_bind_draw_call)
+            m_attach_calls[attachment].insert(m_bind_draw_call);
+
+        m_attach_calls[attachment].insert(call);
+        att->attach();
+    }
+
+    unsigned attached_buffer_types = 0;
+    m_attached_color_buffer_mask = 0;
+
+    for(auto& a: m_attachments) {
+        if (a.second) {
+            switch (a.first) {
+            case GL_DEPTH_ATTACHMENT:
+                attached_buffer_types |= GL_DEPTH_BUFFER_BIT;
+                break;
+            case GL_STENCIL_ATTACHMENT:
+                attached_buffer_types |= GL_STENCIL_BUFFER_BIT;
+                break;
+            default:
+                attached_buffer_types |= GL_COLOR_BUFFER_BIT;
+                m_attached_color_buffer_mask |= 1 << (a.first - GL_COLOR_ATTACHMENT0);
+            }
+        }
+    }
+    set_attachment_types(attached_buffer_types);
+    return true;
+}
+
+void FBOState::do_clear()
+{
+    append_call(m_bind_draw_call);
+    append_call(m_bind_read_call);
+}
+
+bool FBOState::has_active_buffers() const
+{
+    return m_bind_draw_call || m_bind_read_call;
 }
 
 void FramebufferMap::bind(PCall call)
@@ -344,6 +344,11 @@ PFramebufferState FramebufferMap::draw_fb()
 PFramebufferState FramebufferMap::read_fb()
 {
     return m_read_framebuffer;
+}
+
+void FramebufferMap::glx_init_default_framebuffer(PCall call)
+{
+
 }
 
 void FramebufferMap::do_emit_calls_to_list(CallSet& list) const
