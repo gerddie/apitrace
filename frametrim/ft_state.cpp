@@ -235,6 +235,11 @@ void StateImpl::start_target_farme()
         if (c.second)
             m_required_calls.insert(c.second);
     }
+
+    auto default_fb = m_framebuffers.default_fb();
+    if (default_fb)
+       default_fb->emit_calls_to_list(m_required_calls);
+
 }
 
 StateImpl::StateImpl(GlobalState *gs):
@@ -302,6 +307,8 @@ void StateImpl::call(PCall call)
         m_required_calls.insert(call);
     else if (m_framebuffers.draw_fb())
         m_framebuffers.draw_fb()->draw(call);
+    else if (m_framebuffers.default_fb())
+       m_framebuffers.default_fb()->draw(call);
 }
 
 void StateImpl::Begin(PCall call)
@@ -460,8 +467,12 @@ void StateImpl::Viewport(PCall call)
 
     if (draw_fb)
         draw_fb->set_viewport(call);
-    else
-        record_state_call(call);
+    else {
+       auto default_fb = m_framebuffers.default_fb();
+       if (default_fb)
+          default_fb->set_viewport(call);
+       record_state_call(call);
+    }
 }
 
 void StateImpl::record_state_call(PCall call)

@@ -387,6 +387,11 @@ PFramebufferState FramebufferMap::read_fb()
     return m_read_framebuffer;
 }
 
+PFramebufferState FramebufferMap::default_fb()
+{
+    return m_default_framebuffer;
+}
+
 void FramebufferMap::glx_init_default_framebuffer_from_visual(PCall call)
 {
     // Check how to get the correct visual info type from the trace
@@ -419,9 +424,6 @@ void FramebufferMap::glx_init_default_framebuffer_from_attr(PCall call)
     m_default_framebuffer = make_shared<DefaultFramebufferState>(GL_STENCIL_BUFFER_BIT |GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT, call);
     std::cerr << "Create default framebuffer from " << __func__ << "\n";
 #endif
-
-
-
 }
 
 void FramebufferMap::do_emit_calls_to_list(CallSet& list) const

@@ -118,6 +118,7 @@ public:
 
     PFramebufferState draw_fb();
     PFramebufferState read_fb();
+    PFramebufferState default_fb();
 
 private:
     void do_emit_calls_to_list(CallSet& list) const override;
