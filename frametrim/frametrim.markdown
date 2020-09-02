@@ -57,6 +57,19 @@ The following types of calls need to be considered:
 * transform feedback and conditional rendering
 
 
+## design for a reverse trace build
+
+* first scan the trace and copy the basic call info
+  - call number
+  - bound object the call will change the state of
+* start from the target frame and search backwards all the objects and
+  calls that set the related states.
+* collect the call numbers of these calls and go over the original trace
+  again to trim the trace
+
+
+
+
 
 
 

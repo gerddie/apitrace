@@ -28,6 +28,16 @@ add_executable(glxtrim
    ft_texturestate.cpp
    )
 
+add_executable(glxtrimreverse
+   ftr_main.cpp
+   )
+
+target_link_libraries (glxtrim
+    retrace_common
+    glretrace_common
+    )
+
+
 target_link_libraries (glxtrim
     retrace_common
     glretrace_common

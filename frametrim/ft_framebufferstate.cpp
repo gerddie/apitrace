@@ -110,7 +110,6 @@ void FramebufferStateBase::do_emit_calls_to_list(CallSet& list) const
         if (d)
             d->emit_calls_to_list(list);
     }
-    std::cerr << "Emit a frameuffer call series\n";
 }
 
 FBOState::FBOState(GLint glID, PCall gen_call):
@@ -233,6 +232,7 @@ void DefaultFramebufferState::first_time_viewport(PCall call)
 
 void DefaultFramebufferState::emit_buffer_calls_to_list(CallSet& list) const
 {
+    (void)list;
     std::cerr << "Emit default fbo calls to list ...\n";
 }
 
