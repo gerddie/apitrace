@@ -33,10 +33,7 @@ class TObjectWithBindStateMap: public TObjStateMap<T>  {
 public:
     using TObjStateMap<T>::TObjStateMap;
 
-    void bind(PCall call) {
-        auto target = target_id_from_call(call);
-        auto id = call->arg(1).toUInt();
-
+    void bind_target(unsigned target, unsigned id, PCall call) {
         if (id > 0) {
             if (!m_bound_objects[target] ||
                     m_bound_objects[target]->id() != id) {
@@ -71,6 +68,12 @@ public:
             }
             m_bound_objects[target] = nullptr;
         }
+    }
+
+    void bind(PCall call) {
+        auto target = target_id_from_call(call);
+        auto id = call->arg(1).toUInt();
+        bind_target(target, id, call);
     }
 
     typename T::Pointer bound_to(unsigned target) {

@@ -53,11 +53,15 @@ public:
 
     void gen_mipmap(PCall call);
 
+    void bind_multitex(PCall call);
+
 private:
 
     void post_bind(PCall call, PTextureState obj) override;
     void post_unbind(PCall call, PTextureState obj) override;
     unsigned composed_target_id(unsigned id) const override;
+
+    unsigned compose_target_id_with_unit(unsigned target, unsigned unit) const;
 
     unsigned m_active_texture_unit;
     PCall m_active_texture_unit_call;

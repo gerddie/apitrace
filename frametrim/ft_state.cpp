@@ -608,6 +608,8 @@ void StateImpl::register_texture_calls()
     MAP_GENOBJ(glActiveTexture, m_textures, TextureStateMap::active_texture);
     MAP_GENOBJ(glClientActiveTexture, m_textures, TextureStateMap::active_texture);
     MAP_GENOBJ(glBindTexture, m_textures, TextureStateMap::bind);
+    MAP_GENOBJ(glBindMultiTexture, m_textures, TextureStateMap::bind_multitex);
+
     MAP_GENOBJ(glCompressedTexImage2D, m_textures, TextureStateMap::set_data);
     MAP_GENOBJ(glGenerateMipmap, m_textures, TextureStateMap::gen_mipmap);
     MAP_GENOBJ(glTexImage1D, m_textures, TextureStateMap::set_data);

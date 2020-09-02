@@ -131,6 +131,17 @@ void TextureStateMap::active_texture(PCall call)
     m_active_texture_unit_call = call;
 }
 
+void TextureStateMap::bind_multitex(PCall call)
+{
+    auto unit = call->arg(0).toUInt() - GL_TEXTURE0;
+    auto target =  call->arg(1).toUInt();
+    auto id = call->arg(2).toUInt();
+
+    auto target_id = compose_target_id_with_unit(target, unit);
+
+    bind_target(target_id, id, call);
+}
+
 void TextureStateMap::post_bind(PCall call, PTextureState obj)
 {
     (void)call;
@@ -203,6 +214,13 @@ void TextureStateMap::gen_mipmap(PCall call)
 
 unsigned TextureStateMap::composed_target_id(unsigned target) const
 {
+    return compose_target_id_with_unit(target, m_active_texture_unit);
+}
+
+unsigned TextureStateMap::compose_target_id_with_unit(unsigned target,
+                                                      unsigned unit) const
+
+{
     switch (target) {
     case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
     case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
@@ -224,7 +242,7 @@ unsigned TextureStateMap::composed_target_id(unsigned target) const
     default:
         ;
     }
-    return (target << 8) | m_active_texture_unit;
+    return (target << 8) | unit;
 }
 
 }
