@@ -2,15 +2,23 @@
 
 namespace frametrim_reverse {
 
-TraceCall::TraceCall(PCall call):
-    m_trace_call_no(call->no)
+TraceCall::TraceCall(const trace::Call &call):
+    m_trace_call_no(call.no),
+    m_required(false)
 {
 }
 
-TraceCallWithBinding::TraceCallWithBinding(PCall call, unsigned bind_id):
-    TraceCall(call),
-    m_bind_id(bind_id)
+void TraceCall::set_required()
 {
+    m_required = true;
+}
+
+
+TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call, PGenObject obj):
+    TraceCall(call),
+    m_object(obj)
+{
+
 }
 
 }

@@ -1,8 +1,7 @@
 #ifndef OBJECTSTATE_H
 #define OBJECTSTATE_H
 
-#include "trace_model.hpp"
-
+#include "ft_common.hpp"
 
 #include <GL/gl.h>
 #include <vector>
@@ -16,7 +15,6 @@ namespace frametrim {
 
 class GlobalState;
 
-using PCall=std::shared_ptr<trace::Call>;
 
 using StateCallMap=std::unordered_map<std::string, PCall>;
 
@@ -153,6 +151,10 @@ public:
     TObjStateMap (GlobalState *gs):
         m_global_state(gs),
         m_emitting(false){
+    }
+
+    TObjStateMap() : TObjStateMap (nullptr) {
+
     }
 
     typename T::Pointer get_by_id(uint64_t id) {

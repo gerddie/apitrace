@@ -1,11 +1,23 @@
 #ifndef FTR_STATE_HPP
 #define FTR_STATE_HPP
 
+#include "ft_common.hpp"
 
-class ftr_state
-{
+namespace frametrim_reverse {
+
+class TraceMirror {
 public:
-    ftr_state();
+    TraceMirror();
+    ~TraceMirror();
+
+    void process(const trace::Call& call, bool required);
+
+private:
+
+    struct TraceMirrorImpl *impl;
+
 };
+
+}
 
 #endif // FTR_STATE_HPP

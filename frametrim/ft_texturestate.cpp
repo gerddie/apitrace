@@ -119,6 +119,10 @@ bool TextureState::is_active() const
     return bound() || is_attached();
 }
 
+TextureStateMap::TextureStateMap():TextureStateMap(nullptr)
+{
+}
+
 TextureStateMap::TextureStateMap(GlobalState *gs):
     TGenObjStateMap<TextureState>(gs),
     m_active_texture_unit(0)

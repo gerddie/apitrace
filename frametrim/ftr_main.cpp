@@ -26,6 +26,7 @@
  *********************************************************************/
 
 
+#include "ftr_state.hpp"
 
 #include "os_time.hpp"
 #include "trace_parser.hpp"
@@ -41,7 +42,7 @@
 
 
 
-using namespace framertrim_reverse;
+using namespace frametrim_reverse;
 
 struct trim_options {
     /* Frames to be included in trace. */
@@ -104,11 +105,12 @@ static int trim_to_frame(const char *filename,
         out_filename = std::string(base.str()) + std::string("-trim.trace");
     }
 
-    State appstate;
+    TraceMirror mirror;
+
 
     frame = 0;
     uint64_t callid = 0;
-    std::shared_ptr<trace::Call> call(p.parse_call());
+    std::unique_ptr<trace::Call> call(p.parse_call());
     while (call) {
         /* There's no use doing any work past the last call and frame
         * requested by the user. */
@@ -116,14 +118,7 @@ static int trim_to_frame(const char *filename,
             break;
         }
 
-        /* If this call is included in the user-specified call set,
-        * then require it (and all dependencies) in the trimmed
-        * output. */
-        if (options.frames.contains(frame, call->flags))
-            appstate.target_frame_started();
-
-        appstate.call(call);
-
+        mirror.process(*call, options.frames.contains(frame, call->flags));
 
         if (call->flags & trace::CALL_FLAG_END_FRAME) {
             frame++;
@@ -135,29 +130,8 @@ static int trim_to_frame(const char *filename,
 
         call.reset(p.parse_call());
     }
-    std::cerr << "\rDone trimming frames     \n";
+    std::cerr << "\rDone mirroring trace \n";
 
-    trace::Writer writer;
-    if (!writer.open(out_filename.c_str(), p.getVersion(), p.getProperties())) {
-        std::cerr << "error: failed to create " << out_filename << "\n";
-        return 2;
-    }
-
-    auto call_ids = appstate.get_sorted_call_ids();
-
-    p.close();
-    p.open(filename);
-    call.reset(p.parse_call());
-
-    auto callid_itr = call_ids.begin();
-
-    while (call && callid_itr != call_ids.end()) {
-        while (call->no != *callid_itr)
-            call.reset(p.parse_call());
-        writer.writeCall(call.get());
-        call.reset(p.parse_call());
-        ++callid_itr;
-    }
 
     return 0;
 }

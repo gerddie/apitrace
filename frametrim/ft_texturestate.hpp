@@ -43,6 +43,7 @@ class TextureStateMap : public TGenObjStateMap<TextureState>
 {
 public:
     TextureStateMap(GlobalState *gs);
+    TextureStateMap();
 
     void active_texture(PCall call);
 

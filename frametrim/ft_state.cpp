@@ -24,14 +24,6 @@ using std::bind;
 using std::placeholders::_1;
 using std::make_shared;
 
-struct string_part_less {
-    bool operator () (const char *lhs, const char *rhs)
-    {
-        int len = std::min(strlen(lhs), strlen(rhs));
-        return strncmp(lhs, rhs, len) < 0;
-    }
-};
-
 struct StateImpl {
 
     StateImpl(GlobalState *gs);

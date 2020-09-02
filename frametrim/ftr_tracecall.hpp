@@ -1,9 +1,13 @@
 #ifndef TRACECALL_HPP
 #define TRACECALL_HPP
 
+#include "ftr_genobject.hpp"
+
 #include <memory>
 
 #include "trace_model.hpp"
+
+
 
 namespace frametrim_reverse {
 
@@ -13,24 +17,26 @@ class TraceCall {
 public:
     using Pointer = std::shared_ptr<TraceCall>;
 
-    TraceCall(PCall call);
+    TraceCall(const trace::Call& call);
+
+    void set_required();
 
 private:
     unsigned m_trace_call_no;
+    bool m_required;
 };
 
 using PTraceCall = TraceCall::Pointer;
 
+using LightTrace = std::vector<PTraceCall>;
 
-using PlightTrace = std::vector<PTraceCall>;
 
-template <typename BindObject>
-class TraceCallWithBinding : public TraceCall {
+class TraceCallOnBoundObj : public TraceCall {
 public:
-    TraceCallWithBinding(PCall call, typename BindObject::Pointer obj);
+    TraceCallOnBoundObj(const trace::Call& call, PGenObject obj);
 
 private:
-    typename BindObject::Pointer m_obj;
+    PGenObject m_object;
 };
 
 }
