@@ -30,6 +30,11 @@ add_executable(glxtrim
 
 add_executable(glxtrimreverse
    ftr_main.cpp
+   ftr_state.cpp
+   ftr_tracecall.cpp
+   ftr_bufobject.cpp
+   ftr_genobject.cpp
+   ftr_texobject.cpp
    )
 
 target_link_libraries (glxtrim
@@ -38,7 +43,7 @@ target_link_libraries (glxtrim
     )
 
 
-target_link_libraries (glxtrim
+target_link_libraries (glxtrimreverse
     retrace_common
     glretrace_common
     )

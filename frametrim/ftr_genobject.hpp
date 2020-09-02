@@ -23,22 +23,29 @@ private:
 
 using PGenObject = GenObject::Pointer;
 
-class GenObjectMap {
+class BoundObjectMap {
 public:
+    virtual PGenObject bound_to_call_target_untyped(trace::Call& call) = 0;
+};
+
+template <typename T>
+class GenObjectMap : public BoundObjectMap {
+public:
+    typename T::Pointer bound_to_call_target(trace::Call& call);
+
     PTraceCall generate(trace::Call &call);
     PTraceCall destroy(trace::Call& call);
     PTraceCall bind(trace::Call& call, unsigned id_index);
-    PGenObject bound_to_call_target(trace::Call& call);
-
+    PGenObject bound_to_call_target_untyped(trace::Call& call) override;
+protected:
+    typename T::Pointer bind_target(unsigned target, unsigned id);
 private:
     virtual unsigned target_id_from_call(trace::Call& call) const;
-    PGenObject bind_target(unsigned target, unsigned id);
 
-    std::unordered_map<unsigned, PGenObject> m_obj_table;
+    std::unordered_map<unsigned, typename T::Pointer> m_obj_table;
 
-    std::unordered_map<unsigned, PGenObject> m_bound_to_target;
+    std::unordered_map<unsigned, typename T::Pointer> m_bound_to_target;
 };
-
 
 }
 
