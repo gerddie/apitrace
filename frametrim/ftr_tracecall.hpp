@@ -6,12 +6,14 @@
 #include <memory>
 
 #include "trace_model.hpp"
-
+#include <queue>
 
 
 namespace frametrim_reverse {
 
 using PCall=std::shared_ptr<trace::Call>;
+
+using ObjectSet = std::queue<PGenObject>;
 
 class TraceCall {
 public:
@@ -21,7 +23,15 @@ public:
 
     void set_required();
 
+    bool required() const {return m_required;}
+    unsigned call_no() const { return m_trace_call_no;};
+
+    void add_object_to_set(ObjectSet& out_set) const;
+
 private:
+    virtual void add_owned_object(ObjectSet& out_set) const;
+    virtual void add_dependend_objects(ObjectSet& out_set) const;
+
     unsigned m_trace_call_no;
     bool m_required;
 };
@@ -36,6 +46,8 @@ public:
     TraceCallOnBoundObj(const trace::Call& call, PGenObject obj);
 
 private:
+    void add_owned_object(ObjectSet& out_set) const override;
+
     PGenObject m_object;
 };
 

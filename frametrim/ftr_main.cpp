@@ -39,9 +39,9 @@
 
 #include <limits.h> // for CHAR_MAX
 #include <getopt.h>
+#include <unordered_set>
 
-
-
+using std::unordered_set;
 using namespace frametrim_reverse;
 
 struct trim_options {
@@ -130,7 +130,10 @@ static int trim_to_frame(const char *filename,
 
         call.reset(p.parse_call());
     }
-    std::cerr << "\rDone mirroring trace \n";
+
+
+
+
 
 
     return 0;

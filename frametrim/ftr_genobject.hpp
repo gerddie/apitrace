@@ -16,9 +16,12 @@ class GenObject
 public:
     using Pointer = std::shared_ptr<GenObject>;
     GenObject(unsigned gl_id);
-    unsigned id() const;
+    unsigned id() const { return m_id;};
+    bool visited() const { return m_visited;}
+    void set_visited() {m_visited = true;};
 private:
     unsigned m_id;
+    bool m_visited;
 };
 
 using PGenObject = GenObject::Pointer;

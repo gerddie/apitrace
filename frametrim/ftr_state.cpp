@@ -28,6 +28,8 @@ struct TraceMirrorImpl {
     PTraceCall call_on_named_obj(trace::Call &call, BoundObjectMap& map);
     PTraceCall record_call(trace::Call &call);
 
+    void resolve();
+
     void register_state_calls();
     void register_buffer_calls();
     void register_texture_calls();
@@ -45,7 +47,7 @@ struct TraceMirrorImpl {
     using CallTable = std::multimap<const char *, ftr_callback, frametrim::string_part_less>;
     CallTable m_call_table;
 
-    LightTrace trace;
+    LightTrace m_trace;
 
     std::set<std::string> m_unhandled_calls;
 };
@@ -58,6 +60,12 @@ TraceMirror::TraceMirror()
 TraceMirror::~TraceMirror()
 {
     delete impl;
+}
+
+LightTrace
+TraceMirror::trace() const
+{
+    return impl->m_trace;
 }
 
 TraceMirrorImpl::TraceMirrorImpl()
@@ -110,7 +118,7 @@ void TraceMirrorImpl::process(trace::Call& call, bool required)
     }
     if (required)
         c->set_required();
-    trace.push_back(c);
+    m_trace.push_back(c);
 }
 
 PTraceCall
@@ -133,6 +141,19 @@ TraceMirrorImpl::record_call(trace::Call &call)
     return make_shared<TraceCall>(call);
 }
 
+void
+TraceMirrorImpl::resolve()
+{
+    ObjectSet required_objects;
+    std::unordered_set<unsigned> required_calls;
+    for(auto& i : m_trace) {
+        if (i->required()) {
+            i->add_object_to_set(required_objects);
+            required_calls.insert(i->call_no());
+        }
+    }
+
+}
 
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&TraceMirrorImpl::call, this, _1)))
 #define MAP_DATA(name, call, data) m_call_table.insert(std::make_pair(#name, bind(&TraceMirrorImpl::call, this, _1, data)))
@@ -188,7 +209,41 @@ void TraceMirrorImpl::register_state_calls()
         "glDisable",
         "glEnable",
         "glMaterial",
-        "glTexEnv"
+        "glTexEnv",
+        "glCheckFramebufferStatus",
+        "glDeleteVertexArrays",
+        "glDetachShader",
+        "glDrawArrays",
+        "glGetError",
+        "glGetFloat",
+        "glGetFramebufferAttachmentParameter",
+        "glGetInfoLog",
+        "glGetInteger",
+        "glGetObjectParameter",
+        "glGetProgram",
+        "glGetShader",
+        "glGetString",
+        "glGetTexLevelParameter",
+        "glGetTexImage",
+        "glIsEnabled",
+        "glXGetClientString",
+        "glXGetCurrentContext",
+        "glXGetCurrentDisplay",
+        "glXGetCurrentDrawable",
+        "glXGetFBConfigAttrib",
+        "glXGetFBConfigs",
+        "glXGetProcAddress",
+        "glXGetSwapIntervalMESA",
+        "glXGetVisualFromFBConfig",
+        "glXQueryVersion",
+        "glXSwapBuffers",
+        "glXChooseVisual",
+        "glXCreateContext",
+        "glXDestroyContext",
+        "glXMakeCurrent",
+        "glXChooseFBConfig",
+        "glXQueryExtensionsString",
+        "glXSwapIntervalMESA",
     };
     for (auto n: state_calls) {
         m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_call, this, _1)));
