@@ -20,6 +20,7 @@ struct TraceMirrorImpl {
     void process(const trace::Call& call, bool required);
 
     PTraceCall call_on_bound_obj(trace::Call &call, BoundObjectMap& map);
+    PTraceCall call_on_named_obj(trace::Call &call, BoundObjectMap& map);
 
     void register_buffer_calls();
     void register_texture_calls();
@@ -29,19 +30,19 @@ struct TraceMirrorImpl {
     BufObjectMap m_buffers;
     TexObjectMap m_textures;
 
+    using SamplerObjectMap = GenObjectMap<GenObject>;
+    SamplerObjectMap m_samplers;
+
     using CallTable = std::multimap<const char *, ftr_callback, frametrim::string_part_less>;
     CallTable m_call_table;
 
     LightTrace trace;
 };
 
-
-
 TraceMirror::TraceMirror()
 {
     impl = new TraceMirrorImpl;
 }
-
 
 TraceMirror::~TraceMirror()
 {
@@ -61,6 +62,12 @@ void TraceMirrorImpl::process(const trace::Call& call, bool required)
 PTraceCall TraceMirrorImpl::call_on_bound_obj(trace::Call &call, BoundObjectMap& map)
 {
     auto bound_obj = map.bound_to_call_target_untyped(call);
+    return PTraceCall(new TraceCallOnBoundObj(call, bound_obj));
+}
+
+PTraceCall TraceMirrorImpl::call_on_named_obj(trace::Call &call, BoundObjectMap& map)
+{
+    auto bound_obj = map.by_id(call.arg(0).toUInt());
     return PTraceCall(new TraceCallOnBoundObj(call, bound_obj));
 }
 
@@ -107,12 +114,11 @@ void TraceMirrorImpl::register_texture_calls()
     MAP_DATA(glTexSubImage3D, call_on_bound_obj, m_textures);
     MAP_DATA(glCopyTexSubImage2D, call_on_bound_obj, m_textures);
     MAP_DATA(glTexParameter, call_on_bound_obj, m_textures);
-/*
-    MAP_GENOBJ(glBindSampler, m_samplers, SamplerStateMap::bind);
-    MAP_GENOBJ(glGenSamplers, m_samplers, SamplerStateMap::generate);
-    MAP_GENOBJ(glDeleteSamplers, m_samplers, SamplerStateMap::destroy);
-    MAP_GENOBJ_DATA(glSamplerParameter, m_samplers, SamplerStateMap::set_state, 2);
-*/
+
+    MAP_GENOBJ_DATA(glBindSampler, m_samplers, SamplerObjectMap::bind, 0);
+    MAP_GENOBJ(glGenSamplers, m_samplers, SamplerObjectMap::generate);
+    MAP_GENOBJ(glDeleteSamplers, m_samplers, SamplerObjectMap::destroy);
+    MAP_DATA(glSamplerParameter, call_on_named_obj, m_samplers);
 }
 
 void TraceMirrorImpl::register_program_calls()

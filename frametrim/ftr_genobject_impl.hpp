@@ -79,6 +79,12 @@ GenObjectMap<T>::bound_to_call_target(trace::Call& call)
     return m_bound_to_target[this->target_id_from_call(call)];
 }
 
+template <typename T>
+PGenObject GenObjectMap<T>::by_id(unsigned id)
+{
+    return m_bound_to_target[id];
+}
+
 }
 
 #endif // FTR_GENOBJECT_IMPL_HPP

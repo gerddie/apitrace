@@ -26,6 +26,7 @@ using PGenObject = GenObject::Pointer;
 class BoundObjectMap {
 public:
     virtual PGenObject bound_to_call_target_untyped(trace::Call& call) = 0;
+    virtual PGenObject by_id(unsigned id) = 0;
 };
 
 template <typename T>
@@ -37,6 +38,7 @@ public:
     PTraceCall destroy(trace::Call& call);
     PTraceCall bind(trace::Call& call, unsigned id_index);
     PGenObject bound_to_call_target_untyped(trace::Call& call) override;
+    PGenObject by_id(unsigned id) override;
 protected:
     typename T::Pointer bind_target(unsigned target, unsigned id);
 private:
