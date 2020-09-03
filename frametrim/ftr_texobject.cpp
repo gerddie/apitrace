@@ -1,6 +1,6 @@
 #include "ftr_texobject.hpp"
-#include "ftr_tracecall.hpp"
-#include "ftr_genobject_impl.hpp"
+#include "ftr_tracecallext.hpp"
+#include "ftr_boundobject.hpp"
 
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -66,10 +66,6 @@ unsigned TexObjectMap::compose_target_id_with_unit(unsigned target,
     }
     return (target << 8) | unit;
 }
-
-template class GenBoundObjectMap<TexObject>;
-template class GenObjectMap<TexObject>;
-
 
 }
 

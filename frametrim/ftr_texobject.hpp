@@ -1,7 +1,7 @@
 #ifndef TEXOBJECT_HPP
 #define TEXOBJECT_HPP
 
-#include "ftr_genobject.hpp"
+#include "ftr_boundobject.hpp"
 
 namespace frametrim_reverse {
 

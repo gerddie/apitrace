@@ -1,6 +1,6 @@
 #include "ftr_bufobject.hpp"
-#include "ftr_tracecall.hpp"
-#include "ftr_genobject_impl.hpp"
+#include "ftr_tracecallext.hpp"
+#include "ftr_boundobject.hpp"
 
 
 namespace frametrim_reverse {
@@ -61,6 +61,4 @@ PTraceCall BufObjectMap::memcopy(trace::Call& call)
     return make_shared<TraceCallOnBoundObj>(call, nullptr);
 }
 
-template class GenBoundObjectMap<BufObject>;
-template class GenObjectMap<BufObject>;
 }

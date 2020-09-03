@@ -1,0 +1,174 @@
+#ifndef BOUNDOBJECTMAP_HPP
+#define BOUNDOBJECTMAP_HPP
+
+#include "ftr_tracecallext.hpp"
+#include "ftr_genobject.hpp"
+
+#include <iostream>
+
+namespace frametrim_reverse {
+
+class BoundObjectMap {
+public:
+    virtual PGenObject bound_to_call_target_untyped(trace::Call& call) = 0;
+    virtual PGenObject by_id_untyped(unsigned id) = 0;
+};
+
+template <typename T>
+class GenBoundObjectMap : public BoundObjectMap {
+public:
+    typename T::Pointer bound_to_call_target(trace::Call& call);
+    typename T::Pointer by_id(unsigned id);
+    PTraceCall bind(trace::Call& call, unsigned id_index);
+    PGenObject bound_to_call_target_untyped(trace::Call& call) override;
+    PGenObject by_id_untyped(unsigned id) override;
+protected:
+    typename T::Pointer bind_target(unsigned target, unsigned id);
+    void add(typename T::Pointer obj);
+    void erase(unsigned id);
+private:
+    virtual unsigned target_id_from_call(trace::Call& call) const;
+
+    std::unordered_map<unsigned, typename T::Pointer> m_obj_table;
+    std::unordered_map<unsigned, typename T::Pointer> m_bound_to_target;
+};
+
+template <typename T>
+class GenObjectMap : public GenBoundObjectMap<T> {
+public:
+    PTraceCall generate(trace::Call &call);
+    PTraceCall destroy(trace::Call& call);
+};
+
+template <typename T>
+class CreateObjectMap : public GenBoundObjectMap<T> {
+public:
+    PTraceCall create(trace::Call &call);
+    PTraceCall destroy(trace::Call& call);
+};
+
+template <typename T>
+void
+GenBoundObjectMap<T>::add(typename T::Pointer obj)
+{
+    m_obj_table[obj->id()] = obj;
+}
+
+template <typename T>
+void
+GenBoundObjectMap<T>::erase(unsigned id)
+{
+    m_obj_table.erase(id);
+}
+
+template <typename T>
+PTraceCall
+GenBoundObjectMap<T>::bind(trace::Call& call, unsigned id_index)
+{
+    auto target = target_id_from_call(call);
+    auto id = call.arg(id_index).toUInt();
+    auto obj = bind_target(target, id);
+    return std::make_shared<TraceCallOnBoundObj>(call, obj);
+}
+
+template <typename T>
+unsigned
+GenBoundObjectMap<T>::target_id_from_call(trace::Call& call) const
+{
+    return call.arg(0).toUInt();
+}
+
+template <typename T>
+typename T::Pointer
+GenBoundObjectMap<T>::bind_target(unsigned target, unsigned id)
+{
+    if (id > 0) {
+        if (!m_bound_to_target[target] ||
+                m_bound_to_target[target]->id() != id) {
+
+            auto obj = m_obj_table[id];
+            if (!obj) {
+                std::cerr << "Object " << id << " not found while binding\n";
+                return nullptr;
+            }
+
+            m_bound_to_target[target] = obj;
+        }
+    } else {
+         m_bound_to_target[target] = nullptr;
+    }
+    return m_bound_to_target[target];
+}
+
+template <typename T>
+PGenObject
+GenBoundObjectMap<T>::bound_to_call_target_untyped(trace::Call& call)
+{
+    return this->bound_to_call_target(call);
+}
+
+template <typename T>
+typename T::Pointer
+GenBoundObjectMap<T>::bound_to_call_target(trace::Call& call)
+{
+    return m_bound_to_target[this->target_id_from_call(call)];
+}
+
+template <typename T>
+PGenObject
+GenBoundObjectMap<T>::by_id_untyped(unsigned id)
+{
+    return this->by_id(id);
+}
+
+template <typename T>
+typename T::Pointer
+GenBoundObjectMap<T>::by_id(unsigned id)
+{
+    return m_obj_table[id];
+}
+
+template <typename T>
+PTraceCall
+GenObjectMap<T>::generate(trace::Call& call)
+{
+    const auto ids = call.arg(1).toArray();
+    for (auto& v : ids->values) {
+        auto id = v->toUInt();
+        this->add(std::make_shared<T>(id));
+    }
+    return std::make_shared<TraceCall>(call);
+}
+
+template <typename T>
+PTraceCall
+GenObjectMap<T>::destroy(trace::Call& call)
+{
+    const auto ids = call.arg(1).toArray();
+    for (auto& v : ids->values)
+        this->erase(v->toUInt());
+    return std::make_shared<TraceCall>(call);
+}
+
+template <typename T>
+PTraceCall
+CreateObjectMap<T>::create(trace::Call &call)
+{
+    const auto id = call.ret->toUInt();
+    auto obj = std::make_shared<T>(id);
+    this->add(obj);
+    return std::make_shared<TraceCallOnBoundObj>(call, obj);
+}
+
+template <typename T>
+PTraceCall
+CreateObjectMap<T>::destroy(trace::Call& call)
+{
+    const auto id = call.arg(0).toUInt();
+    this->erase(id);
+    return std::make_shared<TraceCall>(call);
+}
+
+}
+
+#endif // BOUNDOBJECTMAP_HPP

@@ -1,7 +1,7 @@
 #ifndef PROGRAMOBJ_HPP
 #define PROGRAMOBJ_HPP
 
-#include "ftr_genobject.hpp"
+#include "ftr_boundobject.hpp"
 
 #include <unordered_set>
 

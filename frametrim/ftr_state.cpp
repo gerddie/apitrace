@@ -5,7 +5,6 @@
 #include "ftr_programobj.hpp"
 #include "ftr_texobject.hpp"
 
-
 #include <algorithm>
 #include <functional>
 #include <set>
@@ -27,6 +26,10 @@ struct TraceMirrorImpl {
     PTraceCall call_on_bound_obj(trace::Call &call, BoundObjectMap& map);
     PTraceCall call_on_named_obj(trace::Call &call, BoundObjectMap& map);
     PTraceCall record_call(trace::Call &call);
+
+    void record_state_call(const TraceCall& call,
+                           CallIdSet& callset /* inout */,
+                           unsigned last_required_call);
 
     void resolve();
 
@@ -145,13 +148,39 @@ void
 TraceMirrorImpl::resolve()
 {
     ObjectSet required_objects;
-    std::unordered_set<unsigned> required_calls;
+    CallIdSet required_calls;
     for(auto& i : m_trace) {
         if (i->required()) {
             i->add_object_to_set(required_objects);
             required_calls.insert(i->call_no());
         }
     }
+
+    while (!required_objects.empty()) {
+        auto obj = required_objects.front();
+        required_objects.pop();
+        obj->record(required_calls, required_objects);
+    }
+
+    /* At this point only state calls should remain to be recorded
+     * So go in reverse to the list and add them. */
+    unsigned next_required_call = std::numeric_limits<unsigned>::max();
+    for (auto c = m_trace.rbegin(); c != m_trace.rend(); ++c) {
+        /*  required calls are already in the output callset */
+        if ((*c)->required()) {
+            next_required_call = (*c)->call_no();
+            continue;
+        }
+
+        record_state_call(**c, required_calls, next_required_call);
+    }
+}
+
+void
+TraceMirrorImpl::record_state_call(const TraceCall& call,
+                                   CallIdSet& callset /* inout */,
+                                   unsigned next_required_call)
+{
 
 }
 

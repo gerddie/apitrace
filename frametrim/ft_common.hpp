@@ -3,11 +3,14 @@
 
 #include "trace_model.hpp"
 #include <memory>
+#include <unordered_set>
 #include <cstring>
 
 namespace frametrim {
 
 using PCall=std::shared_ptr<trace::Call>;
+
+using CallIdSet = std::unordered_set<unsigned>;
 
 struct string_part_less {
     bool operator () (const char *lhs, const char *rhs)

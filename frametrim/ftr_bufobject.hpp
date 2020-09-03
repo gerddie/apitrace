@@ -1,7 +1,7 @@
 #ifndef BUFOBJECT_HPP
 #define BUFOBJECT_HPP
 
-#include "ftr_genobject.hpp"
+#include "ftr_boundobject.hpp"
 
 #include <unordered_set>
 
