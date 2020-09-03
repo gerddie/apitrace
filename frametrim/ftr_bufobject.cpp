@@ -26,6 +26,7 @@ void BufObject::map_range(trace::Call& call)
 
 void BufObject::unmap(trace::Call& call)
 {
+    (void)call;
     m_mapped_range.first = m_mapped_range.second = 0;
 }
 
@@ -60,5 +61,6 @@ PTraceCall BufObjectMap::memcopy(trace::Call& call)
     return make_shared<TraceCallOnBoundObj>(call, nullptr);
 }
 
+template class GenBoundObjectMap<BufObject>;
 template class GenObjectMap<BufObject>;
 }

@@ -249,19 +249,6 @@ StateImpl::StateImpl(GlobalState *gs):
 {
 }
 
-unsigned equal_chars(const char *l, const char *r)
-{
-    unsigned retval = 0;
-    while (*l && *r && *l == *r) {
-        ++retval;
-        ++l; ++r;
-    }
-    if (!*l && !*r)
-        ++retval;
-
-    return retval;
-}
-
 void StateImpl::call(PCall call)
 {
     auto cb_range = m_call_table.equal_range(call->name());

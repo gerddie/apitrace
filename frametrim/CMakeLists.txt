@@ -34,6 +34,7 @@ add_executable(glxtrimreverse
    ftr_tracecall.cpp
    ftr_bufobject.cpp
    ftr_genobject.cpp
+   ftr_programobj.cpp
    ftr_texobject.cpp
    )
 

@@ -13,6 +13,9 @@ unsigned GenObject::id() const
     return m_id;
 }
 
+template class CreateObjectMap<GenObject>;
+template class GenBoundObjectMap<GenObject>;
 template class GenObjectMap<GenObject>;
+
 
 }

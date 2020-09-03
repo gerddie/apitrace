@@ -17,6 +17,20 @@ struct string_part_less {
     }
 };
 
+inline static unsigned
+equal_chars(const char *l, const char *r)
+{
+    unsigned retval = 0;
+    while (*l && *r && *l == *r) {
+        ++retval;
+        ++l; ++r;
+    }
+    if (!*l && !*r)
+        ++retval;
+
+    return retval;
+}
+
 }
 
 #endif // FT_COMMON_HPP

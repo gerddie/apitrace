@@ -39,6 +39,14 @@ private:
     PGenObject m_object;
 };
 
+/* Currentyl a placeholder, needed for objects that depend on
+ * other objects */
+class TraceCallOnBoundObjWithDeps : public TraceCallOnBoundObj {
+public:
+    using TraceCallOnBoundObj::TraceCallOnBoundObj;
+};
+
+
 }
 
 #endif // TRACECALL_HPP

@@ -67,6 +67,7 @@ unsigned TexObjectMap::compose_target_id_with_unit(unsigned target,
     return (target << 8) | unit;
 }
 
+template class GenBoundObjectMap<TexObject>;
 template class GenObjectMap<TexObject>;
 
 

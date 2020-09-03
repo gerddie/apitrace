@@ -10,7 +10,7 @@ public:
     TraceMirror();
     ~TraceMirror();
 
-    void process(const trace::Call& call, bool required);
+    void process(trace::Call& call, bool required);
 
 private:
 
