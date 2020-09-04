@@ -20,18 +20,19 @@ public:
     using Pointer = std::shared_ptr<GenObject>;
     using Queue = std::queue<Pointer>;
 
-    GenObject(unsigned gl_id);
+    GenObject(unsigned gl_id, unsigned gen_call);
     unsigned id() const { return m_id;};
     bool visited() const { return m_visited;}
     void set_visited() {m_visited = true;};
 
-    void record(CallIdSet& calls, Queue& objects);
+    void collect_objects(Queue& objects);
+    void collect_calls(CallIdSet& calls);
 private:
-
-    virtual void record_owned_obj(CallIdSet& calls, Queue& objects);
-    virtual void record_dependend_obj(CallIdSet& calls, Queue& objects);
+    virtual void collect_owned_obj(Queue& objects);
+    virtual void collect_dependend_obj(Queue& objects);
 
     unsigned m_id;
+    unsigned m_gen_call;
     bool m_visited;
 };
 

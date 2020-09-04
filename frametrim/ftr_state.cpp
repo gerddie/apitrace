@@ -8,6 +8,8 @@
 #include <algorithm>
 #include <functional>
 #include <set>
+
+
 #include <iostream>
 
 namespace frametrim_reverse {
@@ -159,9 +161,8 @@ TraceMirrorImpl::record_call(trace::Call &call)
 PTraceCall
 TraceMirrorImpl::record_state_call(trace::Call &call, unsigned num_name_params)
 {
-    return make_shared<TraceCall>(call);
+    return make_shared<StateCall>(call, num_name_params);
 }
-
 
 void
 TraceMirrorImpl::resolve()
@@ -178,7 +179,7 @@ TraceMirrorImpl::resolve()
     while (!required_objects.empty()) {
         auto obj = required_objects.front();
         required_objects.pop();
-        obj->record(required_calls, required_objects);
+        obj->collect_objects(required_objects);
     }
 
     /* At this point only state calls should remain to be recorded
@@ -370,8 +371,8 @@ void TraceMirrorImpl::register_texture_calls()
 
 void TraceMirrorImpl::register_program_calls()
 {
-    MAP_GENOBJ(glAttachObject, m_programs, ProgramObjectMap::attach_shader);
-    MAP_GENOBJ(glAttachShader, m_programs, ProgramObjectMap::attach_shader);
+    MAP_GENOBJ_DATA(glAttachObject, m_programs, ProgramObjectMap::attach_shader, m_shaders);
+    MAP_GENOBJ_DATA(glAttachShader, m_programs, ProgramObjectMap::attach_shader, m_shaders);
     MAP_GENOBJ(glCreateProgram, m_programs, ProgramObjectMap::create);
     MAP_GENOBJ(glDeleteProgram, m_programs, ProgramObjectMap::destroy);
     MAP_GENOBJ_DATA(glUseProgram, m_programs, ProgramObjectMap::bind, 0);

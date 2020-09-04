@@ -14,11 +14,11 @@ public:
 class TexObjectMap : public GenObjectMap<TexObject> {
 public:
     TexObjectMap();
-    PTraceCall active_texture(trace::Call& call);
-    PTraceCall bind_multitex(trace::Call& call);
+    PTraceCall active_texture(const trace::Call& call);
+    PTraceCall bind_multitex(const trace::Call& call);
 
 private:
-    unsigned target_id_from_call(trace::Call& call) const override;
+    unsigned target_id_from_call(const trace::Call& call) const override;
     unsigned compose_target_id_with_unit(unsigned target,
                                          unsigned unit) const;
 

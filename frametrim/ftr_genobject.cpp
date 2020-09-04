@@ -3,29 +3,34 @@ namespace frametrim_reverse {
 
 using std::make_shared;
 
-GenObject::GenObject(unsigned id):
+GenObject::GenObject(unsigned id, unsigned gen_call):
     m_id(id),
+    m_gen_call(gen_call),
     m_visited(false)
 {
 
 }
 
-void GenObject::record(CallIdSet& calls, Queue& objects)
+void GenObject::collect_objects(Queue& objects)
 {
-    record_owned_obj(calls, objects);
-    record_dependend_obj(calls, objects);
+    collect_owned_obj(objects);
+    collect_dependend_obj(objects);
 }
 
-void GenObject::record_owned_obj(CallIdSet& calls, Queue& objects)
+void GenObject::collect_calls(CallIdSet& calls)
 {
-    (void)calls;
+    calls.insert(m_gen_call);
+}
+
+void GenObject::collect_dependend_obj(Queue& objects)
+{
     (void)objects;
 }
 
-void GenObject::record_dependend_obj(CallIdSet& calls, Queue& objects)
+void GenObject::collect_owned_obj(Queue& objects)
 {
-    (void)calls;
     (void)objects;
 }
+
 
 }

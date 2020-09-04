@@ -33,6 +33,7 @@ void TraceCallOnBoundObj::add_owned_object(ObjectSet& out_set) const
 {
     if (!m_object->visited()) {
         out_set.push(m_object);
+        m_object->collect_objects(out_set);
         m_object->set_visited();
     }
 }

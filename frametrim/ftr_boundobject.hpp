@@ -10,24 +10,24 @@ namespace frametrim_reverse {
 
 class BoundObjectMap {
 public:
-    virtual PGenObject bound_to_call_target_untyped(trace::Call& call) = 0;
-    virtual PGenObject by_id_untyped(unsigned id) = 0;
+    virtual PGenObject bound_to_call_target_untyped(const trace::Call& call) const = 0;
+    virtual PGenObject by_id_untyped(unsigned id) const = 0;
 };
 
 template <typename T>
 class GenBoundObjectMap : public BoundObjectMap {
 public:
-    typename T::Pointer bound_to_call_target(trace::Call& call);
-    typename T::Pointer by_id(unsigned id);
-    PTraceCall bind(trace::Call& call, unsigned id_index);
-    PGenObject bound_to_call_target_untyped(trace::Call& call) override;
-    PGenObject by_id_untyped(unsigned id) override;
+    typename T::Pointer bound_to_call_target(const trace::Call& call) const;
+    typename T::Pointer by_id(unsigned id) const;
+    PTraceCall bind(const trace::Call& call, unsigned id_index);
+    PGenObject bound_to_call_target_untyped(const trace::Call& call) const override;
+    PGenObject by_id_untyped(unsigned id) const override;
 protected:
     typename T::Pointer bind_target(unsigned target, unsigned id);
     void add(typename T::Pointer obj);
     void erase(unsigned id);
 private:
-    virtual unsigned target_id_from_call(trace::Call& call) const;
+    virtual unsigned target_id_from_call(const trace::Call& call) const;
 
     std::unordered_map<unsigned, typename T::Pointer> m_obj_table;
     std::unordered_map<unsigned, typename T::Pointer> m_bound_to_target;
@@ -36,15 +36,15 @@ private:
 template <typename T>
 class GenObjectMap : public GenBoundObjectMap<T> {
 public:
-    PTraceCall generate(trace::Call &call);
-    PTraceCall destroy(trace::Call& call);
+    PTraceCall generate(const trace::Call& call);
+    PTraceCall destroy(const trace::Call& call);
 };
 
 template <typename T>
 class CreateObjectMap : public GenBoundObjectMap<T> {
 public:
-    PTraceCall create(trace::Call &call);
-    PTraceCall destroy(trace::Call& call);
+    PTraceCall create(const trace::Call& call);
+    PTraceCall destroy(const trace::Call& call);
 };
 
 template <typename T>
@@ -63,7 +63,7 @@ GenBoundObjectMap<T>::erase(unsigned id)
 
 template <typename T>
 PTraceCall
-GenBoundObjectMap<T>::bind(trace::Call& call, unsigned id_index)
+GenBoundObjectMap<T>::bind(const trace::Call& call, unsigned id_index)
 {
     auto target = target_id_from_call(call);
     auto id = call.arg(id_index).toUInt();
@@ -73,7 +73,7 @@ GenBoundObjectMap<T>::bind(trace::Call& call, unsigned id_index)
 
 template <typename T>
 unsigned
-GenBoundObjectMap<T>::target_id_from_call(trace::Call& call) const
+GenBoundObjectMap<T>::target_id_from_call(const trace::Call& call) const
 {
     return call.arg(0).toUInt();
 }
@@ -102,47 +102,47 @@ GenBoundObjectMap<T>::bind_target(unsigned target, unsigned id)
 
 template <typename T>
 PGenObject
-GenBoundObjectMap<T>::bound_to_call_target_untyped(trace::Call& call)
+GenBoundObjectMap<T>::bound_to_call_target_untyped(const trace::Call& call) const
 {
     return this->bound_to_call_target(call);
 }
 
 template <typename T>
 typename T::Pointer
-GenBoundObjectMap<T>::bound_to_call_target(trace::Call& call)
+GenBoundObjectMap<T>::bound_to_call_target(const trace::Call& call) const
 {
-    return m_bound_to_target[this->target_id_from_call(call)];
+    return m_bound_to_target.at(this->target_id_from_call(call));
 }
 
 template <typename T>
 PGenObject
-GenBoundObjectMap<T>::by_id_untyped(unsigned id)
+GenBoundObjectMap<T>::by_id_untyped(unsigned id) const
 {
     return this->by_id(id);
 }
 
 template <typename T>
 typename T::Pointer
-GenBoundObjectMap<T>::by_id(unsigned id)
+GenBoundObjectMap<T>::by_id(unsigned id) const
 {
-    return m_obj_table[id];
+    return m_obj_table.at(id);
 }
 
 template <typename T>
 PTraceCall
-GenObjectMap<T>::generate(trace::Call& call)
+GenObjectMap<T>::generate(const trace::Call& call)
 {
     const auto ids = call.arg(1).toArray();
     for (auto& v : ids->values) {
         auto id = v->toUInt();
-        this->add(std::make_shared<T>(id));
+        this->add(std::make_shared<T>(id, call.no));
     }
     return std::make_shared<TraceCall>(call);
 }
 
 template <typename T>
 PTraceCall
-GenObjectMap<T>::destroy(trace::Call& call)
+GenObjectMap<T>::destroy(const trace::Call& call)
 {
     const auto ids = call.arg(1).toArray();
     for (auto& v : ids->values)
@@ -152,17 +152,17 @@ GenObjectMap<T>::destroy(trace::Call& call)
 
 template <typename T>
 PTraceCall
-CreateObjectMap<T>::create(trace::Call &call)
+CreateObjectMap<T>::create(const trace::Call &call)
 {
     const auto id = call.ret->toUInt();
-    auto obj = std::make_shared<T>(id);
+    auto obj = std::make_shared<T>(id, call.no);
     this->add(obj);
     return std::make_shared<TraceCallOnBoundObj>(call, obj);
 }
 
 template <typename T>
 PTraceCall
-CreateObjectMap<T>::destroy(trace::Call& call)
+CreateObjectMap<T>::destroy(const trace::Call& call)
 {
     const auto id = call.arg(0).toUInt();
     this->erase(id);

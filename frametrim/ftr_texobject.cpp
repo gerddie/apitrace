@@ -15,13 +15,13 @@ TexObjectMap::TexObjectMap():
 
 }
 
-PTraceCall TexObjectMap::active_texture(trace::Call& call)
+PTraceCall TexObjectMap::active_texture(const trace::Call& call)
 {
     m_active_texture_unit = call.arg(0).toUInt();
     return make_shared<TraceCall>(call);
 }
 
-PTraceCall TexObjectMap::bind_multitex(trace::Call& call)
+PTraceCall TexObjectMap::bind_multitex(const trace::Call& call)
 {
     auto unit = call.arg(0).toUInt() - GL_TEXTURE0;
     auto target =  call.arg(1).toUInt();
@@ -33,7 +33,7 @@ PTraceCall TexObjectMap::bind_multitex(trace::Call& call)
     return make_shared<TraceCallOnBoundObj>(call, obj);
 }
 
-unsigned TexObjectMap::target_id_from_call(trace::Call& call) const
+unsigned TexObjectMap::target_id_from_call(const trace::Call& call) const
 {
     unsigned target = call.arg(0).toUInt();
     return compose_target_id_with_unit(target, m_active_texture_unit);
