@@ -18,6 +18,15 @@ using std::make_shared;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
+struct StateCallRecord {
+    unsigned last_before_callid;
+    StateCallRecord() :
+        last_before_callid(std::numeric_limits<unsigned>::max()){
+    }
+};
+
+using StateCallMap = std::unordered_map<std::string, StateCallRecord>;
+
 struct TraceMirrorImpl {
     TraceMirrorImpl();
 
@@ -26,8 +35,9 @@ struct TraceMirrorImpl {
     PTraceCall call_on_bound_obj(trace::Call &call, BoundObjectMap& map);
     PTraceCall call_on_named_obj(trace::Call &call, BoundObjectMap& map);
     PTraceCall record_call(trace::Call &call);
+    PTraceCall record_state_call(trace::Call &call, unsigned num_name_params);
 
-    void record_state_call(const TraceCall& call,
+    void resolve_state_calls(TraceCall &call,
                            CallIdSet& callset /* inout */,
                            unsigned last_required_call);
 
@@ -43,6 +53,8 @@ struct TraceMirrorImpl {
     ProgramObjectMap m_programs;
     ShaderObjectMap m_shaders;
     TexObjectMap m_textures;
+
+    StateCallMap m_state_calls;
 
     using SamplerObjectMap = GenObjectMap<GenObject>;
     SamplerObjectMap m_samplers;
@@ -144,6 +156,13 @@ TraceMirrorImpl::record_call(trace::Call &call)
     return make_shared<TraceCall>(call);
 }
 
+PTraceCall
+TraceMirrorImpl::record_state_call(trace::Call &call, unsigned num_name_params)
+{
+    return make_shared<TraceCall>(call);
+}
+
+
 void
 TraceMirrorImpl::resolve()
 {
@@ -172,16 +191,25 @@ TraceMirrorImpl::resolve()
             continue;
         }
 
-        record_state_call(**c, required_calls, next_required_call);
+        resolve_state_calls(**c, required_calls, next_required_call);
     }
 }
 
 void
-TraceMirrorImpl::record_state_call(const TraceCall& call,
-                                   CallIdSet& callset /* inout */,
-                                   unsigned next_required_call)
+TraceMirrorImpl::resolve_state_calls(TraceCall& call,
+                                     CallIdSet& callset /* inout */,
+                                     unsigned next_required_call)
 {
-
+    /* Add the call if the last required call happended before
+     * the passed function was called the last time.
+     * The _last_before_callid_ value is initialized to the
+     * maximum when the object is created. */
+    auto last_call = m_state_calls[call.name()];
+    if (last_call.last_before_callid > next_required_call) {
+        last_call.last_before_callid = next_required_call;
+        callset.insert(call.call_no());
+        call.set_required();
+    }
 }
 
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&TraceMirrorImpl::call, this, _1)))
@@ -194,7 +222,7 @@ TraceMirrorImpl::record_state_call(const TraceCall& call,
 
 void TraceMirrorImpl::register_state_calls()
 {
-    const std::vector<const char *> state_calls = {
+    const std::vector<const char *> state_calls_0  = {
         "glAlphaFunc",
         "glBindVertexArray",
         "glBlendColor",
@@ -227,6 +255,13 @@ void TraceMirrorImpl::register_state_calls()
         "glStencilMask",
         "glStencilOpSeparate",
         "glVertexPointer",
+    };
+
+    for (auto n: state_calls_0) {
+        m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_state_call, this, _1, 0)));
+    }
+
+    const std::vector<const char *> state_calls_1  = {
         "glClipPlane",
         "glColorMaskIndexedEXT",
         "glColorMaterial",
@@ -235,10 +270,22 @@ void TraceMirrorImpl::register_state_calls()
         "glLight",
         "glPixelStorei",
         "glPixelTransfer",
-        "glDisable",
-        "glEnable",
+    };
+
+    for (auto n: state_calls_1) {
+        m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_state_call, this, _1, 1)));
+    }
+
+    const std::vector<const char *> state_calls_2  = {
         "glMaterial",
         "glTexEnv",
+    };
+
+    for (auto n: state_calls_1) {
+        m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_state_call, this, _1, 2)));
+    }
+
+    const std::vector<const char *> state_calls = {
         "glCheckFramebufferStatus",
         "glDeleteVertexArrays",
         "glDetachShader",

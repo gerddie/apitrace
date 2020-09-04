@@ -1,6 +1,26 @@
 #include "ftr_tracecallext.hpp"
 
+#include <sstream>
+
 namespace frametrim_reverse {
+
+StateCall::StateCall(const trace::Call& call, unsigned num_param_ids):
+    TraceCall(call.no, combined_name(call, num_param_ids))
+{
+
+}
+
+std::string
+StateCall::combined_name(const trace::Call& call,
+                         unsigned num_param_ids)
+{
+    std::stringstream s;
+
+    s << call.name();
+    for (auto i = 0u; i < num_param_ids; ++i)
+        s << "_" << call.arg(i).toUInt();
+    return s.str();
+}
 
 TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call, PGenObject obj):
     TraceCall(call),

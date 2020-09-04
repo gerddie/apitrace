@@ -7,6 +7,14 @@
 namespace frametrim_reverse {
 
 
+class StateCall : public TraceCall {
+public:
+    StateCall(const trace::Call& call, unsigned num_param_ids);
+private:
+    static std::string combined_name(const trace::Call& call,
+                                     unsigned num_param_ids);
+};
+
 class TraceCallOnBoundObj : public TraceCall {
 public:
     TraceCallOnBoundObj(const trace::Call& call, PGenObject obj);

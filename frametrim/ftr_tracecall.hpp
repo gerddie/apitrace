@@ -17,13 +17,15 @@ class TraceCall {
 public:
     using Pointer = std::shared_ptr<TraceCall>;
 
+    TraceCall(unsigned callno, const std::string& name);
+
     TraceCall(const trace::Call& call);
 
     void set_required();
 
     bool required() const {return m_required;}
     unsigned call_no() const { return m_trace_call_no;};
-    const char *name() const { return m_name;}
+    const std::string& name() const { return m_name;}
 
     void add_object_to_set(ObjectSet& out_set) const;
 
@@ -32,7 +34,7 @@ private:
     virtual void add_dependend_objects(ObjectSet& out_set) const;
 
     unsigned m_trace_call_no;
-    const char *m_name;
+    std::string m_name;
     bool m_required;
 };
 

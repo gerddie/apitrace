@@ -2,10 +2,16 @@
 
 namespace frametrim_reverse {
 
-TraceCall::TraceCall(const trace::Call &call):
-    m_trace_call_no(call.no),
-    m_name(call.name()),
+TraceCall::TraceCall(unsigned callno, const std::string& name):
+    m_trace_call_no(callno),
+    m_name(name),
     m_required(false)
+{
+
+}
+
+TraceCall::TraceCall(const trace::Call &call):
+    TraceCall(call.no, call.name())
 {
 }
 
