@@ -9,6 +9,19 @@ namespace frametrim_reverse {
 
 using std::make_shared;
 
+void TexObject::evaluate_size(const trace::Call& call)
+{
+    unsigned level = call.arg(1).toUInt();
+    unsigned w = call.arg(3).toUInt();
+    unsigned h = 1;
+
+    if (!strcmp(call.name(), "glTexImage2D")||
+        !strcmp(call.name(), "glTexImage3D")) {
+        h = call.arg(4).toUInt();
+    }
+    set_size(level, w, h);
+}
+
 TexObjectMap::TexObjectMap():
     m_active_texture_unit(0)
 {

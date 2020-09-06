@@ -2,13 +2,15 @@
 #define TEXOBJECT_HPP
 
 #include "ftr_boundobject.hpp"
+#include "ftr_attachableobject.hpp"
 
 namespace frametrim_reverse {
 
-class TexObject : public GenObject
-{
+class TexObject : public AttachableObject {
 public:
-    using GenObject::GenObject;
+    using AttachableObject::AttachableObject;
+private:
+    void evaluate_size(const trace::Call& call) override;
 };
 
 class TexObjectMap : public GenObjectMap<TexObject> {

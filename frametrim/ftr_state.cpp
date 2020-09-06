@@ -4,12 +4,11 @@
 #include "ftr_bufobject.hpp"
 #include "ftr_programobj.hpp"
 #include "ftr_texobject.hpp"
+#include "ftr_framebufferobject.hpp"
 
 #include <algorithm>
 #include <functional>
 #include <set>
-
-
 #include <iostream>
 
 namespace frametrim_reverse {
@@ -55,6 +54,8 @@ struct TraceMirrorImpl {
     ProgramObjectMap m_programs;
     ShaderObjectMap m_shaders;
     TexObjectMap m_textures;
+    FramebufferObjectMap m_fbo;
+    RenderbufferObjectMap m_renderbuffers;
 
     StateCallMap m_state_calls;
 
@@ -169,10 +170,13 @@ TraceMirrorImpl::resolve()
 {
     ObjectSet required_objects;
     CallIdSet required_calls;
+    unsigned next_required_call = std::numeric_limits<unsigned>::max();
     for(auto& i : m_trace) {
         if (i->required()) {
             i->add_object_to_set(required_objects);
             required_calls.insert(i->call_no());
+            if (i->call_no() < next_required_call)
+                next_required_call = i->call_no();
         }
     }
 
@@ -180,11 +184,12 @@ TraceMirrorImpl::resolve()
         auto obj = required_objects.front();
         required_objects.pop();
         obj->collect_objects(required_objects);
+        obj->collect_calls(required_calls, next_required_call);
     }
 
     /* At this point only state calls should remain to be recorded
      * So go in reverse to the list and add them. */
-    unsigned next_required_call = std::numeric_limits<unsigned>::max();
+    next_required_call = std::numeric_limits<unsigned>::max();
     for (auto c = m_trace.rbegin(); c != m_trace.rend(); ++c) {
         /*  required calls are already in the output callset */
         if ((*c)->required()) {
@@ -220,6 +225,10 @@ TraceMirrorImpl::resolve_state_calls(TraceCall& call,
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1)))
 #define MAP_GENOBJ_DATA(name, obj, call, data) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, data)))
+
+#define MAP_GENOBJ_DATAREF(name, obj, call, data) \
+    m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, std::ref(data))))
+
 
 void TraceMirrorImpl::register_state_calls()
 {
@@ -394,7 +403,23 @@ void TraceMirrorImpl::register_program_calls()
 
 void TraceMirrorImpl::register_framebuffer_calls()
 {
+    MAP_GENOBJ_DATA(glBindRenderbuffer, m_renderbuffers, RenderbufferObjectMap::bind, 0);
+    MAP_GENOBJ(glDeleteRenderbuffers, m_renderbuffers, RenderbufferObjectMap::destroy);
+    MAP_GENOBJ(glGenRenderbuffer, m_renderbuffers, RenderbufferObjectMap::generate);
+    MAP_GENOBJ(glRenderbufferStorage, m_renderbuffers, RenderbufferObjectMap::storage);
 
+    MAP_GENOBJ(glGenFramebuffer, m_fbo, FramebufferObjectMap::generate);
+    MAP_GENOBJ(glDeleteFramebuffers, m_fbo, FramebufferObjectMap::destroy);
+    MAP_GENOBJ_DATA(glBindFramebuffer, m_fbo, FramebufferObjectMap::bind, 0);
+
+    MAP_GENOBJ(glBlitFramebuffer, m_fbo, FramebufferObjectMap::blit);
+    MAP_GENOBJ_DATAREF(glFramebufferTexture, m_fbo,
+                       FramebufferObjectMap::attach_texture, m_textures);
+    MAP_GENOBJ_DATAREF(glFramebufferRenderbuffer, m_fbo,
+                       FramebufferObjectMap::attach_renderbuffer, m_renderbuffers);
+
+    /*MAP(glReadBuffer, ReadBuffer);
+    MAP(glDrawBuffers, DrawBuffers);*/
 }
 
 }
