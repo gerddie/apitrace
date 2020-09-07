@@ -13,7 +13,7 @@ public:
 
     void process(trace::Call& call, bool required);
 
-    LightTrace trace() const;
+    std::vector<unsigned> trace() const;
 
 private:
 

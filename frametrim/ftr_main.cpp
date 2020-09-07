@@ -125,16 +125,37 @@ static int trim_to_frame(const char *filename,
         }
 
         callid++;
-        if (!(callid & 0xff))
+        //if (!(callid & 0xff))
             std::cerr << "\rScanning frame:" << frame << " call:" << call->no;
 
         call.reset(p.parse_call());
     }
 
+    std::cerr << "\nDone at " << frame << ":" <<  callid << "\n";
 
+    trace::Writer writer;
+    if (!writer.open(out_filename.c_str(), p.getVersion(), p.getProperties())) {
+        std::cerr << "error: failed to create " << out_filename << "\n";
+        return 2;
+    }
 
+    auto call_ids = mirror.trace();
 
+    std::cerr << "\nGot " << call_ids.size() << " calls\n";
 
+    p.close();
+    p.open(filename);
+    call.reset(p.parse_call());
+
+    auto callid_itr = call_ids.begin();
+
+    while (call && callid_itr != call_ids.end()) {
+        while (call->no != *callid_itr)
+            call.reset(p.parse_call());
+        writer.writeCall(call.get());
+        call.reset(p.parse_call());
+        ++callid_itr;
+    }
 
     return 0;
 }

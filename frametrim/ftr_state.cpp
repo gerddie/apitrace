@@ -22,7 +22,7 @@ using std::placeholders::_2;
 struct StateCallRecord {
     unsigned last_before_callid;
     StateCallRecord() :
-        last_before_callid(std::numeric_limits<unsigned>::max()){
+        last_before_callid(std::numeric_limits<unsigned>::min()){
     }
 };
 
@@ -44,7 +44,7 @@ struct TraceMirrorImpl {
                              CallIdSet& callset /* inout */,
                              unsigned last_required_call);
 
-    void resolve();
+    frametrim::CallIdSet resolve();
 
     void register_state_calls();
     void register_buffer_calls();
@@ -85,10 +85,14 @@ TraceMirror::~TraceMirror()
     delete impl;
 }
 
-LightTrace
-TraceMirror::trace() const
+std::vector<unsigned> TraceMirror::trace() const
 {
-    return impl->m_trace;
+    CallIdSet calls = impl->resolve();
+
+    std::vector<unsigned> retval(calls.begin(), calls.end());
+    std::sort(retval.begin(), retval.end());
+
+    return retval;
 }
 
 TraceMirrorImpl::TraceMirrorImpl()
@@ -180,7 +184,7 @@ TraceMirrorImpl::record_enable_call(trace::Call &call, const char *basename)
 }
 
 
-void
+CallIdSet
 TraceMirrorImpl::resolve()
 {
     ObjectSet required_objects;
@@ -207,13 +211,14 @@ TraceMirrorImpl::resolve()
     next_required_call = std::numeric_limits<unsigned>::max();
     for (auto c = m_trace.rbegin(); c != m_trace.rend(); ++c) {
         /*  required calls are already in the output callset */
-        if (!(*c)->required() && (*c)->is_state_call()) {
+        if (!(*c)->required()) {
             next_required_call = (*c)->call_no();
             continue;
         }
-
-        resolve_state_calls(**c, required_calls, next_required_call);
+        if ((*c)->is_state_call())
+            resolve_state_calls(**c, required_calls, next_required_call);
     }
+    return required_calls;
 }
 
 void
@@ -225,9 +230,12 @@ TraceMirrorImpl::resolve_state_calls(TraceCall& call,
      * the passed function was called the last time.
      * The _last_before_callid_ value is initialized to the
      * maximum when the object is created. */
-    auto last_call = m_state_calls[call.name()];
-    if (last_call.last_before_callid > next_required_call) {
-        last_call.last_before_callid = next_required_call;
+    auto& last_call = m_state_calls[call.name()];
+    if (call.call_no() < next_required_call &&
+        last_call.last_before_callid < call.call_no()) {
+        std::cerr << "Add state call " << call.call_no() << ":"
+                  << call.name() << " last was " << last_call.last_before_callid << "\n";
+        last_call.last_before_callid = call.call_no();
         callset.insert(call.call_no());
         call.set_required();
     }
