@@ -7,11 +7,11 @@
 
 namespace frametrim_reverse {
 
-class BufObject : public GenObject
+class BufObject : public BoundObject
 {
 public:
     using Pointer = std::shared_ptr<BufObject>;
-    using GenObject::GenObject;
+    using BoundObject::BoundObject;
 
     void data(trace::Call& call);
     void map(trace::Call& call);

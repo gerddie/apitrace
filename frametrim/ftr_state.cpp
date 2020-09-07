@@ -64,7 +64,7 @@ struct TraceMirrorImpl {
 
     StateCallMap m_state_calls;
 
-    using SamplerObjectMap = GenObjectMap<GenObject>;
+    using SamplerObjectMap = GenObjectMap<BoundObject>;
     SamplerObjectMap m_samplers;
 
     using CallTable = std::multimap<const char *, ftr_callback, frametrim::string_part_less>;
@@ -211,12 +211,14 @@ TraceMirrorImpl::resolve()
     next_required_call = std::numeric_limits<unsigned>::max();
     for (auto c = m_trace.rbegin(); c != m_trace.rend(); ++c) {
         /*  required calls are already in the output callset */
-        if (!(*c)->required()) {
+        if ((*c)->required()) {
             next_required_call = (*c)->call_no();
             continue;
         }
+
         if ((*c)->is_state_call())
             resolve_state_calls(**c, required_calls, next_required_call);
+
     }
     return required_calls;
 }
@@ -434,8 +436,8 @@ void TraceMirrorImpl::register_program_calls()
     MAP_GENOBJ(glCreateShader, m_shaders, ShaderObjectMap::create);
     MAP_GENOBJ(glDeleteShader, m_shaders, ShaderObjectMap::destroy);
 
-    MAP_DATA(glCompileShader, call_on_named_obj, m_shaders);
-    MAP_DATA(glShaderSource, call_on_named_obj, m_shaders);
+    MAP_GENOBJ(glCompileShader, m_shaders, ShaderObjectMap::compile);
+    MAP_GENOBJ(glShaderSource, m_shaders, ShaderObjectMap::source);
 }
 
 void TraceMirrorImpl::register_framebuffer_calls()

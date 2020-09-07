@@ -22,6 +22,7 @@ void GenObject::collect_calls(CallIdSet& calls, unsigned call_before)
     calls.insert(m_gen_call);
     collect_allocation_call(calls);
     collect_data_calls(calls, call_before);
+    collect_bind_calls(calls, call_before);
     collect_state_calls(calls, call_before);
 }
 
@@ -52,5 +53,35 @@ void GenObject::collect_owned_obj(Queue& objects)
     (void)objects;
 }
 
+void GenObject::collect_last_call_before(CallIdSet& calls,
+                                         const std::vector<unsigned>& call_list,
+                                         unsigned call_before)
+{
+    for (auto c = call_list.rbegin(); c != call_list.rend(); ++c)
+        if (*c < call_before) {
+            calls.insert(*c);
+            return;
+        }
+}
+
+void GenObject::collect_all_calls_before(CallIdSet& calls,
+                                         const std::vector<unsigned>& call_list,
+                                         unsigned call_before)
+{
+    for (auto& c : call_list)
+        if (c < call_before)
+            calls.insert(c);
+}
+
+void GenObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
+{
+    (void)calls;
+    (void)call_before;
+}
+
+void BoundObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
+{
+    collect_last_call_before(calls, m_bind_calls, call_before);
+}
 
 }

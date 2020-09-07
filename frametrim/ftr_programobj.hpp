@@ -7,21 +7,42 @@
 
 namespace frametrim_reverse {
 
-using ShaderObjectMap = CreateObjectMap<GenObject>;
-using VertexArrayMap = GenObjectMap<GenObject>;
+class ShaderObject : public GenObject {
+public:
+    using GenObject::GenObject;
+    using Pointer = std::shared_ptr<ShaderObject>;
+    void source(const trace::Call& call);
+    void compile(const trace::Call& call);
+private:
+    void collect_data_calls(CallIdSet& calls, unsigned call_before) override;
+    unsigned m_source_call;
+    unsigned m_compile_call;
+};
 
-class ProgramObject : public GenObject
+using PShaderObject = ShaderObject::Pointer;
+
+class ShaderObjectMap: public CreateObjectMap<ShaderObject> {
+public:
+    PTraceCall source(const trace::Call& call);
+    PTraceCall compile(const trace::Call& call);
+};
+
+using VertexArrayMap = GenObjectMap<BoundObject>;
+
+class ProgramObject : public BoundObject
 {
 public:
     using Pointer = std::shared_ptr<ProgramObject>;
 
-    using GenObject::GenObject;
-    void attach_shader(PGenObject shader);
+    using BoundObject::BoundObject;
+    void attach_shader(const trace::Call& call, PGenObject shader);
     void bind_attr_location(unsigned loc);
 
 private:
     void collect_dependend_obj(Queue& objects) override;
+    void collect_data_calls(CallIdSet& calls, unsigned call_before) override;
 
+    std::vector<unsigned> m_attach_calls;
     std::unordered_set<PGenObject> m_attached_shaders;
     std::unordered_set<unsigned> m_bound_attributes;
 };

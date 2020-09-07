@@ -27,13 +27,23 @@ public:
 
     void collect_objects(Queue& objects);
     void collect_calls(CallIdSet& calls, unsigned call_before);
+protected:
+    void collect_last_call_before(CallIdSet& calls,
+                                  const std::vector<unsigned>& call_list,
+                                  unsigned call_before);
+    void collect_all_calls_before(CallIdSet& calls,
+                                  const std::vector<unsigned>& call_list,
+                                  unsigned call_before);
 private:
     virtual void collect_allocation_call(CallIdSet& calls);
     virtual void collect_data_calls(CallIdSet& calls, unsigned call_before);
+    virtual void collect_bind_calls(CallIdSet& calls, unsigned call_before);
     virtual void collect_state_calls(CallIdSet& calls, unsigned call_before);
 
     virtual void collect_owned_obj(Queue& objects);
     virtual void collect_dependend_obj(Queue& objects);
+
+
 
     unsigned m_id;
     unsigned m_gen_call;
@@ -42,6 +52,22 @@ private:
 
 using ObjectSet = GenObject::Queue;
 using PGenObject = GenObject::Pointer;
+
+class BoundObject : public GenObject {
+public:
+    using GenObject::GenObject;
+    using Pointer=std::shared_ptr<BoundObject>;
+
+    void bind(unsigned call_no) {
+        m_bind_calls.push_back(call_no);
+    }
+
+private:
+    void collect_bind_calls(CallIdSet& calls, unsigned call_before) override;
+
+    std::vector<unsigned> m_bind_calls;
+
+};
 
 }
 

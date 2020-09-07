@@ -5,10 +5,10 @@
 
 namespace frametrim_reverse {
 
-class AttachableObject : public GenObject {
+class AttachableObject : public BoundObject {
 public:
     using Pointer = std::shared_ptr<AttachableObject>;
-    using GenObject::GenObject;
+    using BoundObject::BoundObject;
 
     void allocate(const trace::Call& call);
     void attach_to(PGenObject obj);
