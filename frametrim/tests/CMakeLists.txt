@@ -20,3 +20,15 @@ TRACE_TEST(normal_mapping 302 378970)
 TRACE_TEST(render_to_texture 425, 29227)
 TRACE_TEST(rotations 68 103311)
 TRACE_TEST(shadowmaps 560 42910)
+
+MACRO(TRACE_RTEST name frame orig_img)
+  ADD_TEST(NAME ${name}_reverse COMMAND
+    ${CMAKE_CURRENT_SOURCE_DIR}/compare-trace_reverse.sh
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_CURRENT_SOURCE_DIR}
+    ${name}.test_trace
+    ${frame}
+    ${orig_img})
+ENDMACRO(TRACE_RTEST)
+
+TRACE_RTEST(red_triangle 139 13732)
