@@ -39,8 +39,8 @@ struct TraceMirrorImpl {
     PTraceCall record_state_call(trace::Call &call, unsigned num_name_params);
 
     void resolve_state_calls(TraceCall &call,
-                           CallIdSet& callset /* inout */,
-                           unsigned last_required_call);
+                             CallIdSet& callset /* inout */,
+                             unsigned last_required_call);
 
     void resolve();
 
@@ -49,6 +49,7 @@ struct TraceMirrorImpl {
     void register_texture_calls();
     void register_program_calls();
     void register_framebuffer_calls();
+    void register_required_calls();
 
     BufObjectMap m_buffers;
     ProgramObjectMap m_programs;
@@ -192,7 +193,7 @@ TraceMirrorImpl::resolve()
     next_required_call = std::numeric_limits<unsigned>::max();
     for (auto c = m_trace.rbegin(); c != m_trace.rend(); ++c) {
         /*  required calls are already in the output callset */
-        if ((*c)->required()) {
+        if (!(*c)->required() && (*c)->is_state_call()) {
             next_required_call = (*c)->call_no();
             continue;
         }
@@ -433,6 +434,22 @@ void TraceMirrorImpl::register_framebuffer_calls()
 
     /*MAP(glReadBuffer, ReadBuffer);
     MAP(glDrawBuffers, DrawBuffers);*/
+}
+
+void TraceMirrorImpl::register_required_calls()
+{
+    auto required_func = bind(&TraceMirrorImpl::record_state_call, this, _1, 0);
+    const std::vector<const char *> required_calls = {
+        "glXChooseVisual",
+        "glXCreateContext",
+        "glXDestroyContext",
+        "glXMakeCurrent",
+        "glXChooseFBConfig",
+        "glXQueryExtensionsString",
+        "glXSwapIntervalMESA",
+    };
+    for (auto& i : required_calls)
+        m_call_table.insert(std::make_pair(i, required_func));
 }
 
 }

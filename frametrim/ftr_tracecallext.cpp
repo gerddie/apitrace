@@ -5,7 +5,7 @@
 namespace frametrim_reverse {
 
 StateCall::StateCall(const trace::Call& call, unsigned num_param_ids):
-    TraceCall(call.no, combined_name(call, num_param_ids))
+    TraceCall(call.no, combined_name(call, num_param_ids), true)
 {
 
 }

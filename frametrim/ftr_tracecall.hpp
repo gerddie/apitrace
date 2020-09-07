@@ -17,7 +17,7 @@ class TraceCall {
 public:
     using Pointer = std::shared_ptr<TraceCall>;
 
-    TraceCall(unsigned callno, const std::string& name);
+    TraceCall(unsigned callno, const std::string& name, bool is_state_call);
 
     TraceCall(const trace::Call& call);
 
@@ -29,6 +29,8 @@ public:
 
     void add_object_to_set(ObjectSet& out_set) const;
 
+    bool is_state_call() const {return m_is_state_call;}
+
 private:
     virtual void add_owned_object(ObjectSet& out_set) const;
     virtual void add_dependend_objects(ObjectSet& out_set) const;
@@ -36,6 +38,7 @@ private:
     unsigned m_trace_call_no;
     std::string m_name;
     bool m_required;
+    bool m_is_state_call;
 };
 
 using PTraceCall = TraceCall::Pointer;
