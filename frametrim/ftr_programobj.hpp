@@ -8,6 +8,7 @@
 namespace frametrim_reverse {
 
 using ShaderObjectMap = CreateObjectMap<GenObject>;
+using VertexArrayMap = GenObjectMap<GenObject>;
 
 class ProgramObject : public GenObject
 {

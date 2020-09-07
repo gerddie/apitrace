@@ -15,6 +15,14 @@ private:
                                      unsigned num_param_ids);
 };
 
+class StateEnableCall : public TraceCall {
+public:
+    StateEnableCall(const trace::Call& call, const char *basename);
+private:
+    static std::string combined_name(const trace::Call& call, const char *basename);
+};
+
+
 class TraceCallOnBoundObj : public TraceCall {
 public:
     TraceCallOnBoundObj(const trace::Call& call, PGenObject obj);

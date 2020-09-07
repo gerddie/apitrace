@@ -37,6 +37,8 @@ struct TraceMirrorImpl {
     PTraceCall call_on_named_obj(trace::Call &call, BoundObjectMap& map);
     PTraceCall record_call(trace::Call &call);
     PTraceCall record_state_call(trace::Call &call, unsigned num_name_params);
+    PTraceCall record_enable_call(trace::Call &call, const char *basename);
+
 
     void resolve_state_calls(TraceCall &call,
                              CallIdSet& callset /* inout */,
@@ -57,6 +59,8 @@ struct TraceMirrorImpl {
     TexObjectMap m_textures;
     FramebufferObjectMap m_fbo;
     RenderbufferObjectMap m_renderbuffers;
+
+    VertexArrayMap m_va;
 
     StateCallMap m_state_calls;
 
@@ -151,7 +155,10 @@ PTraceCall
 TraceMirrorImpl::call_on_named_obj(trace::Call &call, BoundObjectMap& map)
 {
     auto bound_obj = map.by_id_untyped(call.arg(0).toUInt());
-    return PTraceCall(new TraceCallOnBoundObj(call, bound_obj));
+    if (bound_obj)
+        return make_shared<TraceCallOnBoundObj>(call, bound_obj);
+    else
+        return make_shared<TraceCall>(call);
 }
 
 PTraceCall
@@ -165,6 +172,13 @@ TraceMirrorImpl::record_state_call(trace::Call &call, unsigned num_name_params)
 {
     return make_shared<StateCall>(call, num_name_params);
 }
+
+PTraceCall
+TraceMirrorImpl::record_enable_call(trace::Call &call, const char *basename)
+{
+    return make_shared<StateEnableCall>(call, basename);
+}
+
 
 void
 TraceMirrorImpl::resolve()
@@ -269,6 +283,7 @@ void TraceMirrorImpl::register_state_calls()
         "glStencilMask",
         "glStencilOpSeparate",
         "glVertexPointer",
+        "glViewport",
     };
 
     for (auto n: state_calls_0) {
@@ -295,7 +310,7 @@ void TraceMirrorImpl::register_state_calls()
         "glTexEnv",
     };
 
-    for (auto n: state_calls_1) {
+    for (auto n: state_calls_2) {
         m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_state_call, this, _1, 2)));
     }
 
@@ -338,6 +353,11 @@ void TraceMirrorImpl::register_state_calls()
     for (auto n: state_calls) {
         m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_call, this, _1)));
     }
+
+    MAP_DATA(glEnable, record_enable_call, "Enable");
+    MAP_DATA(glDisable, record_enable_call, "Enable");
+    MAP_DATA(glEnableVertexAttrinArray, record_enable_call, "EnableVA");
+    MAP_DATA(glDisableVertexAttrinArray, record_enable_call, "EnableVA");
 }
 
 void TraceMirrorImpl::register_buffer_calls()
@@ -352,6 +372,10 @@ void TraceMirrorImpl::register_buffer_calls()
     MAP_GENOBJ(glMapBufferRange, m_buffers, BufObjectMap::map_range);
     MAP_GENOBJ(glUnmapBuffer, m_buffers, BufObjectMap::unmap);
     MAP_GENOBJ(memcpy, m_buffers, BufObjectMap::memcopy);
+
+    MAP_GENOBJ(glGenVertexArrays, m_va, VertexArrayMap::generate);
+    MAP_GENOBJ_DATA(glBindVertexArray, m_va, VertexArrayMap::bind, 0);
+    MAP_GENOBJ(glDeleteVertexArraym, m_va, VertexArrayMap::destroy);
 }
 
 void TraceMirrorImpl::register_texture_calls()
@@ -384,13 +408,14 @@ void TraceMirrorImpl::register_texture_calls()
 
 void TraceMirrorImpl::register_program_calls()
 {
-    MAP_GENOBJ_DATA(glAttachObject, m_programs, ProgramObjectMap::attach_shader, m_shaders);
-    MAP_GENOBJ_DATA(glAttachShader, m_programs, ProgramObjectMap::attach_shader, m_shaders);
+    MAP_GENOBJ_DATAREF(glAttachObject, m_programs, ProgramObjectMap::attach_shader, m_shaders);
+    MAP_GENOBJ_DATAREF(glAttachShader, m_programs, ProgramObjectMap::attach_shader, m_shaders);
     MAP_GENOBJ(glCreateProgram, m_programs, ProgramObjectMap::create);
     MAP_GENOBJ(glDeleteProgram, m_programs, ProgramObjectMap::destroy);
     MAP_GENOBJ_DATA(glUseProgram, m_programs, ProgramObjectMap::bind, 0);
 
-    MAP_GENOBJ(glBindAttribLocation, m_programs, ProgramObjectMap::bind_attr_location);
+    MAP_GENOBJ(glBindAttribLocation, m_programs,
+               ProgramObjectMap::bind_attr_location);
 
     MAP_DATA(glLinkProgram, call_on_named_obj, m_programs);
     MAP_DATA(glUniform, call_on_named_obj, m_programs);

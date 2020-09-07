@@ -22,6 +22,20 @@ StateCall::combined_name(const trace::Call& call,
     return s.str();
 }
 
+StateEnableCall::StateEnableCall(const trace::Call& call, const char *basename):
+    TraceCall(call.no, combined_name(call, basename), true)
+{
+
+}
+
+std::string
+StateEnableCall::combined_name(const trace::Call& call, const char *basename)
+{
+    std::stringstream s;
+    s << basename << "_" << call.arg(0).toUInt();
+    return s.str();
+}
+
 TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call, PGenObject obj):
     TraceCall(call),
     m_object(obj)

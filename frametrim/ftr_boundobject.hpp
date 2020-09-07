@@ -125,7 +125,11 @@ template <typename T>
 typename T::Pointer
 GenBoundObjectMap<T>::by_id(unsigned id) const
 {
-    return m_obj_table.at(id);
+    auto obj = m_obj_table.find(id);
+    if (obj != m_obj_table.end())
+        return obj->second;
+    else
+        return nullptr;
 }
 
 template <typename T>
