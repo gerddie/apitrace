@@ -12,7 +12,7 @@ public:
 
     void allocate(const trace::Call& call);
     void attach_to(PGenObject obj);
-    void detach_from(PGenObject obj);
+    void detach_from(unsigned fbo_id);
 
     unsigned width(unsigned level) const { return m_width[level];}
     unsigned heigth(unsigned level) const { return m_heigth[level];}
@@ -25,7 +25,7 @@ private:
     std::vector<unsigned> m_heigth;
     unsigned m_allocation_call;
 
-    std::unordered_set<PGenObject> m_attached_to;
+    std::unordered_map<unsigned, PGenObject> m_attached_to;
 };
 
 using PAttachableObject = AttachableObject::Pointer;

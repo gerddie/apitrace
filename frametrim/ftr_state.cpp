@@ -229,6 +229,9 @@ TraceMirrorImpl::resolve_state_calls(TraceCall& call,
 #define MAP_GENOBJ_DATAREF(name, obj, call, data) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, std::ref(data))))
 
+#define MAP_GENOBJ_DATAREF_2(name, obj, call, data, param1, param2) \
+    m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
+                        std::ref(data), param1, param2)))
 
 void TraceMirrorImpl::register_state_calls()
 {
@@ -410,11 +413,21 @@ void TraceMirrorImpl::register_framebuffer_calls()
 
     MAP_GENOBJ(glGenFramebuffer, m_fbo, FramebufferObjectMap::generate);
     MAP_GENOBJ(glDeleteFramebuffers, m_fbo, FramebufferObjectMap::destroy);
-    MAP_GENOBJ_DATA(glBindFramebuffer, m_fbo, FramebufferObjectMap::bind, 0);
+    MAP_GENOBJ(glBindFramebuffer, m_fbo, FramebufferObjectMap::bind);
 
     MAP_GENOBJ(glBlitFramebuffer, m_fbo, FramebufferObjectMap::blit);
-    MAP_GENOBJ_DATAREF(glFramebufferTexture, m_fbo,
-                       FramebufferObjectMap::attach_texture, m_textures);
+    MAP_GENOBJ_DATAREF_2(glFramebufferTexture, m_fbo,
+                         FramebufferObjectMap::attach_texture, m_textures,
+                         2, 3);
+    MAP_GENOBJ_DATAREF_2(glFramebufferTexture1D, m_fbo,
+                         FramebufferObjectMap::attach_texture, m_textures,
+                         3, 4);
+    MAP_GENOBJ_DATAREF_2(glFramebufferTexture2D, m_fbo,
+                         FramebufferObjectMap::attach_texture, m_textures,
+                         3, 4);
+    MAP_GENOBJ_DATAREF(glFramebufferTexture3D, m_fbo,
+                         FramebufferObjectMap::attach_texture3d, m_textures);
+
     MAP_GENOBJ_DATAREF(glFramebufferRenderbuffer, m_fbo,
                        FramebufferObjectMap::attach_renderbuffer, m_renderbuffers);
 

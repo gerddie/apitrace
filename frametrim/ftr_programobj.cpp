@@ -35,8 +35,9 @@ ProgramObjectMap::attach_shader(trace::Call& call, const ShaderObjectMap& shader
 {
     auto program = by_id(call.arg(0).toUInt());
     assert(program);
-    program->attach_shader(shaders.by_id_untyped(call.arg(1).toUInt()));
-    return make_shared<TraceCallOnBoundObjWithDeps>(call, program);
+    auto shader = shaders.by_id_untyped(call.arg(1).toUInt());
+    program->attach_shader(shader);
+    return make_shared<TraceCallOnBoundObjWithDeps>(call, program, shader);
 }
 
 PTraceCall ProgramObjectMap::bind_attr_location(trace::Call& call)
@@ -44,7 +45,7 @@ PTraceCall ProgramObjectMap::bind_attr_location(trace::Call& call)
     auto program = by_id(call.arg(0).toUInt());
     assert(program);
     program->bind_attr_location(call.arg(1).toUInt());
-    return make_shared<TraceCallOnBoundObjWithDeps>(call, program);
+    return make_shared<TraceCallOnBoundObjWithDeps>(call, program, nullptr);
 }
 
 unsigned

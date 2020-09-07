@@ -29,7 +29,11 @@ private:
  * other objects */
 class TraceCallOnBoundObjWithDeps : public TraceCallOnBoundObj {
 public:
-    using TraceCallOnBoundObj::TraceCallOnBoundObj;
+    TraceCallOnBoundObjWithDeps(const trace::Call& call, PGenObject obj,
+                                PGenObject dep);
+private:
+    void add_dependend_objects(ObjectSet& out_set) const override;
+    PGenObject m_dependency;
 };
 
 }

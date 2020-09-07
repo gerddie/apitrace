@@ -11,12 +11,12 @@ public:
 
     using Pointer = std::shared_ptr<FramebufferObject>;
 
-    void attach(unsigned index, PAttachableObject obj);
+    void attach(unsigned index, PAttachableObject obj, unsigned layer);
 
 private:
     PAttachableObject m_attachments[10];
-
     PGenObject m_blit_source;
+    unsigned m_width, m_height;
 };
 using PFramebufferObject = FramebufferObject::Pointer;
 
@@ -38,10 +38,15 @@ public:
 class FramebufferObjectMap : public GenObjectMap<FramebufferObject> {
 public:
     PTraceCall blit(const trace::Call& call);
+    PTraceCall bind(const trace::Call& call);
     PTraceCall attach_renderbuffer(const trace::Call& call, RenderbufferObjectMap& rb_map);
-    PTraceCall attach_texture(const trace::Call& call, TexObjectMap& tex_map);
-private:
+    PTraceCall attach_texture(const trace::Call& call, TexObjectMap& tex_map,
+                              unsigned tex_param_idx, unsigned level_param_idx);
+    PTraceCall attach_texture3d(const trace::Call& call, TexObjectMap& tex_map);
 
+private:
+    PFramebufferObject m_draw_buffer;
+    PFramebufferObject m_read_buffer;
 };
 
 }

@@ -38,4 +38,21 @@ void TraceCallOnBoundObj::add_owned_object(ObjectSet& out_set) const
     }
 }
 
+TraceCallOnBoundObjWithDeps::TraceCallOnBoundObjWithDeps(const trace::Call& call,
+                                                         PGenObject obj,
+                                                         PGenObject dep):
+    TraceCallOnBoundObj(call, obj),
+    m_dependency(dep)
+{
+}
+
+void TraceCallOnBoundObjWithDeps::add_dependend_objects(ObjectSet& out_set) const
+{
+    if (!m_dependency->visited()) {
+        out_set.push(m_dependency);
+        m_dependency->collect_objects(out_set);
+        m_dependency->set_visited();
+    }
+}
+
 }

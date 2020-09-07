@@ -21,15 +21,14 @@ void AttachableObject::set_size(unsigned level, unsigned w, unsigned h)
 
 void AttachableObject::attach_to(PGenObject obj)
 {
-    assert(m_attached_to.find(obj) == m_attached_to.end() &&
+    assert(m_attached_to.find(obj->id()) == m_attached_to.end() &&
            "Attacheing to the same FBO twice is not handled");
-    m_attached_to.insert(obj);
+    m_attached_to[obj->id()] = obj;
 }
 
-void AttachableObject::detach_from(PGenObject obj)
+void AttachableObject::detach_from(unsigned fbo_id)
 {
-    assert(m_attached_to.find(obj) != m_attached_to.end());
-    m_attached_to.erase(obj);
+    m_attached_to.erase(fbo_id);
 }
 
 }
