@@ -25,7 +25,7 @@ public:
     using AttachableObject::AttachableObject;
     using Pointer = std::shared_ptr<RenderbufferObject>;
 private:
-    void evaluate_size(const trace::Call& call) override;
+    unsigned evaluate_size(const trace::Call& call) override;
 };
 using PRenderbufferObject = RenderbufferObject::Pointer;
 

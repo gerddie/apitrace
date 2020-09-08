@@ -19,11 +19,12 @@ public:
 protected:
     void set_size(unsigned level, unsigned w, unsigned h);
 private:
-    virtual void evaluate_size(const trace::Call& call) = 0;
+    virtual unsigned evaluate_size(const trace::Call& call) = 0;
+    void collect_allocation_call(CallIdSet& calls) override;
 
     std::vector<unsigned> m_width;
     std::vector<unsigned> m_heigth;
-    unsigned m_allocation_call;
+    std::vector<unsigned> m_allocation_call;
 
     std::unordered_map<unsigned, PGenObject> m_attached_to;
 };

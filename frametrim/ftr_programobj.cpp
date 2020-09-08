@@ -83,11 +83,21 @@ void ProgramObject::collect_dependend_obj(Queue& objects)
     }
 }
 
+void ProgramObject::link(const trace::Call& call)
+{
+    m_link_call = call.no;
+}
+
 void
 ProgramObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
 {
+    calls.insert(m_link_call);
     collect_all_calls_before(calls, m_attach_calls, call_before);
     collect_all_calls_before(calls, m_data_calls, call_before);
+
+    for (auto&& uniform_slot: m_uniforms_calls) {
+        collect_last_call_before(calls, uniform_slot.second, call_before);
+    }
 }
 
 void
@@ -100,6 +110,11 @@ void
 ProgramObject::data_call(const trace::Call& call)
 {
     m_data_calls.push_back(call.no);
+}
+
+void ProgramObject::uniform(const trace::Call& call)
+{
+    m_uniforms_calls[call.arg(0).toUInt()].push_back(call.no);
 }
 
 PTraceCall
@@ -142,11 +157,42 @@ ProgramObjectMap::target_id_from_call(const trace::Call& call) const
 PTraceCall
 ProgramObjectMap::data(trace::Call& call)
 {
-    auto program = by_id(call.arg(0).toUInt());
-    assert(program);
+    auto program = bound_to_target(0);
+    if (!program) {
+        std::cerr << "Call " << call.no << " ("<< call.name()
+                  << ") no program with ID" << call.arg(0).toUInt() <<"\n";
+        return NULL;
+    }
     program->data_call(call);
     return make_shared<TraceCallOnBoundObj>(call, program);
 }
+
+PTraceCall
+ProgramObjectMap::uniform(trace::Call& call)
+{
+    auto program = bound_to_target(0);
+    if (!program) {
+        std::cerr << "Call " << call.no << " ("<< call.name()
+                  << ") no program with ID" << call.arg(0).toUInt() <<"\n";
+        return NULL;
+    }
+    program->uniform(call);
+    return make_shared<TraceCallOnBoundObj>(call, program);
+}
+
+PTraceCall
+ProgramObjectMap::link(trace::Call& call)
+{
+    auto program = by_id(call.arg(0).toUInt());
+    if (!program) {
+        std::cerr << "Call " << call.no << " ("<< call.name()
+                  << ") no program with ID" << call.arg(0).toUInt() <<"\n";
+        return NULL;
+    }
+    program->link(call);
+    return make_shared<TraceCallOnBoundObj>(call, program);
+}
+
 
 template class CreateObjectMap<ProgramObject>;
 template class GenBoundObjectMap<ProgramObject>;

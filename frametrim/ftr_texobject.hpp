@@ -10,7 +10,7 @@ class TexObject : public AttachableObject {
 public:
     using AttachableObject::AttachableObject;
 private:
-    void evaluate_size(const trace::Call& call) override;
+    unsigned evaluate_size(const trace::Call& call) override;
 };
 
 class TexObjectMap : public GenObjectMap<TexObject> {
@@ -18,7 +18,7 @@ public:
     TexObjectMap();
     PTraceCall active_texture(const trace::Call& call);
     PTraceCall bind_multitex(const trace::Call& call);
-
+    PTraceCall allocation(const trace::Call& call);
 private:
     unsigned target_id_from_call(const trace::Call& call) const override;
     unsigned compose_target_id_with_unit(unsigned target,

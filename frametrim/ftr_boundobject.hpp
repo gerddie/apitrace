@@ -133,7 +133,8 @@ template <typename T>
 typename T::Pointer
 GenBoundObjectMap<T>::bound_to_call_target(const trace::Call& call) const
 {
-    return m_bound_to_target.at(this->target_id_from_call(call));
+    auto i = m_bound_to_target.find(this->target_id_from_call(call));
+    return i != m_bound_to_target.end() ? i->second : nullptr;
 }
 
 template <typename T>

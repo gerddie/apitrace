@@ -220,6 +220,8 @@ TraceMirrorImpl::resolve()
     }
 
     m_va.collect_currently_bound_objects(required_objects);
+    m_buffers.collect_currently_bound_objects(required_objects);
+    m_textures.collect_currently_bound_objects(required_objects);
 
     while (!required_objects.empty()) {
         auto obj = required_objects.front();
@@ -427,11 +429,11 @@ void TraceMirrorImpl::register_texture_calls()
 
     MAP_GENOBJ(glBindMultiTexture, m_textures, TexObjectMap::bind_multitex);
 
-    MAP_DATA(glCompressedTexImage2D, call_on_bound_obj, m_textures);
+    MAP_GENOBJ(glCompressedTexImage2D, m_textures, TexObjectMap::allocation);
     MAP_DATA(glGenerateMipmap, call_on_bound_obj, m_textures);
-    MAP_DATA(glTexImage1D, call_on_bound_obj, m_textures);
-    MAP_DATA(glTexImage2D, call_on_bound_obj, m_textures);
-    MAP_DATA(glTexImage3D, call_on_bound_obj, m_textures);
+    MAP_GENOBJ(glTexImage1D, m_textures, TexObjectMap::allocation);
+    MAP_GENOBJ(glTexImage2D, m_textures, TexObjectMap::allocation);
+    MAP_GENOBJ(glTexImage3D, m_textures, TexObjectMap::allocation);
     MAP_DATA(glTexSubImage1D, call_on_bound_obj, m_textures);
     MAP_DATA(glTexSubImage2D, call_on_bound_obj, m_textures);
     MAP_DATA(glTexSubImage3D, call_on_bound_obj, m_textures);
@@ -455,8 +457,8 @@ void TraceMirrorImpl::register_program_calls()
     MAP_GENOBJ(glBindAttribLocation, m_programs,
                ProgramObjectMap::bind_attr_location);
 
-    MAP_GENOBJ(glLinkProgram, m_programs, ProgramObjectMap::data);
-    MAP_GENOBJ(glUniform, m_programs, ProgramObjectMap::data);
+    MAP_GENOBJ(glLinkProgram, m_programs, ProgramObjectMap::link);
+    MAP_GENOBJ(glUniform, m_programs, ProgramObjectMap::uniform);
 
     MAP_DATA(glBindFragDataLocation, call_on_named_obj, m_programs);
     MAP_DATA(glProgramBinary, call_on_named_obj, m_programs);

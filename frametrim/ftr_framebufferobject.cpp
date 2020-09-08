@@ -7,11 +7,12 @@ namespace frametrim_reverse {
 
 using std::make_shared;
 
-void RenderbufferObject::evaluate_size(const trace::Call& call)
+unsigned RenderbufferObject::evaluate_size(const trace::Call& call)
 {
     unsigned w = call.arg(2).toUInt();
     unsigned h = call.arg(3).toUInt();
     set_size(0,w,h);
+    return 0;
 }
 
 PTraceCall

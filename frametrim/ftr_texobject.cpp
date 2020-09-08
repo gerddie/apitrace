@@ -9,17 +9,19 @@ namespace frametrim_reverse {
 
 using std::make_shared;
 
-void TexObject::evaluate_size(const trace::Call& call)
+unsigned TexObject::evaluate_size(const trace::Call& call)
 {
     unsigned level = call.arg(1).toUInt();
     unsigned w = call.arg(3).toUInt();
     unsigned h = 1;
 
     if (!strcmp(call.name(), "glTexImage2D")||
+        !strcmp(call.name(), "glCompressedTexImage2D")||
         !strcmp(call.name(), "glTexImage3D")) {
         h = call.arg(4).toUInt();
     }
     set_size(level, w, h);
+    return level;
 }
 
 TexObjectMap::TexObjectMap():
@@ -32,6 +34,13 @@ PTraceCall TexObjectMap::active_texture(const trace::Call& call)
 {
     m_active_texture_unit = call.arg(0).toUInt();
     return make_shared<TraceCall>(call);
+}
+
+PTraceCall TexObjectMap::allocation(const trace::Call& call)
+{
+    auto texture = bound_to_call_target(call);
+    texture->allocate(call);
+    return make_shared<TraceCallOnBoundObj>(call, texture);
 }
 
 PTraceCall TexObjectMap::bind_multitex(const trace::Call& call)
