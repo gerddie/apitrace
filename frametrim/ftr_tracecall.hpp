@@ -1,12 +1,12 @@
 #ifndef TRACECALL_HPP
 #define TRACECALL_HPP
 
-#include <memory>
-
 #include "ftr_genobject.hpp"
 
 #include "trace_model.hpp"
 #include <queue>
+#include <memory>
+#include <bitset>
 
 
 namespace frametrim_reverse {
@@ -17,19 +17,24 @@ class TraceCall {
 public:
     using Pointer = std::shared_ptr<TraceCall>;
 
+    enum Flags {
+        required_call,
+        state_call
+    };
+
     TraceCall(unsigned callno, const std::string& name, bool is_state_call);
 
     TraceCall(const trace::Call& call);
 
     void set_required();
 
-    bool required() const {return m_required;}
+    bool required() const {return m_flags.test(required_call);}
     unsigned call_no() const { return m_trace_call_no;};
     const std::string& name() const { return m_name;}
 
     void add_object_to_set(ObjectSet& out_set) const;
 
-    bool is_state_call() const {return m_is_state_call;}
+    bool is_state_call() const {return m_flags.test(state_call);}
 
 private:
     virtual void add_owned_object(ObjectSet& out_set) const;
@@ -37,8 +42,7 @@ private:
 
     unsigned m_trace_call_no;
     std::string m_name;
-    bool m_required;
-    bool m_is_state_call;
+    std::bitset<8> m_flags;
 };
 
 using PTraceCall = TraceCall::Pointer;

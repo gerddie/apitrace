@@ -5,10 +5,10 @@ namespace frametrim_reverse {
 TraceCall::TraceCall(unsigned callno, const std::string& name,
                      bool is_state_call):
     m_trace_call_no(callno),
-    m_name(name),
-    m_required(false),
-    m_is_state_call(is_state_call)
+    m_name(name)
 {
+    if (is_state_call)
+        m_flags.set(state_call);
 }
 
 TraceCall::TraceCall(const trace::Call &call):
@@ -18,7 +18,7 @@ TraceCall::TraceCall(const trace::Call &call):
 
 void TraceCall::set_required()
 {
-    m_required = true;
+    m_flags.set(required_call);
 }
 
 void TraceCall::add_object_to_set(ObjectSet& out_set) const
