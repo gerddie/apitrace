@@ -5,6 +5,7 @@
 #include "ftr_programobj.hpp"
 #include "ftr_texobject.hpp"
 #include "ftr_framebufferobject.hpp"
+#include "ftr_matrixobject.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -55,6 +56,7 @@ struct TraceMirrorImpl {
     void register_program_calls();
     void register_framebuffer_calls();
     void register_glx_state_calls();
+    void register_legacy_calls();
 
     BufObjectMap m_buffers;
     ProgramObjectMap m_programs;
@@ -62,6 +64,7 @@ struct TraceMirrorImpl {
     TexObjectMap m_textures;
     FramebufferObjectMap m_fbo;
     RenderbufferObjectMap m_renderbuffers;
+    MatrixObjectMap m_matrix_states;
 
     VertexArrayMap m_va;
 
@@ -107,6 +110,7 @@ TraceMirrorImpl::TraceMirrorImpl()
     register_program_calls();
     register_framebuffer_calls();
     register_glx_state_calls();
+    register_legacy_calls();
 }
 
 void TraceMirror::process(trace::Call &call, bool required)
@@ -519,5 +523,62 @@ void TraceMirrorImpl::register_glx_state_calls()
     for (auto& i : required_calls)
         m_call_table.insert(std::make_pair(i, required_func));
 }
+
+void TraceMirrorImpl::register_legacy_calls()
+{
+/*
+    // draw calls
+    MAP(glBegin, Begin);
+    MAP(glColor2, Vertex);
+    MAP(glColor3, Vertex);
+    MAP(glColor4, Vertex);
+    MAP(glEnd, End);
+    MAP(glNormal, Vertex);
+    MAP(glRect, Vertex);
+    MAP(glTexCoord2, Vertex);
+    MAP(glTexCoord3, Vertex);
+    MAP(glTexCoord4, Vertex);
+    MAP(glVertex3, Vertex);
+    MAP(glVertex4, Vertex);
+    MAP(glVertex2, Vertex);
+    MAP(glVertex3, Vertex);
+    MAP(glVertex4, Vertex);
+
+    // display lists
+    MAP(glCallList, CallList);
+    MAP(glDeleteLists, DeleteLists);
+    MAP(glEndList, EndList);
+    MAP(glGenLists, GenLists);
+    MAP(glNewList, NewList);
+
+    MAP(glPushClientAttr, todo);
+    MAP(glPopClientAttr, todo);
+
+
+    // shader calls
+    MAP_GENOBJ(glGenPrograms, m_legacy_programs,
+    MatrixObjectMap();
+               LegacyProgramStateMap::generate);
+    MAP_GENOBJ(glDeletePrograms, m_legacy_programs,
+               LegacyProgramStateMap::destroy);
+    MAP_GENOBJ(glBindProgram, m_legacy_programs,
+               LegacyProgramStateMap::bind);
+    MAP_GENOBJ(glProgramString, m_legacy_programs,
+               LegacyProgramStateMap::program_string);
+
+    */
+    // Matrix manipulation
+    MAP_GENOBJ(glLoadIdentity, m_matrix_states, MatrixObjectMap::LoadIdentity);
+    MAP_GENOBJ(glLoadMatrix, m_matrix_states, MatrixObjectMap::LoadMatrix);
+    MAP_GENOBJ(glMatrixMode, m_matrix_states, MatrixObjectMap::MatrixMode);
+    MAP_GENOBJ(glMultMatrix, m_matrix_states, MatrixObjectMap::matrix_op);
+    MAP_GENOBJ(glOrtho, m_matrix_states, MatrixObjectMap::matrix_op);
+    MAP_GENOBJ(glRotate, m_matrix_states, MatrixObjectMap::matrix_op);
+    MAP_GENOBJ(glScale, m_matrix_states, MatrixObjectMap::matrix_op);
+    MAP_GENOBJ(glTranslate, m_matrix_states, MatrixObjectMap::matrix_op);
+    MAP_GENOBJ(glPopMatrix, m_matrix_states, MatrixObjectMap::PopMatrix);
+    MAP_GENOBJ(glPushMatrix, m_matrix_states, MatrixObjectMap::PushMatrix);
+}
+
 
 }
