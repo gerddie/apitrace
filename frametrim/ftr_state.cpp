@@ -51,7 +51,7 @@ struct TraceMirrorImpl {
     void register_texture_calls();
     void register_program_calls();
     void register_framebuffer_calls();
-    void register_required_calls();
+    void register_glx_state_calls();
 
     BufObjectMap m_buffers;
     ProgramObjectMap m_programs;
@@ -102,6 +102,7 @@ TraceMirrorImpl::TraceMirrorImpl()
     register_texture_calls();
     register_program_calls();
     register_framebuffer_calls();
+    register_glx_state_calls();
 }
 
 void TraceMirror::process(trace::Call &call, bool required)
@@ -350,15 +351,6 @@ void TraceMirrorImpl::register_state_calls()
         "glXGetProcAddress",
         "glXGetSwapIntervalMESA",
         "glXGetVisualFromFBConfig",
-        "glXQueryVersion",
-        "glXSwapBuffers",
-        "glXChooseVisual",
-        "glXCreateContext",
-        "glXDestroyContext",
-        "glXMakeCurrent",
-        "glXChooseFBConfig",
-        "glXQueryExtensionsString",
-        "glXSwapIntervalMESA",
     };
     for (auto n: state_calls) {
         m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_call, this, _1)));
@@ -471,17 +463,19 @@ void TraceMirrorImpl::register_framebuffer_calls()
     MAP(glDrawBuffers, DrawBuffers);*/
 }
 
-void TraceMirrorImpl::register_required_calls()
+void TraceMirrorImpl::register_glx_state_calls()
 {
     auto required_func = bind(&TraceMirrorImpl::record_state_call, this, _1, 0);
     const std::vector<const char *> required_calls = {
+        "glXChooseFBConfig",
         "glXChooseVisual",
         "glXCreateContext",
         "glXDestroyContext",
         "glXMakeCurrent",
-        "glXChooseFBConfig",
         "glXQueryExtensionsString",
+        "glXSwapBuffers",
         "glXSwapIntervalMESA",
+        "glXMakeCurrent",
     };
     for (auto& i : required_calls)
         m_call_table.insert(std::make_pair(i, required_func));
