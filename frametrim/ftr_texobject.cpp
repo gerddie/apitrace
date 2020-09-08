@@ -4,10 +4,23 @@
 
 #include <GL/gl.h>
 #include <GL/glext.h>
+#include <sstream>
 
 namespace frametrim_reverse {
 
 using std::make_shared;
+
+void TexObject::state(const trace::Call& call, unsigned nparam)
+{
+    std::stringstream s;
+    s << call.name();
+    for (unsigned i = 0; i < nparam; ++i) {
+        s << "_" << call.arg(i).toUInt();
+    }
+    std::cerr << "Add texture state " << s.str() << "\n";
+    m_state_calls.push_front(std::make_pair(call.no, s.str()));
+}
+
 
 unsigned TexObject::evaluate_size(const trace::Call& call)
 {
@@ -24,26 +37,41 @@ unsigned TexObject::evaluate_size(const trace::Call& call)
     return level;
 }
 
+void TexObject::collect_state_calls(CallIdSet& calls, unsigned call_before)
+{
+    std::unordered_set<std::string> states;
+    for (auto&& c: m_state_calls) {
+        if (c.first < call_before &&
+                states.find(c.second) == states.end()) {
+            calls.insert(c.first);
+            states.insert(c.second);
+        }
+    }
+}
+
 TexObjectMap::TexObjectMap():
     m_active_texture_unit(0)
 {
 
 }
 
-PTraceCall TexObjectMap::active_texture(const trace::Call& call)
+PTraceCall
+TexObjectMap::active_texture(const trace::Call& call)
 {
     m_active_texture_unit = call.arg(0).toUInt();
     return make_shared<TraceCall>(call);
 }
 
-PTraceCall TexObjectMap::allocation(const trace::Call& call)
+PTraceCall
+TexObjectMap::allocation(const trace::Call& call)
 {
     auto texture = bound_to_call_target(call);
     texture->allocate(call);
     return make_shared<TraceCallOnBoundObj>(call, texture);
 }
 
-PTraceCall TexObjectMap::bind_multitex(const trace::Call& call)
+PTraceCall
+TexObjectMap::bind_multitex(const trace::Call& call)
 {
     auto unit = call.arg(0).toUInt() - GL_TEXTURE0;
     auto target =  call.arg(1).toUInt();
@@ -53,6 +81,14 @@ PTraceCall TexObjectMap::bind_multitex(const trace::Call& call)
 
     auto obj = bind_target(target_id, id);
     return make_shared<TraceCallOnBoundObj>(call, obj);
+}
+
+PTraceCall
+TexObjectMap::state(const trace::Call& call, unsigned num_param)
+{
+    auto texture = bound_to_call_target(call);
+    texture->state(call, num_param);
+    return make_shared<TraceCallOnBoundObj>(call, texture);
 }
 
 unsigned TexObjectMap::target_id_from_call(const trace::Call& call) const

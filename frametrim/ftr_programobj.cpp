@@ -101,9 +101,10 @@ ProgramObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
 }
 
 void
-ProgramObject::bind_attr_pointer(unsigned attr_id, PBufObject obj)
+ProgramObject::bind_attr_pointer(unsigned callid, unsigned attr_id, PBufObject obj)
 {
     m_bound_attr_buffers[attr_id] = obj;
+    m_data_calls.push_back(callid);
 }
 
 void
@@ -138,11 +139,10 @@ PTraceCall ProgramObjectMap::bind_attr_location(trace::Call& call)
 PTraceCall
 ProgramObjectMap::vertex_attr_pointer(trace::Call& call, BufObjectMap& buffers)
 {
-    auto program_id = call.arg(0).toUInt();
-    auto attr_id = call.arg(1).toUInt();
+    auto attr_id = call.arg(0).toUInt();
     auto attr_buffer = buffers.bound_to_target(GL_ARRAY_BUFFER);
-    auto program = by_id(program_id);
-    program->bind_attr_pointer(attr_id, attr_buffer);
+    auto program = bound_to_target(0);
+    program->bind_attr_pointer(call.no, attr_id, attr_buffer);
     return make_shared<TraceCallOnBoundObjWithDeps>(call, program, attr_buffer);
 }
 

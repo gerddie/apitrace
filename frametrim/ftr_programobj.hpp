@@ -39,7 +39,7 @@ public:
     using BoundObject::BoundObject;
     void attach_shader(const trace::Call& call, PGenObject shader);
     void bind_attr_location(unsigned loc);
-    void bind_attr_pointer(unsigned attr_id, PBufObject buf);
+    void bind_attr_pointer(unsigned callid, unsigned attr_id, PBufObject buf);
     void data_call(const trace::Call& call);
     void link(const trace::Call& call);
     void uniform(const trace::Call& call);

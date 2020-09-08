@@ -123,4 +123,19 @@ PTraceCall MatrixObjectMap::matrix_op(const trace::Call& call)
     return make_shared<TraceCall>(call);
 }
 
+void MatrixObjectMap::collect_current_state(GenObject::Queue& objects) const
+{
+    if (!m_mv_matrix.empty())
+        objects.push(m_mv_matrix.top());
+
+    if (!m_proj_matrix.empty())
+        objects.push(m_proj_matrix.top());
+
+    if (!m_texture_matrix.empty())
+        objects.push(m_texture_matrix.top());
+
+    if (!m_color_matrix.empty())
+        objects.push(m_color_matrix.top());
+}
+
 }
