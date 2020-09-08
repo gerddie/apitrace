@@ -18,23 +18,21 @@ public:
     using Pointer = std::shared_ptr<TraceCall>;
 
     enum Flags {
-        required_call,
-        state_call
+        required,
+        single_state
     };
 
     TraceCall(unsigned callno, const std::string& name, bool is_state_call);
 
     TraceCall(const trace::Call& call);
 
-    void set_required();
+    void set_flag(Flags f) {m_flags.set(f);}
+    bool test_flag(Flags f) {return m_flags.test(f);}
 
-    bool required() const {return m_flags.test(required_call);}
     unsigned call_no() const { return m_trace_call_no;};
     const std::string& name() const { return m_name;}
 
     void add_object_to_set(ObjectSet& out_set) const;
-
-    bool is_state_call() const {return m_flags.test(state_call);}
 
 private:
     virtual void add_owned_object(ObjectSet& out_set) const;

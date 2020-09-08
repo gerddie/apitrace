@@ -8,17 +8,12 @@ TraceCall::TraceCall(unsigned callno, const std::string& name,
     m_name(name)
 {
     if (is_state_call)
-        m_flags.set(state_call);
+        m_flags.set(single_state);
 }
 
 TraceCall::TraceCall(const trace::Call &call):
     TraceCall(call.no, call.name(), false)
 {
-}
-
-void TraceCall::set_required()
-{
-    m_flags.set(required_call);
 }
 
 void TraceCall::add_object_to_set(ObjectSet& out_set) const

@@ -145,7 +145,7 @@ void TraceMirrorImpl::process(trace::Call& call, bool required)
         c = std::make_shared<TraceCall>(call);
     }
     if (required)
-        c->set_required();
+        c->set_flag(TraceCall::required);
     m_trace.push_back(c);
 }
 
@@ -192,7 +192,7 @@ TraceMirrorImpl::resolve()
     CallIdSet required_calls;
     unsigned next_required_call = std::numeric_limits<unsigned>::max();
     for(auto& i : m_trace) {
-        if (i->required()) {
+        if (i->test_flag(TraceCall::required)) {
             i->add_object_to_set(required_objects);
             required_calls.insert(i->call_no());
             if (i->call_no() < next_required_call)
@@ -212,12 +212,12 @@ TraceMirrorImpl::resolve()
     next_required_call = std::numeric_limits<unsigned>::max();
     for (auto c = m_trace.rbegin(); c != m_trace.rend(); ++c) {
         /*  required calls are already in the output callset */
-        if ((*c)->required()) {
+        if ((*c)->test_flag(TraceCall::required)) {
             next_required_call = (*c)->call_no();
             continue;
         }
 
-        if ((*c)->is_state_call())
+        if ((*c)->test_flag(TraceCall::single_state))
             resolve_state_calls(**c, required_calls, next_required_call);
 
     }
@@ -240,7 +240,7 @@ TraceMirrorImpl::resolve_state_calls(TraceCall& call,
                   << call.name() << " last was " << last_call.last_before_callid << "\n";
         last_call.last_before_callid = call.call_no();
         callset.insert(call.call_no());
-        call.set_required();
+        call.set_flag(TraceCall::required);
     }
 }
 
