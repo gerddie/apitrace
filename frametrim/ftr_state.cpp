@@ -36,13 +36,16 @@ struct TraceMirrorImpl {
     PTraceCall call_on_bound_obj(trace::Call &call, BoundObjectMap& map);
     PTraceCall call_on_named_obj(trace::Call &call, BoundObjectMap& map);
     PTraceCall record_call(trace::Call &call);
-    PTraceCall record_state_call(trace::Call &call, unsigned num_name_params);
+    PTraceCall record_state_call(trace::Call &call, unsigned num_name_params,
+                                 TraceCall::Flags calltype);
     PTraceCall record_enable_call(trace::Call &call, const char *basename);
-
 
     void resolve_state_calls(TraceCall &call,
                              CallIdSet& callset /* inout */,
                              unsigned last_required_call);
+    void resolve_repeatable_state_calls(TraceCall &call,
+                                        CallIdSet& callset /* inout */);
+
 
     frametrim::CallIdSet resolve();
 
@@ -63,6 +66,7 @@ struct TraceMirrorImpl {
     VertexArrayMap m_va;
 
     StateCallMap m_state_calls;
+    std::unordered_map<std::string, std::string> m_state_call_param_map;
 
     using SamplerObjectMap = GenObjectMap<BoundObject>;
     SamplerObjectMap m_samplers;
@@ -173,9 +177,12 @@ TraceMirrorImpl::record_call(trace::Call &call)
 }
 
 PTraceCall
-TraceMirrorImpl::record_state_call(trace::Call &call, unsigned num_name_params)
+TraceMirrorImpl::record_state_call(trace::Call &call, unsigned num_name_params,
+                                   TraceCall::Flags calltype)
 {
-    return make_shared<StateCall>(call, num_name_params);
+    auto c = make_shared<StateCall>(call, num_name_params);
+    c->set_flag(calltype);
+    return c;
 }
 
 PTraceCall
@@ -191,6 +198,8 @@ TraceMirrorImpl::resolve()
     ObjectSet required_objects;
     CallIdSet required_calls;
     unsigned next_required_call = std::numeric_limits<unsigned>::max();
+
+    /* record all frames from the target frame set */
     for(auto& i : m_trace) {
         if (i->test_flag(TraceCall::required)) {
             i->add_object_to_set(required_objects);
@@ -200,12 +209,25 @@ TraceMirrorImpl::resolve()
         }
     }
 
+    /* Now collect all calls from the beginning that refere to states that
+     * can be changed repeatandly (glx and egl stuff) and where we must use
+     * the eraliest calls possible */
+    for (auto&& c : m_trace) {
+        if (c->call_no() >= next_required_call)
+            break;
+        if (c->test_flag(TraceCall::repeatable_state))
+            resolve_repeatable_state_calls(*c, required_calls);
+    }
+
     while (!required_objects.empty()) {
         auto obj = required_objects.front();
         required_objects.pop();
         obj->collect_objects(required_objects);
         obj->collect_calls(required_calls, next_required_call);
     }
+
+
+
 
     /* At this point only state calls should remain to be recorded
      * So go in reverse to the list and add them. */
@@ -219,7 +241,6 @@ TraceMirrorImpl::resolve()
 
         if ((*c)->test_flag(TraceCall::single_state))
             resolve_state_calls(**c, required_calls, next_required_call);
-
     }
     return required_calls;
 }
@@ -239,6 +260,19 @@ TraceMirrorImpl::resolve_state_calls(TraceCall& call,
         std::cerr << "Add state call " << call.call_no() << ":"
                   << call.name() << " last was " << last_call.last_before_callid << "\n";
         last_call.last_before_callid = call.call_no();
+        callset.insert(call.call_no());
+        call.set_flag(TraceCall::required);
+    }
+}
+
+void TraceMirrorImpl::resolve_repeatable_state_calls(TraceCall &call,
+                                                     CallIdSet& callset /* inout */)
+{
+    auto& last_state_param_set = m_state_call_param_map[call.name()];
+
+    if (last_state_param_set != call.name_with_params()) {
+        m_state_call_param_map[call.name()] = call.name_with_params();
+
         callset.insert(call.call_no());
         call.set_flag(TraceCall::required);
     }
@@ -298,7 +332,8 @@ void TraceMirrorImpl::register_state_calls()
     };
 
     for (auto n: state_calls_0) {
-        m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_state_call, this, _1, 0)));
+        m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_state_call,
+                                                   this, _1, 0, TraceCall::single_state)));
     }
 
     const std::vector<const char *> state_calls_1  = {
@@ -313,7 +348,8 @@ void TraceMirrorImpl::register_state_calls()
     };
 
     for (auto n: state_calls_1) {
-        m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_state_call, this, _1, 1)));
+        m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_state_call,
+                                                   this, _1, 1, TraceCall::single_state)));
     }
 
     const std::vector<const char *> state_calls_2  = {
@@ -322,7 +358,8 @@ void TraceMirrorImpl::register_state_calls()
     };
 
     for (auto n: state_calls_2) {
-        m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_state_call, this, _1, 2)));
+        m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_state_call,
+                                                   this, _1, 2, TraceCall::single_state)));
     }
 
     const std::vector<const char *> state_calls = {
@@ -465,7 +502,8 @@ void TraceMirrorImpl::register_framebuffer_calls()
 
 void TraceMirrorImpl::register_glx_state_calls()
 {
-    auto required_func = bind(&TraceMirrorImpl::record_state_call, this, _1, 0);
+    auto required_func = bind(&TraceMirrorImpl::record_state_call,
+                              this, _1, 0, TraceCall::repeatable_state);
     const std::vector<const char *> required_calls = {
         "glXChooseFBConfig",
         "glXChooseVisual",

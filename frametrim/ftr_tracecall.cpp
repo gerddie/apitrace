@@ -1,18 +1,62 @@
 #include "ftr_tracecall.hpp"
 
+#include <sstream>
+
+namespace trace {
+
+class StreamVisitor : public Visitor
+{
+public:
+    StreamVisitor(std::stringstream& ss): s(ss) {}
+    void visit(Null *) override { s << "(null)";}
+    void visit(Bool *v) override { s << v->value;}
+    void visit(SInt *v) override { s << v->value;}
+    void visit(UInt *v) override { s << v->value;}
+    void visit(Float *v) override { s << v->value;}
+    void visit(Double *v) override { s << v->value;}
+    void visit(String *v) override { s << v->value;}
+    void visit(WString *v) override { s << v->value;}
+    void visit(Enum *v) override { s << v->value;}
+    void visit(Bitmask *v) override { s << v->value;}
+    void visit(Struct *v) override { s << v;}
+    void visit(Array *v) override { s << v;}
+    void visit(Blob *v) override { s << v;}
+    void visit(Pointer *v) override { s << v->value;}
+    void visit(Repr *v) override { s << v;}
+protected:
+    inline void _visit(Value *value) {
+        if (value) {
+            value->visit(*this);
+        }
+    }
+    std::stringstream& s;
+};
+
+}
+
 namespace frametrim_reverse {
 
-TraceCall::TraceCall(unsigned callno, const std::string& name,
+TraceCall::TraceCall(const trace::Call &call, const std::string& name,
                      bool is_state_call):
-    m_trace_call_no(callno),
+    m_trace_call_no(call.no),
     m_name(name)
 {
     if (is_state_call)
         m_flags.set(single_state);
+
+    std::stringstream s;
+    s << call.name();
+
+    trace::StreamVisitor sv(s);
+    for(auto&& a: call.args) {
+        s << "_";  a.value->visit(sv);
+    }
+
+    m_name_with_params = s.str();
 }
 
 TraceCall::TraceCall(const trace::Call &call):
-    TraceCall(call.no, call.name(), false)
+    TraceCall(call, call.name(), false)
 {
 }
 
@@ -21,7 +65,6 @@ void TraceCall::add_object_to_set(ObjectSet& out_set) const
     add_owned_object(out_set);
     add_dependend_objects(out_set);
 }
-
 
 void TraceCall::add_owned_object(ObjectSet& out_set) const
 {

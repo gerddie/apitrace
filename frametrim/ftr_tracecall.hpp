@@ -19,10 +19,11 @@ public:
 
     enum Flags {
         required,
-        single_state
+        single_state,
+        repeatable_state
     };
 
-    TraceCall(unsigned callno, const std::string& name, bool is_state_call);
+    TraceCall(const trace::Call &call, const std::string& name, bool is_state_call);
 
     TraceCall(const trace::Call& call);
 
@@ -31,6 +32,8 @@ public:
 
     unsigned call_no() const { return m_trace_call_no;};
     const std::string& name() const { return m_name;}
+    const std::string& name_with_params() const { return m_name_with_params;}
+
 
     void add_object_to_set(ObjectSet& out_set) const;
 
@@ -40,6 +43,7 @@ private:
 
     unsigned m_trace_call_no;
     std::string m_name;
+    std::string m_name_with_params;
     std::bitset<8> m_flags;
 };
 
