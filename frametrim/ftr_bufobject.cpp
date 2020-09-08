@@ -10,6 +10,7 @@ using std::make_shared;
 void BufObject::data(trace::Call& call)
 {
     m_size = call.arg(1).toUInt();
+    m_allocation_call = call.no;
 }
 
 void BufObject::map(trace::Call& call)
@@ -34,6 +35,15 @@ bool BufObject::address_in_mapped_range(uint64_t addr) const
 {
     return addr >= m_mapped_range.first &&
             addr < m_mapped_range.second;
+}
+
+void
+BufObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
+{
+    if (m_allocation_call < call_before) {
+        calls.insert(m_allocation_call);
+        collect_last_call_before(calls, m_bind_calls, m_allocation_call);
+    }
 }
 
 #define FORWARD_Call(FUNC) \

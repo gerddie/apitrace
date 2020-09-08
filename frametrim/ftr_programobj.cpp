@@ -3,6 +3,9 @@
 
 #include "ftr_genobject_impl.hpp"
 
+#include <GL/gl.h>
+#include <GL/glext.h>
+
 namespace frametrim_reverse {
 
 using std::make_shared;
@@ -70,12 +73,33 @@ void ProgramObject::collect_dependend_obj(Queue& objects)
             i->set_visited();
         }
     }
+
+    for(auto& i : m_bound_attr_buffers) {
+        if (i.second && !i.second->visited()) {
+            objects.push(i.second);
+            i.second->collect_objects(objects);
+            i.second->set_visited();
+        }
+    }
 }
 
 void
 ProgramObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
 {
     collect_all_calls_before(calls, m_attach_calls, call_before);
+    collect_all_calls_before(calls, m_data_calls, call_before);
+}
+
+void
+ProgramObject::bind_attr_pointer(unsigned attr_id, PBufObject obj)
+{
+    m_bound_attr_buffers[attr_id] = obj;
+}
+
+void
+ProgramObject::data_call(const trace::Call& call)
+{
+    m_data_calls.push_back(call.no);
 }
 
 PTraceCall
@@ -96,12 +120,32 @@ PTraceCall ProgramObjectMap::bind_attr_location(trace::Call& call)
     return make_shared<TraceCallOnBoundObjWithDeps>(call, program, nullptr);
 }
 
+PTraceCall
+ProgramObjectMap::vertex_attr_pointer(trace::Call& call, BufObjectMap& buffers)
+{
+    auto program_id = call.arg(0).toUInt();
+    auto attr_id = call.arg(1).toUInt();
+    auto attr_buffer = buffers.bound_to_target(GL_ARRAY_BUFFER);
+    auto program = by_id(program_id);
+    program->bind_attr_pointer(attr_id, attr_buffer);
+    return make_shared<TraceCallOnBoundObjWithDeps>(call, program, attr_buffer);
+}
+
 unsigned
 ProgramObjectMap::target_id_from_call(const trace::Call& call) const
 {
     (void)call;
     /* There is only one bind target */
     return 0;
+}
+
+PTraceCall
+ProgramObjectMap::data(trace::Call& call)
+{
+    auto program = by_id(call.arg(0).toUInt());
+    assert(program);
+    program->data_call(call);
+    return make_shared<TraceCallOnBoundObj>(call, program);
 }
 
 template class CreateObjectMap<ProgramObject>;

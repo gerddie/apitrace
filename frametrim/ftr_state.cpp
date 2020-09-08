@@ -219,15 +219,14 @@ TraceMirrorImpl::resolve()
             resolve_repeatable_state_calls(*c, required_calls);
     }
 
+    m_va.collect_currently_bound_objects(required_objects);
+
     while (!required_objects.empty()) {
         auto obj = required_objects.front();
         required_objects.pop();
         obj->collect_objects(required_objects);
         obj->collect_calls(required_calls, next_required_call);
     }
-
-
-
 
     /* At this point only state calls should remain to be recorded
      * So go in reverse to the list and add them. */
@@ -297,7 +296,6 @@ void TraceMirrorImpl::register_state_calls()
 {
     const std::vector<const char *> state_calls_0  = {
         "glAlphaFunc",
-        "glBindVertexArray",
         "glBlendColor",
         "glBlendEquation",
         "glBlendFunc",
@@ -388,6 +386,7 @@ void TraceMirrorImpl::register_state_calls()
         "glXGetProcAddress",
         "glXGetSwapIntervalMESA",
         "glXGetVisualFromFBConfig",
+        "glXSwapBuffers",
     };
     for (auto n: state_calls) {
         m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_call, this, _1)));
@@ -456,8 +455,9 @@ void TraceMirrorImpl::register_program_calls()
     MAP_GENOBJ(glBindAttribLocation, m_programs,
                ProgramObjectMap::bind_attr_location);
 
-    MAP_DATA(glLinkProgram, call_on_named_obj, m_programs);
-    MAP_DATA(glUniform, call_on_named_obj, m_programs);
+    MAP_GENOBJ(glLinkProgram, m_programs, ProgramObjectMap::data);
+    MAP_GENOBJ(glUniform, m_programs, ProgramObjectMap::data);
+
     MAP_DATA(glBindFragDataLocation, call_on_named_obj, m_programs);
     MAP_DATA(glProgramBinary, call_on_named_obj, m_programs);
     MAP_DATA(glProgramParameter, call_on_named_obj, m_programs);
@@ -511,7 +511,6 @@ void TraceMirrorImpl::register_glx_state_calls()
         "glXDestroyContext",
         "glXMakeCurrent",
         "glXQueryExtensionsString",
-        "glXSwapBuffers",
         "glXSwapIntervalMESA",
         "glXMakeCurrent",
     };

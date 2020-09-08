@@ -43,8 +43,6 @@ private:
     virtual void collect_owned_obj(Queue& objects);
     virtual void collect_dependend_obj(Queue& objects);
 
-
-
     unsigned m_id;
     unsigned m_gen_call;
     bool m_visited;
@@ -62,7 +60,7 @@ public:
         m_bind_calls.push_back(call_no);
     }
 
-private:
+protected:
     void collect_bind_calls(CallIdSet& calls, unsigned call_before) override;
 
     std::vector<unsigned> m_bind_calls;
