@@ -3,57 +3,59 @@ namespace frametrim_reverse {
 
 using std::make_shared;
 
-GenObject::GenObject(unsigned id, unsigned gen_call):
-    m_id(id),
-    m_gen_call(gen_call),
+TraceObject::TraceObject():
     m_visited(false)
 {
-
 }
 
-void GenObject::collect_objects(Queue& objects)
+void TraceObject::collect_objects(Queue& objects)
 {
     collect_owned_obj(objects);
     collect_dependend_obj(objects);
 }
 
-void GenObject::collect_calls(CallIdSet& calls, unsigned call_before)
+void TraceObject::collect_calls(CallIdSet& calls, unsigned call_before)
 {
-    calls.insert(m_gen_call);
+    collect_generate_call(calls);
     collect_allocation_call(calls);
     collect_data_calls(calls, call_before);
     collect_bind_calls(calls, call_before);
     collect_state_calls(calls, call_before);
 }
 
-void GenObject::collect_allocation_call(CallIdSet& calls)
+void TraceObject::collect_generate_call(CallIdSet& calls)
 {
     (void)calls;
 }
 
-void GenObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
+void TraceObject::collect_allocation_call(CallIdSet& calls)
+{
+    (void)calls;
+}
+
+void TraceObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
 {
     (void)calls;
     (void)call_before;
 }
 
-void GenObject::collect_state_calls(CallIdSet& calls, unsigned call_before)
+void TraceObject::collect_state_calls(CallIdSet& calls, unsigned call_before)
 {
     (void)calls;
     (void)call_before;
 }
 
-void GenObject::collect_dependend_obj(Queue& objects)
+void TraceObject::collect_dependend_obj(Queue& objects)
 {
     (void)objects;
 }
 
-void GenObject::collect_owned_obj(Queue& objects)
+void TraceObject::collect_owned_obj(Queue& objects)
 {
     (void)objects;
 }
 
-void GenObject::collect_last_call_before(CallIdSet& calls,
+void TraceObject::collect_last_call_before(CallIdSet& calls,
                                          const std::vector<unsigned>& call_list,
                                          unsigned call_before)
 {
@@ -64,7 +66,7 @@ void GenObject::collect_last_call_before(CallIdSet& calls,
         }
 }
 
-void GenObject::collect_all_calls_before(CallIdSet& calls,
+void TraceObject::collect_all_calls_before(CallIdSet& calls,
                                          const std::vector<unsigned>& call_list,
                                          unsigned call_before)
 {
@@ -73,11 +75,23 @@ void GenObject::collect_all_calls_before(CallIdSet& calls,
             calls.insert(c);
 }
 
-void GenObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
+void TraceObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
 {
     (void)calls;
     (void)call_before;
 }
+
+GenObject::GenObject(unsigned id, unsigned gen_call):
+    m_id(id),
+    m_gen_call(gen_call)
+{
+}
+
+void GenObject::collect_generate_call(CallIdSet& calls)
+{
+    calls.insert(m_gen_call);
+}
+
 
 void BoundObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
 {

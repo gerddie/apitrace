@@ -14,19 +14,18 @@ using frametrim::CallIdSet;
 class TraceCall;
 using PTraceCall = std::shared_ptr<TraceCall>;
 
-class GenObject
-{
+class TraceObject {
 public:
-    using Pointer = std::shared_ptr<GenObject>;
+    TraceObject();
+    using Pointer = std::shared_ptr<TraceObject>;
     using Queue = std::queue<Pointer>;
 
-    GenObject(unsigned gl_id, unsigned gen_call);
-    unsigned id() const { return m_id;};
     bool visited() const { return m_visited;}
     void set_visited() {m_visited = true;};
 
     void collect_objects(Queue& objects);
     void collect_calls(CallIdSet& calls, unsigned call_before);
+
 protected:
     void collect_last_call_before(CallIdSet& calls,
                                   const std::vector<unsigned>& call_list,
@@ -34,7 +33,9 @@ protected:
     void collect_all_calls_before(CallIdSet& calls,
                                   const std::vector<unsigned>& call_list,
                                   unsigned call_before);
+
 private:
+    virtual void collect_generate_call(CallIdSet& calls);
     virtual void collect_allocation_call(CallIdSet& calls);
     virtual void collect_data_calls(CallIdSet& calls, unsigned call_before);
     virtual void collect_bind_calls(CallIdSet& calls, unsigned call_before);
@@ -43,9 +44,22 @@ private:
     virtual void collect_owned_obj(Queue& objects);
     virtual void collect_dependend_obj(Queue& objects);
 
+    bool m_visited;
+};
+using PTraceObject = TraceObject::Pointer;
+
+class GenObject : public TraceObject {
+public:
+    using Pointer = std::shared_ptr<GenObject>;
+
+    GenObject(unsigned gl_id, unsigned gen_call);
+    unsigned id() const { return m_id;};
+
+private:
+    void collect_generate_call(CallIdSet& calls) override;
+
     unsigned m_id;
     unsigned m_gen_call;
-    bool m_visited;
 };
 
 using ObjectSet = GenObject::Queue;
