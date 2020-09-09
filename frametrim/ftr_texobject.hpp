@@ -11,13 +11,12 @@ class TexObject : public AttachableObject {
 public:
     using AttachableObject::AttachableObject;
     using Pointer = std::shared_ptr<TexObject>;
-    void state(const trace::Call& call, unsigned nparam);
+    PTraceCall state(const trace::Call& call, unsigned nparam);
 private:
     unsigned evaluate_size(const trace::Call& call) override;
     void collect_state_calls(CallIdSet& calls, unsigned call_before) override;
 
-    std::forward_list<std::pair<unsigned, std::string>> m_state_calls;
-
+    std::forward_list<std::pair<unsigned, PTraceCall>> m_state_calls;
 };
 
 using PTexObject = TexObject::Pointer;

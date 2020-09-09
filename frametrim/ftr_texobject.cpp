@@ -10,15 +10,11 @@ namespace frametrim_reverse {
 
 using std::make_shared;
 
-void TexObject::state(const trace::Call& call, unsigned nparam)
+PTraceCall TexObject::state(const trace::Call& call, unsigned nparam)
 {
-    std::stringstream s;
-    s << call.name();
-    for (unsigned i = 0; i < nparam; ++i) {
-        s << "_" << call.arg(i).toUInt();
-    }
-    std::cerr << "Add texture state " << s.str() << "\n";
-    m_state_calls.push_front(std::make_pair(call.no, s.str()));
+    auto c = make_shared<StateCall>(call, nparam);
+    m_state_calls.push_front(std::make_pair(call.no, c));
+    return c;
 }
 
 unsigned TexObject::evaluate_size(const trace::Call& call)
@@ -41,9 +37,9 @@ void TexObject::collect_state_calls(CallIdSet& calls, unsigned call_before)
     std::unordered_set<std::string> states;
     for (auto&& c: m_state_calls) {
         if (c.first < call_before &&
-                states.find(c.second) == states.end()) {
+                states.find(c.second->name()) == states.end()) {
             calls.insert(c.first);
-            states.insert(c.second);
+            states.insert(c.second->name());
         }
     }
 }
@@ -86,8 +82,7 @@ PTraceCall
 TexObjectMap::state(const trace::Call& call, unsigned num_param)
 {
     auto texture = bound_to_call_target(call);
-    texture->state(call, num_param);
-    return make_shared<TraceCallOnBoundObj>(call, texture);
+    return texture->state(call, num_param);
 }
 
 unsigned TexObjectMap::target_id_from_call(const trace::Call& call) const
