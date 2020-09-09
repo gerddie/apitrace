@@ -21,7 +21,6 @@ void TexObject::state(const trace::Call& call, unsigned nparam)
     m_state_calls.push_front(std::make_pair(call.no, s.str()));
 }
 
-
 unsigned TexObject::evaluate_size(const trace::Call& call)
 {
     unsigned level = call.arg(1).toUInt();

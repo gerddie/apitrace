@@ -71,12 +71,7 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
             singular_states.insert(state);
             calls.insert(c->call_no());
         }
-
     }
-
-
-
-
 }
 
 void FramebufferObject::collect_dependend_obj(Queue& objects)
@@ -142,16 +137,19 @@ FramebufferObjectMap::bind(const trace::Call& call)
     auto target = call.arg(0).toUInt();
     auto fbo = by_id(call.arg(1).toUInt());
 
+    PTraceCall retval;
     if (target == GL_FRAMEBUFFER ||
         target == GL_DRAW_FRAMEBUFFER) {
         m_draw_buffer = fbo;
     }
 
+
     if (target == GL_FRAMEBUFFER ||
         target == GL_READ_FRAMEBUFFER) {
         m_read_buffer = fbo;
     }
-    return make_shared<TraceCall>(call);
+    return fbo ? make_shared<TraceCallOnBoundObj>(call, fbo) :
+                 make_shared<TraceCall>(call);
 }
 
 PFramebufferObject FramebufferObjectMap::draw_buffer() const

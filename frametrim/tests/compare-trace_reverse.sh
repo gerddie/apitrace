@@ -9,8 +9,8 @@ orig_img=$5
 
 echo "Run tests $trace"
 
-rm ${trace}*.png
-rm ${trace}*.md5
+rm r${trace}*.png
+rm r${trace}*.md5
 rm trim$-{trace}
 
 ${trim} "${datadir}/${trace}" --frames ${frame} -o rtrim-${trace} || exit 1

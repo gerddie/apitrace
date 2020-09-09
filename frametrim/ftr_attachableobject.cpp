@@ -20,6 +20,12 @@ void AttachableObject::collect_allocation_call(CallIdSet& calls)
     }
 }
 
+void AttachableObject::collect_dependend_obj(Queue& objects)
+{
+    for(auto&& o : m_attached_to)
+        objects.push(o.second);
+}
+
 void AttachableObject::set_size(unsigned level, unsigned w, unsigned h)
 {
     if (m_width.size() <= level)
@@ -30,6 +36,7 @@ void AttachableObject::set_size(unsigned level, unsigned w, unsigned h)
     m_width[level] = w;
     m_heigth[level] = h;
 }
+
 
 void AttachableObject::attach_to(PGenObject obj)
 {

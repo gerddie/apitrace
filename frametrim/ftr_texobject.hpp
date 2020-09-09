@@ -17,6 +17,7 @@ private:
     void collect_state_calls(CallIdSet& calls, unsigned call_before) override;
 
     std::forward_list<std::pair<unsigned, std::string>> m_state_calls;
+
 };
 
 using PTexObject = TexObject::Pointer;

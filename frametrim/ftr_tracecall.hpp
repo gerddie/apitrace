@@ -37,7 +37,6 @@ public:
     const std::string& name() const { return m_name;}
     const std::string& name_with_params() const { return m_name_with_params;}
 
-
     void add_object_to_set(ObjectSet& out_set) const;
 
 private:

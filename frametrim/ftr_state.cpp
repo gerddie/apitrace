@@ -166,6 +166,7 @@ TraceMirrorImpl::TraceMirrorImpl()
     register_framebuffer_calls();
     register_glx_state_calls();
     register_legacy_calls();
+    register_draw_related_calls();
 }
 
 void TraceMirror::process(trace::Call &call, bool required)
@@ -412,8 +413,11 @@ PTraceCall TraceMirrorImpl::record_viewport_call(trace::Call &call)
     if (m_current_draw_buffer) {
         m_current_draw_buffer->viewport(call);
         return nullptr;
-    } else
-        return make_shared<TraceCall>(call);;
+    } else {
+        auto c = make_shared<TraceCall>(call);
+        c->set_flag(TraceCall::single_state);
+        return c;
+    }
 }
 
 PTraceCall TraceMirrorImpl::record_clear_call(trace::Call &call)
@@ -535,8 +539,7 @@ void TraceMirrorImpl::register_state_calls()
         "glStencilFuncSeparate",
         "glStencilMask",
         "glStencilOpSeparate",
-        "glVertexPointer",
-        "glViewport",
+        "glVertexPointer"
     };
 
     for (auto n: state_calls_0) {
