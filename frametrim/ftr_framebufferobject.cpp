@@ -30,6 +30,83 @@ FramebufferObject::FramebufferObject(unsigned gl_id, unsigned gen_call):
 
 }
 
+void FramebufferObject::set_state(PTraceCall call)
+{
+    m_state_calls.push_back(call);
+}
+
+void FramebufferObject::viewport(const trace::Call& call)
+{
+    m_viewport_x = call.arg(0).toUInt();
+    m_viewport_y = call.arg(1).toUInt();
+    m_viewport_width = call.arg(2).toUInt();
+    m_viewport_height = call.arg(3).toUInt();
+
+    m_state_calls.push_back(make_shared<StateCall>(call, 0));
+}
+
+void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
+{
+    unsigned start_redraw_call = std::numeric_limits<unsigned>::max();
+    for (auto&& c : m_draw_calls) {
+        if (c->call_no() >= call_before)
+            continue;
+        calls.insert(c->call_no());
+        if (c->test_flag(TraceCall::full_viewport_redraw)) {
+            start_redraw_call = c->call_no();
+            break;
+        }
+    }
+
+    /* all state changes during the draw must be recorded */
+    std::unordered_set<std::string> singular_states;
+
+    for (auto&& c : m_state_calls) {
+        if (c->call_no() >= call_before)
+            continue;
+        if (c->call_no() > start_redraw_call)
+            calls.insert(c->call_no());
+        auto state = c->name();
+        if (singular_states.find(state) == singular_states.end()) {
+            singular_states.insert(state);
+            calls.insert(c->call_no());
+        }
+
+    }
+
+
+
+
+}
+
+void FramebufferObject::collect_dependend_obj(Queue& objects)
+{
+    for (auto&& a : m_attachments)
+        if (a && !a-visited())
+            objects.push(a);
+}
+
+
+void FramebufferObject::clear(const trace::Call& call)
+{
+    bool full_clear = true;
+    if (m_viewport_width != m_width ||
+        m_viewport_height != m_height)
+        full_clear = false;
+
+    /* TODO: Check attachments vs. draw buffers */
+
+    auto c = make_shared<TraceCall>(call);
+    if (full_clear)
+        c->set_flag(TraceCall::full_viewport_redraw);
+    m_draw_calls.push_front(c);
+}
+
+void FramebufferObject::draw(PTraceCall call)
+{
+    m_draw_calls.push_front(call);
+}
+
 void
 FramebufferObject::attach(unsigned attach_point, PAttachableObject obj, unsigned layer)
 {

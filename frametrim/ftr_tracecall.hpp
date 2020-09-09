@@ -19,8 +19,11 @@ public:
 
     enum Flags {
         required,
+        recorded,
         single_state,
-        repeatable_state
+        repeatable_state,
+        full_viewport_redraw,
+        framebuffer_op
     };
 
     TraceCall(const trace::Call &call, const std::string& name, bool is_state_call);

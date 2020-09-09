@@ -58,7 +58,7 @@ TexObjectMap::TexObjectMap():
 PTraceCall
 TexObjectMap::active_texture(const trace::Call& call)
 {
-    m_active_texture_unit = call.arg(0).toUInt();
+    m_active_texture_unit = call.arg(0).toUInt() - GL_TEXTURE0;
     return make_shared<TraceCall>(call);
 }
 
