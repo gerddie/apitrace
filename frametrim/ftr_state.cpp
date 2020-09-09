@@ -481,7 +481,7 @@ void TraceMirrorImpl::register_program_calls()
 
 void TraceMirrorImpl::register_framebuffer_calls()
 {
-    MAP_GENOBJ_DATA(glBindRenderbuffer, m_renderbuffers, RenderbufferObjectMap::bind, 0);
+    MAP_GENOBJ_DATA(glBindRenderbuffer, m_renderbuffers, RenderbufferObjectMap::bind, 1);
     MAP_GENOBJ(glDeleteRenderbuffers, m_renderbuffers, RenderbufferObjectMap::destroy);
     MAP_GENOBJ(glGenRenderbuffer, m_renderbuffers, RenderbufferObjectMap::generate);
     MAP_GENOBJ(glRenderbufferStorage, m_renderbuffers, RenderbufferObjectMap::storage);

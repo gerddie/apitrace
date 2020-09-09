@@ -7,14 +7,14 @@ namespace frametrim_reverse {
 
 class FramebufferObject : public GenObject {
 public:
-    using GenObject::GenObject;
+    FramebufferObject(unsigned gl_id, unsigned gen_call);
 
     using Pointer = std::shared_ptr<FramebufferObject>;
 
     void attach(unsigned index, PAttachableObject obj, unsigned layer);
 
 private:
-    PAttachableObject m_attachments[10];
+    std::vector<PAttachableObject> m_attachments;
     PGenObject m_blit_source;
     unsigned m_width, m_height;
 };
@@ -45,6 +45,8 @@ public:
     PTraceCall attach_texture3d(const trace::Call& call, TexObjectMap& tex_map);
 
 private:
+    PFramebufferObject bound_to_call_target(const trace::Call& call) const;
+
     PFramebufferObject m_draw_buffer;
     PFramebufferObject m_read_buffer;
 };

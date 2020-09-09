@@ -24,6 +24,12 @@ RenderbufferObjectMap::storage(const trace::Call& call)
     return make_shared<TraceCallOnBoundObj>(call, rb);
 }
 
+FramebufferObject::FramebufferObject(unsigned gl_id, unsigned gen_call):
+    GenObject(gl_id, gen_call)
+{
+
+}
+
 void
 FramebufferObject::attach(unsigned attach_point, PAttachableObject obj, unsigned layer)
 {
@@ -38,6 +44,9 @@ FramebufferObject::attach(unsigned attach_point, PAttachableObject obj, unsigned
     default:
         idx = attach_point - GL_COLOR_ATTACHMENT0 + 2;
     }
+
+    if (idx >= m_attachments.size())
+        m_attachments.resize(idx + 1);
 
     if (m_attachments[idx])
         m_attachments[idx]->detach_from(id());
@@ -78,7 +87,7 @@ FramebufferObjectMap::blit(const trace::Call& call)
 PTraceCall
 FramebufferObjectMap::attach_renderbuffer(const trace::Call& call, RenderbufferObjectMap& rb_map)
 {
-    auto fbo = bound_to_call_target(call);
+    PFramebufferObject fbo = bound_to_call_target(call);
     auto rb = rb_map.by_id(call.arg(3).toUInt());
     auto attach_point = call.arg(1).toUInt();
 
@@ -97,17 +106,22 @@ FramebufferObjectMap::attach_texture(const trace::Call& call,
     auto tex = tex_map.by_id(call.arg(tex_param_idx).toUInt());
     auto layer = call.arg(level_param_idx).toUInt();
 
+    PFramebufferObject fbo = bound_to_call_target(call);
+    fbo->attach(attach_point, tex, layer);
+
+    return make_shared<TraceCallOnBoundObjWithDeps>(call, fbo, tex);
+}
+
+PFramebufferObject
+FramebufferObjectMap::bound_to_call_target(const trace::Call& call) const
+{
     auto target = call.arg(0).toUInt();
 
-    PFramebufferObject fbo;
-    if (target == GL_FRAMEBUFFER || GL_DRAW_FRAMEBUFFER) {
-        fbo = bound_to_call_target(call);
-        fbo->attach(attach_point, tex, layer);
-    } else {
-        assert(GL_READ_FRAMEBUFFER);
-        fbo = bound_to_call_target(call);
-    }
-    return make_shared<TraceCallOnBoundObjWithDeps>(call, fbo, tex);
+    if (target == GL_FRAMEBUFFER ||
+            target == GL_DRAW_FRAMEBUFFER) {
+        return m_draw_buffer;
+    } else
+        return m_read_buffer;
 }
 
 PTraceCall FramebufferObjectMap::attach_texture3d(const trace::Call& call,
