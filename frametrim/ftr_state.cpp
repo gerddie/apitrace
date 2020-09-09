@@ -380,8 +380,10 @@ TraceMirrorImpl::collect_bound_objects(ObjectSet& required_objects, unsigned bef
     for(auto&& timeline : m_bind_timelines) {
         for (auto&& timepoint: timeline.second) {
             if (timepoint.bind_call_no < before_call &&
-                timepoint.unbind_call_no >= before_call)
+                timepoint.unbind_call_no >= before_call) {
                 required_objects.push(timepoint.obj);
+                std::cerr << "Add a bound object with ID " << timepoint.obj->id() << "\n";
+            }
         }
     }
 }
@@ -719,6 +721,22 @@ void TraceMirrorImpl::register_legacy_calls()
     MAP_GENOBJ(glPushMatrix, m_matrix_states, MatrixObjectMap::PushMatrix);
 }
 
+const char *object_type(BindType type)
+{
+    switch (type) {
+#define CASE(type) case type: return #type
+    CASE(bt_buffer);
+    CASE(bt_program);
+    CASE(bt_sampler);
+    CASE(bt_framebuffer);
+    CASE(bt_renderbuffer);
+    CASE(bt_texture);
+    CASE(bt_vertex_array);
+    default:
+        return "unknown";
+    }
+}
+
 void TraceMirrorImpl::record_bind(BindType type, PGenObject obj,
                                   GLenum id, unsigned tex_unit, unsigned callno)
 {
@@ -730,6 +748,10 @@ void TraceMirrorImpl::record_bind(BindType type, PGenObject obj,
         last.unbind_call_no = callno;
     }
     if (obj) {
+        std::cerr << callno << ": record binding of object "
+                  << object_type(type) << "@" << id
+                  << "-" << tex_unit
+                  << " with ID " << obj->id() << "\n";
         BindTimePoint new_time_point(obj, callno);
         recoed.push_front(new_time_point);
     }
