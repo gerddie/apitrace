@@ -10,24 +10,26 @@ namespace frametrim_reverse {
 
 using std::make_shared;
 
-void
+PTraceCall
 ShaderObject::source(const trace::Call& call)
 {
-    m_source_call = call.no;
+    m_source_call = make_shared<TraceCall>(call);
+    return m_source_call;
 }
 
-void
+PTraceCall
 ShaderObject::compile(const trace::Call& call)
 {
-    m_compile_call = call.no;
+    m_compile_call = make_shared<TraceCall>(call);
+    return m_compile_call;
 }
 
 
 void
 ShaderObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
 {
-    assert(m_compile_call < call_before);
-    assert(m_source_call < call_before);
+    assert(m_compile_call->call_no() < call_before);
+    assert(m_source_call->call_no() < call_before);
 
     calls.insert(m_compile_call);
     calls.insert(m_source_call);
@@ -51,11 +53,14 @@ ShaderObjectMap::source(const trace::Call& call)
     return make_shared<TraceCall>(call);
 }
 
-void
+PTraceCall
 ProgramObject::attach_shader(const trace::Call& call, PGenObject shader)
 {   
-    m_attach_calls.push_back(call.no);
+
+    auto c = make_shared<TraceCallOnBoundObj>(call, shader);
+    m_attach_calls.push_front(c);
     m_attached_shaders.insert(shader);
+    return c;
 }
 
 void
@@ -83,9 +88,10 @@ void ProgramObject::collect_dependend_obj(Queue& objects)
     }
 }
 
-void ProgramObject::link(const trace::Call& call)
+PTraceCall ProgramObject::link(const trace::Call& call)
 {
-    m_link_call = call.no;
+    m_link_call = make_shared<TraceCall>(call);
+    return m_link_call;
 }
 
 void
@@ -100,22 +106,28 @@ ProgramObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
     }
 }
 
-void
-ProgramObject::bind_attr_pointer(unsigned callid, unsigned attr_id, PBufObject obj)
+PTraceCall ProgramObject::bind_attr_pointer(const trace::Call& call, unsigned attr_id, PBufObject obj)
 {
     m_bound_attr_buffers[attr_id] = obj;
-    m_data_calls.push_back(callid);
+    auto c = make_shared<TraceCall>(call);
+    m_data_calls.push_front(c);
+    return c;
 }
 
-void
+PTraceCall
 ProgramObject::data_call(const trace::Call& call)
 {
-    m_data_calls.push_back(call.no);
+    auto c = make_shared<TraceCall>(call);
+    m_data_calls.push_front(c);
+    return c;
 }
 
-void ProgramObject::uniform(const trace::Call& call)
+PTraceCall
+ProgramObject::uniform(const trace::Call& call)
 {
-    m_uniforms_calls[call.arg(0).toUInt()].push_back(call.no);
+    auto c = make_shared<TraceCall>(call);
+    m_uniforms_calls[call.arg(0).toUInt()].push_back(c);
+    return c;
 }
 
 PTraceCall
@@ -124,8 +136,7 @@ ProgramObjectMap::attach_shader(trace::Call& call, const ShaderObjectMap& shader
     auto program = by_id(call.arg(0).toUInt());
     assert(program);
     auto shader = shaders.by_id_untyped(call.arg(1).toUInt());
-    program->attach_shader(call, shader);
-    return make_shared<TraceCallOnBoundObjWithDeps>(call, program, shader);
+    return program->attach_shader(call, shader);
 }
 
 PTraceCall ProgramObjectMap::bind_attr_location(trace::Call& call)
@@ -133,7 +144,7 @@ PTraceCall ProgramObjectMap::bind_attr_location(trace::Call& call)
     auto program = by_id(call.arg(0).toUInt());
     assert(program);
     program->bind_attr_location(call.arg(1).toUInt());
-    return make_shared<TraceCallOnBoundObjWithDeps>(call, program, nullptr);
+    return make_shared<TraceCallOnBoundObj>(call, program);
 }
 
 PTraceCall
@@ -142,8 +153,7 @@ ProgramObjectMap::vertex_attr_pointer(trace::Call& call, BufObjectMap& buffers)
     auto attr_id = call.arg(0).toUInt();
     auto attr_buffer = buffers.bound_to_target(GL_ARRAY_BUFFER);
     auto program = bound_to_target(0);
-    program->bind_attr_pointer(call.no, attr_id, attr_buffer);
-    return make_shared<TraceCallOnBoundObjWithDeps>(call, program, attr_buffer);
+    return program->bind_attr_pointer(call, attr_id, attr_buffer);
 }
 
 unsigned
@@ -163,8 +173,7 @@ ProgramObjectMap::data(trace::Call& call)
                   << ") no program with ID" << call.arg(0).toUInt() <<"\n";
         return NULL;
     }
-    program->data_call(call);
-    return make_shared<TraceCallOnBoundObj>(call, program);
+    return program->data_call(call);
 }
 
 PTraceCall
@@ -176,8 +185,7 @@ ProgramObjectMap::uniform(trace::Call& call)
                   << ") no program with ID" << call.arg(0).toUInt() <<"\n";
         return NULL;
     }
-    program->uniform(call);
-    return make_shared<TraceCallOnBoundObj>(call, program);
+    return program->uniform(call);
 }
 
 PTraceCall
@@ -189,10 +197,8 @@ ProgramObjectMap::link(trace::Call& call)
                   << ") no program with ID" << call.arg(0).toUInt() <<"\n";
         return NULL;
     }
-    program->link(call);
-    return make_shared<TraceCallOnBoundObj>(call, program);
+    return program->link(call);
 }
-
 
 template class CreateObjectMap<ProgramObject>;
 template class GenBoundObjectMap<ProgramObject>;

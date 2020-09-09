@@ -72,7 +72,8 @@ GenBoundObjectMap<T>::bind(const trace::Call& call, unsigned id_index)
     auto id = call.arg(id_index).toUInt();
     auto obj = bind_target(target, id);
     if (obj) {
-        obj->bind(call.no);
+        auto c = std::make_shared<TraceCallOnBoundObj>(call, obj);
+        obj->bind(c);
         return obj;
     } else {
         if (id)

@@ -76,6 +76,27 @@ void TraceObject::collect_all_calls_before(CallIdSet& calls,
             calls.insert(c);
 }
 
+void TraceObject::collect_last_call_before(CallIdSet& calls,
+                                         const std::list<PTraceCall>& call_list,
+                                         unsigned call_before)
+{
+    for (auto&& c : call_list)
+        if (c->call_no() < call_before) {
+            calls.insert(c);
+            return;
+        }
+}
+
+void TraceObject::collect_all_calls_before(CallIdSet& calls,
+                                         const std::list<PTraceCall> &call_list,
+                                         unsigned call_before)
+{
+    for (auto& c : call_list)
+        if (c->call_no() < call_before)
+            calls.insert(c);
+}
+
+
 void TraceObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
 {
     (void)calls;

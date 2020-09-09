@@ -48,8 +48,21 @@ private:
     std::string m_name_with_params;
     std::bitset<8> m_flags;
 };
-
 using PTraceCall = TraceCall::Pointer;
+
+class CallIdSet {
+public:
+    void insert(PTraceCall call);
+    void insert(unsigned callno) __attribute__((deprecated));
+
+    std::unordered_set<unsigned>::const_iterator begin() const;
+    std::unordered_set<unsigned>::const_iterator end() const;
+
+private:
+    std::unordered_set<unsigned> m_calls;
+};
+
+
 
 using LightTrace = std::vector<PTraceCall>;
 

@@ -7,10 +7,11 @@ namespace frametrim_reverse {
 
 using std::make_shared;
 
-void BufObject::data(trace::Call& call)
+PTraceCall BufObject::data(trace::Call& call)
 {
     m_size = call.arg(1).toUInt();
-    m_allocation_call = call.no;
+    m_allocation_call = make_shared<TraceCall>(call);
+    return m_allocation_call;
 }
 
 void BufObject::map(trace::Call& call)
@@ -40,9 +41,10 @@ bool BufObject::address_in_mapped_range(uint64_t addr) const
 void
 BufObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
 {
-    if (m_allocation_call < call_before) {
-        calls.insert(m_allocation_call);
-        collect_last_call_before(calls, m_bind_calls, m_allocation_call);
+    if (m_allocation_call->call_no() < call_before) {
+        calls.insert(m_allocation_call->call_no());
+        collect_last_call_before(calls, m_bind_calls,
+                                 m_allocation_call->call_no());
     }
 }
 
@@ -54,10 +56,16 @@ BufObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
         return make_shared<TraceCallOnBoundObj>(call, obj); \
     }
 
-FORWARD_Call(data)
 FORWARD_Call(map)
 FORWARD_Call(map_range)
 FORWARD_Call(unmap)
+
+PTraceCall BufObjectMap::data (trace::Call& call)
+{
+    PBufObject obj = this->bound_to_call_target(call);
+    return obj->data(call);
+}
+
 
 PTraceCall BufObjectMap::memcopy(trace::Call& call)
 {

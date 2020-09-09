@@ -20,8 +20,7 @@ RenderbufferObjectMap::storage(const trace::Call& call)
 {
     auto rb = bound_to_call_target(call);
     assert(rb);
-    rb->allocate(call);
-    return make_shared<TraceCallOnBoundObj>(call, rb);
+    return rb->allocate(call);
 }
 
 FramebufferObject::FramebufferObject(unsigned gl_id, PTraceCall gen_call):

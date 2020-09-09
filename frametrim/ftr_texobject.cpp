@@ -38,7 +38,7 @@ void TexObject::collect_state_calls(CallIdSet& calls, unsigned call_before)
     for (auto&& c: m_state_calls) {
         if (c.first < call_before &&
                 states.find(c.second->name()) == states.end()) {
-            calls.insert(c.first);
+            calls.insert(c.second);
             states.insert(c.second->name());
         }
     }
@@ -61,8 +61,7 @@ PTraceCall
 TexObjectMap::allocation(const trace::Call& call)
 {
     auto texture = bound_to_call_target(call);
-    texture->allocate(call);
-    return make_shared<TraceCallOnBoundObj>(call, texture);
+    return texture->allocate(call);
 }
 
 PTraceCall
@@ -98,7 +97,6 @@ unsigned TexObjectMap::active_unit() const
 
 unsigned TexObjectMap::compose_target_id_with_unit(unsigned target,
                                                    unsigned unit) const
-
 {
     switch (target) {
     case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:

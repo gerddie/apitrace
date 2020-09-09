@@ -89,7 +89,7 @@ struct TraceMirrorImpl {
     PTraceCall bind_sampler(trace::Call &call);
     PTraceCall bind_vertex_array(trace::Call &call);
 
-    frametrim::CallIdSet resolve();
+    CallIdSet resolve();
 
     void register_state_calls();
     void register_buffer_calls();
@@ -343,7 +343,7 @@ TraceMirrorImpl::resolve()
     for(auto& i : m_trace) {
         if (i->test_flag(TraceCall::required)) {
             i->add_object_to_set(required_objects);
-            required_calls.insert(i->call_no());
+            required_calls.insert(i);
             if (i->call_no() < next_required_call)
                 next_required_call = i->call_no();
         }

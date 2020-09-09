@@ -13,7 +13,7 @@ public:
     using Pointer = std::shared_ptr<BufObject>;
     using BoundObject::BoundObject;
 
-    void data(trace::Call& call);
+    PTraceCall data(trace::Call& call);
     void map(trace::Call& call);
     void map_range(trace::Call& call);
     void unmap(trace::Call& call);
@@ -24,7 +24,7 @@ private:
     uint64_t m_size;
     std::pair<uint64_t, uint64_t> m_mapped_range;
 
-    unsigned m_allocation_call;
+    PTraceCall m_allocation_call;
 };
 
 using PBufObject = BufObject::Pointer;

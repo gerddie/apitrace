@@ -76,4 +76,29 @@ void TraceCall::add_dependend_objects(ObjectSet& out_set) const
     (void)out_set;
 }
 
+void CallIdSet::insert(PTraceCall call)
+{
+    if (!call->test_flag(TraceCall::recorded)) {
+        m_calls.insert(call->call_no());
+        call->set_flag(TraceCall::recorded);
+    }
+}
+
+void CallIdSet::insert(unsigned callno)
+{
+    m_calls.insert(callno);
+}
+
+std::unordered_set<unsigned>::const_iterator
+CallIdSet::begin() const
+{
+    return m_calls.begin();
+}
+
+std::unordered_set<unsigned>::const_iterator
+CallIdSet::end() const
+{
+    return m_calls.end();
+}
+
 }

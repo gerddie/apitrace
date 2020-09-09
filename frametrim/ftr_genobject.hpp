@@ -10,8 +10,7 @@
 
 namespace frametrim_reverse {
 
-using frametrim::CallIdSet;
-
+class CallIdSet;
 class TraceCall;
 using PTraceCall = std::shared_ptr<TraceCall>;
 
@@ -30,9 +29,17 @@ public:
 protected:
     void collect_last_call_before(CallIdSet& calls,
                                   const std::vector<unsigned>& call_list,
-                                  unsigned call_before);
+                                  unsigned call_before) __attribute__((deprecated));
     void collect_all_calls_before(CallIdSet& calls,
                                   const std::vector<unsigned>& call_list,
+                                  unsigned call_before) __attribute__((deprecated));
+
+    void collect_last_call_before(CallIdSet& calls,
+                                  const std::list<PTraceCall>& call_list,
+                                  unsigned call_before);
+
+    void collect_all_calls_before(CallIdSet& calls,
+                                  const std::list<PTraceCall>& call_list,
                                   unsigned call_before);
 
 private:
@@ -71,14 +78,14 @@ public:
     using GenObject::GenObject;
     using Pointer=std::shared_ptr<BoundObject>;
 
-    void bind(unsigned call_no) {
-        m_bind_calls.push_back(call_no);
+    void bind(PTraceCall call) {
+        m_bind_calls.push_front(call);
     }
 
 protected:
     void collect_bind_calls(CallIdSet& calls, unsigned call_before) override;
 
-    std::vector<unsigned> m_bind_calls;
+    std::list<PTraceCall> m_bind_calls;
 
 };
 

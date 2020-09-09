@@ -10,7 +10,7 @@ public:
     using Pointer = std::shared_ptr<AttachableObject>;
     using BoundObject::BoundObject;
 
-    void allocate(const trace::Call& call);
+    PTraceCall allocate(const trace::Call& call);
     void attach_to(PGenObject obj);
     void detach_from(unsigned fbo_id);
 
@@ -25,7 +25,7 @@ private:
 
     std::vector<unsigned> m_width;
     std::vector<unsigned> m_heigth;
-    std::vector<unsigned> m_allocation_call;
+    std::vector<PTraceCall> m_allocation_call;
 
     std::unordered_map<unsigned, PGenObject> m_attached_to;
 };
