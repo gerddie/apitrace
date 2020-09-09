@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <queue>
 #include <memory>
+#include <list>
 
 namespace frametrim_reverse {
 

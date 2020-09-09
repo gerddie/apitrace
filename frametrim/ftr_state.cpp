@@ -10,7 +10,11 @@
 #include <algorithm>
 #include <functional>
 #include <set>
+#include <list>
 #include <iostream>
+
+#include <GL/gl.h>
+#include <GL/glext.h>
 
 namespace frametrim_reverse {
 
@@ -28,6 +32,30 @@ struct StateCallRecord {
 };
 
 using StateCallMap = std::unordered_map<std::string, StateCallRecord>;
+
+enum BindType {
+    bt_buffer,
+    bt_framebuffer,
+    bt_program,
+    bt_renderbuffer,
+    bt_sampler,
+    bt_texture,
+    bt_vertex_array,
+
+};
+
+struct BindTimePoint {
+    PGenObject obj;
+    unsigned bind_call_no;
+    unsigned unbind_call_no;
+
+    BindTimePoint(PGenObject o, unsigned callno):
+        obj(o), bind_call_no(callno),
+        unbind_call_no(std::numeric_limits<unsigned>::max()) {}
+};
+
+using BindTimeline = std::list<BindTimePoint>;
+
 
 struct TraceMirrorImpl {
     TraceMirrorImpl();
@@ -47,6 +75,13 @@ struct TraceMirrorImpl {
     void resolve_repeatable_state_calls(TraceCall &call,
                                         CallIdSet& callset /* inout */);
 
+    PTraceCall bind_fbo(trace::Call &call);
+    PTraceCall bind_texture(trace::Call &call);
+    PTraceCall bind_buffer(trace::Call &call);
+    PTraceCall bind_program(trace::Call &call);
+    PTraceCall bind_renderbuffer(trace::Call &call);
+    PTraceCall bind_sampler(trace::Call &call);
+    PTraceCall bind_vertex_array(trace::Call &call);
 
     frametrim::CallIdSet resolve();
 
@@ -58,6 +93,13 @@ struct TraceMirrorImpl {
     void register_glx_state_calls();
     void register_legacy_calls();
 
+    void record_bind(BindType type, PGenObject obj,
+                     GLenum id, unsigned tex_unit, unsigned callno);
+
+    unsigned buffer_offset(BindType type, GLenum id, unsigned active_unit);
+    PTraceCall bind_tracecall(trace::Call &call, PGenObject obj);
+    void collect_bound_objects(ObjectSet& required_objects, unsigned before_call);
+
     BufObjectMap m_buffers;
     ProgramObjectMap m_programs;
     ShaderObjectMap m_shaders;
@@ -65,6 +107,9 @@ struct TraceMirrorImpl {
     FramebufferObjectMap m_fbo;
     RenderbufferObjectMap m_renderbuffers;
     MatrixObjectMap m_matrix_states;
+
+    PFramebufferObject m_current_draw_buffer;
+    PFramebufferObject m_current_read_buffer;
 
     VertexArrayMap m_va;
 
@@ -80,6 +125,8 @@ struct TraceMirrorImpl {
     LightTrace m_trace;
 
     std::set<std::string> m_unhandled_calls;
+
+    std::unordered_map<unsigned, BindTimeline> m_bind_timelines;
 };
 
 TraceMirror::TraceMirror()
@@ -158,6 +205,86 @@ void TraceMirrorImpl::process(trace::Call& call, bool required)
 }
 
 PTraceCall
+TraceMirrorImpl::bind_fbo(trace::Call &call)
+{
+    auto retval = m_fbo.bind(call);
+
+    unsigned target = call.arg(0).toUInt();
+
+    PGenObject fbo;
+
+    if (target == GL_FRAMEBUFFER) {
+        record_bind(bt_framebuffer, m_fbo.draw_buffer(), GL_DRAW_FRAMEBUFFER, 0, call.no);
+        record_bind(bt_framebuffer, m_fbo.read_buffer(), GL_READ_FRAMEBUFFER, 0, call.no);
+        fbo = m_fbo.draw_buffer();
+    }
+
+    if (target == GL_DRAW_FRAMEBUFFER) {
+        record_bind(bt_framebuffer, m_fbo.draw_buffer(), GL_DRAW_FRAMEBUFFER, 0, call.no);
+        fbo = m_fbo.draw_buffer();
+    }
+
+    assert(target == GL_READ_FRAMEBUFFER);
+    record_bind(bt_framebuffer, m_fbo.read_buffer(), GL_READ_FRAMEBUFFER, 0, call.no);
+    return make_shared<TraceCallOnBoundObj>(call, m_fbo.read_buffer());
+    fbo = m_fbo.read_buffer();
+
+    return bind_tracecall(call, fbo);
+}
+
+PTraceCall TraceMirrorImpl::bind_texture(trace::Call &call)
+{
+    auto texture = m_textures.bind(call, 1);
+    auto target = call.arg(0).toUInt();
+
+    record_bind(bt_texture, texture, target, m_textures.active_unit(), call.no);
+    return bind_tracecall(call, texture);
+}
+
+PTraceCall TraceMirrorImpl::bind_buffer(trace::Call &call)
+{
+    auto buffer = m_buffers.bind(call, 1);
+    auto target = call.arg(0).toUInt();
+    record_bind(bt_buffer, buffer, target, 0, call.no);
+    return bind_tracecall(call, buffer);
+}
+
+PTraceCall TraceMirrorImpl::bind_program(trace::Call &call)
+{
+    auto prog = m_programs.bind(call, 0);
+    record_bind(bt_program, prog, 0, 0, call.no);
+    return bind_tracecall(call, prog);
+}
+
+PTraceCall TraceMirrorImpl::bind_renderbuffer(trace::Call &call)
+{
+    auto rb = m_programs.bind(call, 1);
+    record_bind(bt_renderbuffer, rb, 0, 0, call.no);
+    return bind_tracecall(call, rb);
+}
+
+PTraceCall TraceMirrorImpl::bind_sampler(trace::Call &call)
+{
+    auto sampler = m_samplers.bind(call, 1);
+    auto target = call.arg(0).toUInt();
+    record_bind(bt_sampler, sampler, target, 0, call.no);
+    return bind_tracecall(call, sampler);
+}
+
+PTraceCall TraceMirrorImpl::bind_vertex_array(trace::Call &call)
+{
+    auto va = m_va.bind(call, 0);
+    record_bind(bt_vertex_array, va, 0, 0, call.no);
+    return bind_tracecall(call, va);
+}
+
+PTraceCall TraceMirrorImpl::bind_tracecall(trace::Call &call, PGenObject obj)
+{
+    return obj ? make_shared<TraceCallOnBoundObj>(call, obj):
+                 make_shared<TraceCall>(call);
+}
+
+PTraceCall
 TraceMirrorImpl::call_on_bound_obj(trace::Call &call, BoundObjectMap& map)
 {
     auto bound_obj = map.bound_to_call_target_untyped(call);
@@ -195,7 +322,6 @@ TraceMirrorImpl::record_enable_call(trace::Call &call, const char *basename)
     return make_shared<StateEnableCall>(call, basename);
 }
 
-
 CallIdSet
 TraceMirrorImpl::resolve()
 {
@@ -223,10 +349,7 @@ TraceMirrorImpl::resolve()
             resolve_repeatable_state_calls(*c, required_calls);
     }
 
-    m_va.collect_currently_bound_objects(required_objects);
-    m_buffers.collect_currently_bound_objects(required_objects);
-    m_textures.collect_currently_bound_objects(required_objects);
-    m_matrix_states.collect_current_state(required_objects);
+    collect_bound_objects(required_objects, next_required_call);
 
     while (!required_objects.empty()) {
         auto obj = required_objects.front();
@@ -249,6 +372,18 @@ TraceMirrorImpl::resolve()
             resolve_state_calls(**c, required_calls, next_required_call);
     }
     return required_calls;
+}
+
+void
+TraceMirrorImpl::collect_bound_objects(ObjectSet& required_objects, unsigned before_call)
+{
+    for(auto&& timeline : m_bind_timelines) {
+        for (auto&& timepoint: timeline.second) {
+            if (timepoint.bind_call_no < before_call &&
+                timepoint.unbind_call_no >= before_call)
+                required_objects.push(timepoint.obj);
+        }
+    }
 }
 
 void
@@ -409,7 +544,7 @@ void TraceMirrorImpl::register_buffer_calls()
 {
     MAP_GENOBJ(glGenBuffers, m_buffers, BufObjectMap::generate);
     MAP_GENOBJ(glDeleteBuffers, m_buffers, BufObjectMap::destroy);
-    MAP_GENOBJ_DATA(glBindBuffer, m_buffers, BufObjectMap::bind, 1);
+    MAP(glBindBuffer, bind_buffer);
 
     MAP_GENOBJ(glBufferData, m_buffers, BufObjectMap::data);
     MAP_DATA(glBufferSubData, call_on_bound_obj, m_buffers);
@@ -419,7 +554,7 @@ void TraceMirrorImpl::register_buffer_calls()
     MAP_GENOBJ(memcpy, m_buffers, BufObjectMap::memcopy);
 
     MAP_GENOBJ(glGenVertexArrays, m_va, VertexArrayMap::generate);
-    MAP_GENOBJ_DATA(glBindVertexArray, m_va, VertexArrayMap::bind, 0);
+    MAP(glBindVertexArray, bind_vertex_array);
     MAP_GENOBJ(glDeleteVertexArraym, m_va, VertexArrayMap::destroy);
 }
 
@@ -427,7 +562,7 @@ void TraceMirrorImpl::register_texture_calls()
 {
     MAP_GENOBJ(glGenTextures, m_textures, TexObjectMap::generate);
     MAP_GENOBJ(glDeleteTextures, m_textures, TexObjectMap::destroy);
-    MAP_GENOBJ_DATA(glBindTexture, m_textures, TexObjectMap::bind, 1);
+    MAP(glBindTexture, bind_texture);
 
     MAP_GENOBJ(glActiveTexture, m_textures, TexObjectMap::active_texture);
     MAP_GENOBJ(glClientActiveTexture, m_textures, TexObjectMap::active_texture);
@@ -445,7 +580,7 @@ void TraceMirrorImpl::register_texture_calls()
     MAP_DATA(glCopyTexSubImage2D, call_on_bound_obj, m_textures);
     MAP_GENOBJ_DATA(glTexParameter, m_textures, TexObjectMap::state, 2);
 
-    MAP_GENOBJ_DATA(glBindSampler, m_samplers, SamplerObjectMap::bind, 0);
+    MAP(glBindSampler, bind_sampler);
     MAP_GENOBJ(glGenSamplers, m_samplers, SamplerObjectMap::generate);
     MAP_GENOBJ(glDeleteSamplers, m_samplers, SamplerObjectMap::destroy);
     MAP_DATA(glSamplerParameter, call_on_named_obj, m_samplers);
@@ -457,7 +592,7 @@ void TraceMirrorImpl::register_program_calls()
     MAP_GENOBJ_DATAREF(glAttachShader, m_programs, ProgramObjectMap::attach_shader, m_shaders);
     MAP_GENOBJ(glCreateProgram, m_programs, ProgramObjectMap::create);
     MAP_GENOBJ(glDeleteProgram, m_programs, ProgramObjectMap::destroy);
-    MAP_GENOBJ_DATA(glUseProgram, m_programs, ProgramObjectMap::bind, 0);
+    MAP(glUseProgram, bind_program);
 
     MAP_GENOBJ(glBindAttribLocation, m_programs,
                ProgramObjectMap::bind_attr_location);
@@ -481,14 +616,14 @@ void TraceMirrorImpl::register_program_calls()
 
 void TraceMirrorImpl::register_framebuffer_calls()
 {
-    MAP_GENOBJ_DATA(glBindRenderbuffer, m_renderbuffers, RenderbufferObjectMap::bind, 1);
+    MAP(glBindRenderbuffer, bind_renderbuffer);
     MAP_GENOBJ(glDeleteRenderbuffers, m_renderbuffers, RenderbufferObjectMap::destroy);
     MAP_GENOBJ(glGenRenderbuffer, m_renderbuffers, RenderbufferObjectMap::generate);
     MAP_GENOBJ(glRenderbufferStorage, m_renderbuffers, RenderbufferObjectMap::storage);
 
     MAP_GENOBJ(glGenFramebuffer, m_fbo, FramebufferObjectMap::generate);
     MAP_GENOBJ(glDeleteFramebuffers, m_fbo, FramebufferObjectMap::destroy);
-    MAP_GENOBJ(glBindFramebuffer, m_fbo, FramebufferObjectMap::bind);
+    MAP(glBindFramebuffer, bind_fbo);
 
     MAP_GENOBJ(glBlitFramebuffer, m_fbo, FramebufferObjectMap::blit);
     MAP_GENOBJ_DATAREF_2(glFramebufferTexture, m_fbo,
@@ -582,6 +717,83 @@ void TraceMirrorImpl::register_legacy_calls()
     MAP_GENOBJ(glTranslate, m_matrix_states, MatrixObjectMap::matrix_op);
     MAP_GENOBJ(glPopMatrix, m_matrix_states, MatrixObjectMap::PopMatrix);
     MAP_GENOBJ(glPushMatrix, m_matrix_states, MatrixObjectMap::PushMatrix);
+}
+
+void TraceMirrorImpl::record_bind(BindType type, PGenObject obj,
+                                  GLenum id, unsigned tex_unit, unsigned callno)
+{
+    unsigned index = buffer_offset(type, id, tex_unit);
+
+    auto& recoed = m_bind_timelines[index];
+    if (!recoed.empty()) {
+        auto& last = recoed.front();
+        last.unbind_call_no = callno;
+    }
+    if (obj) {
+        BindTimePoint new_time_point(obj, callno);
+        recoed.push_front(new_time_point);
+    }
+}
+
+unsigned
+TraceMirrorImpl::buffer_offset(BindType type, GLenum target, unsigned active_unit)
+{
+    switch (type) {
+    case bt_buffer:
+        switch (target) {
+        case GL_ARRAY_BUFFER: return 1;
+        case GL_ATOMIC_COUNTER_BUFFER: 	return 2;
+        case GL_COPY_READ_BUFFER: return 3;
+        case GL_COPY_WRITE_BUFFER: return 4;
+        case GL_DISPATCH_INDIRECT_BUFFER: return 5;
+        case GL_DRAW_INDIRECT_BUFFER: return 6;
+        case GL_ELEMENT_ARRAY_BUFFER: return 7;
+        case GL_PIXEL_PACK_BUFFER: return 8;
+        case GL_PIXEL_UNPACK_BUFFER: return 9;
+        case GL_QUERY_BUFFER: return 10;
+        case GL_SHADER_STORAGE_BUFFER: return 11;
+        case GL_TEXTURE_BUFFER: return 12;
+        case GL_TRANSFORM_FEEDBACK_BUFFER: return 13;
+        case GL_UNIFORM_BUFFER: return 14;
+        default:
+            assert(0 && "unknown buffer bind point");
+        }
+    case bt_program:
+        return 15;
+    case bt_renderbuffer:
+        return 16;
+    case bt_framebuffer:
+        switch (target) {
+        case GL_READ_FRAMEBUFFER: return 17;
+        case GL_DRAW_FRAMEBUFFER: return 18;
+        default:
+            /* Since GL_FRAMEBUFFER may set both buffers we must handle this elsewhere */
+            assert(0 && "GL_FRAMEBUFFER must be handled before calling buffer_offset");
+        }
+    case bt_texture: {
+        unsigned base = active_unit * 11  + 19;
+        switch (target) {
+        case GL_TEXTURE_1D: return base;
+        case GL_TEXTURE_2D: return base + 1;
+        case GL_TEXTURE_3D: return base + 2;
+        case GL_TEXTURE_1D_ARRAY: return base + 3;
+        case GL_TEXTURE_2D_ARRAY: return base + 4;
+        case GL_TEXTURE_RECTANGLE: return base + 5;
+        case GL_TEXTURE_CUBE_MAP: return base + 6;
+        case GL_TEXTURE_CUBE_MAP_ARRAY: return base + 7;
+        case GL_TEXTURE_BUFFER: return base + 8;
+        case GL_TEXTURE_2D_MULTISAMPLE: return base + 9;
+        case GL_TEXTURE_2D_MULTISAMPLE_ARRAY: return base + 10;
+        default:
+            assert(0 && "unknown texture bind point");
+        }
+    }
+    case bt_sampler:
+        return 800 + target;
+    case bt_vertex_array:
+        return 900;
+    }
+    assert(0 && "Unsupported bind point");
 }
 
 

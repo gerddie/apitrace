@@ -14,6 +14,7 @@
 #include <cstring>
 #include <stack>
 #include <set>
+#include <list>
 #include <sstream>
 
 #include <GL/glext.h>
@@ -82,6 +83,7 @@ struct StateImpl {
     void register_program_calls();
     void register_framebuffer_calls();
 
+
     void update_call_table(const std::vector<const char*>& names,
                            ft_callback cb);
 
@@ -126,7 +128,6 @@ struct StateImpl {
     std::unordered_map<std::string, PCall> m_default_fb_state_calls;
 
     std::set<std::string> m_unhandled_calls;
-
 };
 
 
@@ -818,4 +819,5 @@ void StateImpl::update_call_table(const std::vector<const char*>& names,
 }
 
 #undef MAP
+
 } // namespace frametrim

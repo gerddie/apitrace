@@ -21,7 +21,7 @@ public:
     typename T::Pointer bound_to_call_target(const trace::Call& call) const;
     typename T::Pointer bound_to_target(unsigned target) const;
     typename T::Pointer by_id(unsigned id) const;
-    PTraceCall bind(const trace::Call& call, unsigned id_index);
+    PGenObject bind(const trace::Call& call, unsigned id_index);
     PGenObject bound_to_call_target_untyped(const trace::Call& call) const override;
     PGenObject by_id_untyped(unsigned id) const override;
     void collect_currently_bound_objects(GenObject::Queue& objects) const override;
@@ -65,7 +65,7 @@ GenBoundObjectMap<T>::erase(unsigned id)
 }
 
 template <typename T>
-PTraceCall
+PGenObject
 GenBoundObjectMap<T>::bind(const trace::Call& call, unsigned id_index)
 {
     auto target = target_id_from_call(call);
@@ -73,13 +73,13 @@ GenBoundObjectMap<T>::bind(const trace::Call& call, unsigned id_index)
     auto obj = bind_target(target, id);
     if (obj) {
         obj->bind(call.no);
-        return std::make_shared<TraceCallOnBoundObj>(call, obj);
+        return obj;
     } else {
         if (id)
             std::cerr << "Call " << call.no
                       << " " << call.name()
                       << " object " << id << "not found\n";
-        return std::make_shared<TraceCall>(call);
+        return nullptr;
     }
 }
 

@@ -202,7 +202,6 @@ void TextureStateMap::copy_sub_data(PCall call)
     texture->copy_sub_data(call, read_buffer);
 }
 
-
 void TextureStateMap::gen_mipmap(PCall call)
 {
     auto texture = bound_in_call(call);

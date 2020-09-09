@@ -77,6 +77,16 @@ FramebufferObjectMap::bind(const trace::Call& call)
     return make_shared<TraceCall>(call);
 }
 
+PFramebufferObject FramebufferObjectMap::draw_buffer() const
+{
+    return m_draw_buffer;
+}
+
+PFramebufferObject FramebufferObjectMap::read_buffer() const
+{
+    return m_read_buffer;
+}
+
 PTraceCall
 FramebufferObjectMap::blit(const trace::Call& call)
 {

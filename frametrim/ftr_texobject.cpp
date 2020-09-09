@@ -97,6 +97,11 @@ unsigned TexObjectMap::target_id_from_call(const trace::Call& call) const
     return compose_target_id_with_unit(target, m_active_texture_unit);
 }
 
+unsigned TexObjectMap::active_unit() const
+{
+    return m_active_texture_unit;
+}
+
 unsigned TexObjectMap::compose_target_id_with_unit(unsigned target,
                                                    unsigned unit) const
 

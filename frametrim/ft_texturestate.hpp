@@ -55,7 +55,6 @@ public:
     void gen_mipmap(PCall call);
 
     void bind_multitex(PCall call);
-
 private:
 
     void post_bind(PCall call, PTextureState obj) override;

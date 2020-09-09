@@ -44,6 +44,9 @@ public:
                               unsigned tex_param_idx, unsigned level_param_idx);
     PTraceCall attach_texture3d(const trace::Call& call, TexObjectMap& tex_map);
 
+    PFramebufferObject draw_buffer() const;
+    PFramebufferObject read_buffer() const;
+
 private:
     PFramebufferObject bound_to_call_target(const trace::Call& call) const;
 
