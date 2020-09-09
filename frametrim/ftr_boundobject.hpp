@@ -168,11 +168,12 @@ PTraceCall
 GenObjectMap<T>::generate(const trace::Call& call)
 {
     const auto ids = call.arg(1).toArray();
+    auto c = std::make_shared<TraceCall>(call);
     for (auto& v : ids->values) {
         auto id = v->toUInt();
-        this->add(std::make_shared<T>(id, call.no));
+        this->add(std::make_shared<T>(id, c));
     }
-    return std::make_shared<TraceCall>(call);
+    return c;
 }
 
 template <typename T>
@@ -190,9 +191,10 @@ PTraceCall
 CreateObjectMap<T>::create(const trace::Call &call)
 {
     const auto id = call.ret->toUInt();
-    auto obj = std::make_shared<T>(id, call.no);
+    auto c = std::make_shared<TraceCall>(call);
+    auto obj = std::make_shared<T>(id, c);
     this->add(obj);
-    return std::make_shared<TraceCallOnBoundObj>(call, obj);
+    return c;
 }
 
 template <typename T>

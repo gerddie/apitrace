@@ -1,4 +1,5 @@
 #include "ftr_genobject.hpp"
+#include "ftr_tracecall.hpp"
 namespace frametrim_reverse {
 
 using std::make_shared;
@@ -81,7 +82,7 @@ void TraceObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
     (void)call_before;
 }
 
-GenObject::GenObject(unsigned id, unsigned gen_call):
+GenObject::GenObject(unsigned id, PTraceCall gen_call):
     m_id(id),
     m_gen_call(gen_call)
 {
@@ -89,7 +90,7 @@ GenObject::GenObject(unsigned id, unsigned gen_call):
 
 void GenObject::collect_generate_call(CallIdSet& calls)
 {
-    calls.insert(m_gen_call);
+    calls.insert(m_gen_call->call_no());
 }
 
 

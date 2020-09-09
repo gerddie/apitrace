@@ -7,7 +7,7 @@ namespace frametrim_reverse {
 
 class FramebufferObject : public GenObject {
 public:
-    FramebufferObject(unsigned gl_id, unsigned gen_call);
+    FramebufferObject(unsigned gl_id, PTraceCall gen_call);
 
     using Pointer = std::shared_ptr<FramebufferObject>;
 

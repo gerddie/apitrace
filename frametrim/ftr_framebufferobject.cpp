@@ -24,7 +24,7 @@ RenderbufferObjectMap::storage(const trace::Call& call)
     return make_shared<TraceCallOnBoundObj>(call, rb);
 }
 
-FramebufferObject::FramebufferObject(unsigned gl_id, unsigned gen_call):
+FramebufferObject::FramebufferObject(unsigned gl_id, PTraceCall gen_call):
     GenObject(gl_id, gen_call)
 {
 

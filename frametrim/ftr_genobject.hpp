@@ -53,14 +53,14 @@ class GenObject : public TraceObject {
 public:
     using Pointer = std::shared_ptr<GenObject>;
 
-    GenObject(unsigned gl_id, unsigned gen_call);
+    GenObject(unsigned gl_id, PTraceCall gen_call);
     unsigned id() const { return m_id;};
 
 private:
     void collect_generate_call(CallIdSet& calls) override;
 
     unsigned m_id;
-    unsigned m_gen_call;
+    PTraceCall m_gen_call;
 };
 
 using ObjectSet = GenObject::Queue;
