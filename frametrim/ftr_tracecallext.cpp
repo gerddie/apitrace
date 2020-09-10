@@ -68,4 +68,13 @@ void TraceCallOnBoundObjWithDeps::add_dependend_objects(ObjectSet& out_set) cons
     }
 }
 
+BufferSubrangeCall::BufferSubrangeCall(const trace::Call& call, uint64_t start,
+                                       uint64_t end):
+    TraceCall(call),
+    m_start(start),
+    m_end(end)
+{
+}
+
+
 }

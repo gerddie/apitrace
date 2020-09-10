@@ -44,6 +44,20 @@ private:
     PGenObject m_dependency;
 };
 
+class BufferSubrangeCall : public TraceCall {
+public:
+    BufferSubrangeCall(const trace::Call& call, uint64_t start, uint64_t end);
+    uint64_t start() const {return m_start;}
+    uint64_t end() const {return m_end;}
+private:
+    uint64_t m_start, m_end;
+};
+
+using PBufferSubrangeCall = std::shared_ptr<BufferSubrangeCall>;
+
+
+
+
 }
 
 #endif // DUMMY_HPP

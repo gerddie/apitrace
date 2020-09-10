@@ -14,6 +14,7 @@ public:
     using BoundObject::BoundObject;
 
     PTraceCall data(trace::Call& call);
+    PTraceCall sub_data(trace::Call& call);
     void map(trace::Call& call);
     void map_range(trace::Call& call);
     void unmap(trace::Call& call);
@@ -25,6 +26,7 @@ private:
     std::pair<uint64_t, uint64_t> m_mapped_range;
 
     PTraceCall m_allocation_call;
+    std::list<PBufferSubrangeCall> m_sub_data_calls;
 };
 
 using PBufObject = BufObject::Pointer;
@@ -40,6 +42,7 @@ public:
     using GenObjectMap::GenObjectMap;
 
     PTraceCall data(trace::Call& call);
+    PTraceCall sub_data(trace::Call& call);
     PTraceCall map(trace::Call& call);
     PTraceCall map_range(trace::Call& call);
     PTraceCall unmap(trace::Call& call);

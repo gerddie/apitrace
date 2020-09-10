@@ -603,7 +603,7 @@ void TraceMirrorImpl::register_buffer_calls()
     MAP(glBindBuffer, bind_buffer);
 
     MAP_GENOBJ(glBufferData, m_buffers, BufObjectMap::data);
-    MAP_DATA(glBufferSubData, call_on_bound_obj, m_buffers);
+    MAP_GENOBJ(glBufferSubData, m_buffers, BufObjectMap::sub_data);
     MAP_GENOBJ(glMapBuffer, m_buffers, BufObjectMap::map);
     MAP_GENOBJ(glMapBufferRange, m_buffers, BufObjectMap::map_range);
     MAP_GENOBJ(glUnmapBuffer, m_buffers, BufObjectMap::unmap);
