@@ -79,8 +79,20 @@ protected:
     void collect_bind_calls(CallIdSet& calls, unsigned call_before) override;
 
     std::list<PTraceCall> m_bind_calls;
-
 };
+
+struct BindTimePoint {
+    PGenObject obj;
+    unsigned bind_call_no;
+    unsigned unbind_call_no;
+
+    BindTimePoint(PGenObject o, unsigned callno):
+        obj(o), bind_call_no(callno),
+        unbind_call_no(std::numeric_limits<unsigned>::max()) {}
+};
+
+using BindTimeline = std::list<BindTimePoint>;
+
 
 }
 

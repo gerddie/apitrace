@@ -44,19 +44,6 @@ enum BindType {
 
 };
 
-struct BindTimePoint {
-    PGenObject obj;
-    unsigned bind_call_no;
-    unsigned unbind_call_no;
-
-    BindTimePoint(PGenObject o, unsigned callno):
-        obj(o), bind_call_no(callno),
-        unbind_call_no(std::numeric_limits<unsigned>::max()) {}
-};
-
-using BindTimeline = std::list<BindTimePoint>;
-
-
 struct TraceMirrorImpl {
     TraceMirrorImpl();
 

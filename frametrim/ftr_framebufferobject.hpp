@@ -40,7 +40,10 @@ public:
     using Pointer = std::shared_ptr<RenderbufferObject>;
 private:
     unsigned evaluate_size(const trace::Call& call) override;
+
+    std::unordered_map<unsigned, BindTimeline> m_bindings;
 };
+
 using PRenderbufferObject = RenderbufferObject::Pointer;
 
 
