@@ -75,7 +75,7 @@ struct TraceMirrorImpl {
     PTraceCall record_clear_call(trace::Call &call);
     PTraceCall record_framebuffer_state(trace::Call &call);
 
-    void resolve_state_calls(TraceCall &call,
+    void resolve_state_calls(PTraceCall call,
                              CallIdSet& callset /* inout */,
                              unsigned last_required_call);
     void resolve_repeatable_state_calls(TraceCall &call,
@@ -343,7 +343,7 @@ TraceMirrorImpl::resolve()
     for(auto& i : m_trace) {
         if (i->test_flag(TraceCall::required)) {
             i->add_object_to_set(required_objects);
-            required_calls.insert(i);
+            required_calls.insert(*i);
             if (i->call_no() < next_required_call)
                 next_required_call = i->call_no();
         }
@@ -379,7 +379,7 @@ TraceMirrorImpl::resolve()
         }
 
         if ((*c)->test_flag(TraceCall::single_state))
-            resolve_state_calls(**c, required_calls, next_required_call);
+            resolve_state_calls(*c, required_calls, next_required_call);
     }
     return required_calls;
 }
@@ -440,7 +440,7 @@ PTraceCall TraceMirrorImpl::record_framebuffer_state(trace::Call &call)
 }
 
 void
-TraceMirrorImpl::resolve_state_calls(TraceCall& call,
+TraceMirrorImpl::resolve_state_calls(PTraceCall call,
                                      CallIdSet& callset /* inout */,
                                      unsigned next_required_call)
 {
@@ -448,14 +448,14 @@ TraceMirrorImpl::resolve_state_calls(TraceCall& call,
      * the passed function was called the last time.
      * The _last_before_callid_ value is initialized to the
      * maximum when the object is created. */
-    auto& last_call = m_state_calls[call.name()];
-    if (call.call_no() < next_required_call &&
-        last_call.last_before_callid < call.call_no()) {
-        std::cerr << "Add state call " << call.call_no() << ":"
-                  << call.name() << " last was " << last_call.last_before_callid << "\n";
-        last_call.last_before_callid = call.call_no();
-        callset.insert(call.call_no());
-        call.set_flag(TraceCall::required);
+    auto& last_call = m_state_calls[call->name()];
+    if (call->call_no() < next_required_call &&
+        last_call.last_before_callid < call->call_no()) {
+        std::cerr << "Add state call " << call->call_no() << ":"
+                  << call->name() << " last was " << last_call.last_before_callid << "\n";
+        last_call.last_before_callid = call->call_no();
+        callset.insert(*call);
+        call->set_flag(TraceCall::required);
     }
 }
 
@@ -467,7 +467,7 @@ void TraceMirrorImpl::resolve_repeatable_state_calls(TraceCall &call,
     if (last_state_param_set != call.name_with_params()) {
         m_state_call_param_map[call.name()] = call.name_with_params();
 
-        callset.insert(call.call_no());
+        callset.insert(call);
         call.set_flag(TraceCall::required);
     }
 }

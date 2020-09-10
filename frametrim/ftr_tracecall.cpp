@@ -2,6 +2,7 @@
 
 #include <sstream>
 
+
 namespace trace {
 
 class StreamVisitor : public Visitor
@@ -76,11 +77,11 @@ void TraceCall::add_dependend_objects(ObjectSet& out_set) const
     (void)out_set;
 }
 
-void CallIdSet::insert(PTraceCall call)
+void CallIdSet::insert(TraceCall& call)
 {
-    if (!call->test_flag(TraceCall::recorded)) {
-        m_calls.insert(call->call_no());
-        call->set_flag(TraceCall::recorded);
+    if (!call.test_flag(TraceCall::recorded)) {
+        m_calls.insert(call.call_no());
+        call.set_flag(TraceCall::recorded);
     }
 }
 

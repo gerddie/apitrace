@@ -50,7 +50,7 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
     for (auto&& c : m_draw_calls) {
         if (c->call_no() >= call_before)
             continue;
-        calls.insert(c->call_no());
+        calls.insert(*c);
         if (c->test_flag(TraceCall::full_viewport_redraw)) {
             start_redraw_call = c->call_no();
             break;
@@ -64,11 +64,11 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
         if (c->call_no() >= call_before)
             continue;
         if (c->call_no() > start_redraw_call)
-            calls.insert(c->call_no());
+            calls.insert(*c);
         auto state = c->name();
         if (singular_states.find(state) == singular_states.end()) {
             singular_states.insert(state);
-            calls.insert(c->call_no());
+            calls.insert(*c);
         }
     }
 }

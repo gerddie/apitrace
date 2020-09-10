@@ -28,13 +28,6 @@ public:
 
 protected:
     void collect_last_call_before(CallIdSet& calls,
-                                  const std::vector<unsigned>& call_list,
-                                  unsigned call_before) __attribute__((deprecated));
-    void collect_all_calls_before(CallIdSet& calls,
-                                  const std::vector<unsigned>& call_list,
-                                  unsigned call_before) __attribute__((deprecated));
-
-    void collect_last_call_before(CallIdSet& calls,
                                   const std::list<PTraceCall>& call_list,
                                   unsigned call_before);
 

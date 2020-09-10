@@ -20,7 +20,7 @@ AttachableObject::allocate(const trace::Call& call)
 void AttachableObject::collect_allocation_call(CallIdSet& calls)
 {
     for (auto&& c: m_allocation_call) {
-        calls.insert(c);
+        calls.insert(*c);
         collect_last_call_before(calls, m_bind_calls, c->call_no());
     }
 }

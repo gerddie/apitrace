@@ -42,7 +42,7 @@ void
 BufObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
 {
     if (m_allocation_call->call_no() < call_before) {
-        calls.insert(m_allocation_call->call_no());
+        calls.insert(*m_allocation_call);
         collect_last_call_before(calls, m_bind_calls,
                                  m_allocation_call->call_no());
     }

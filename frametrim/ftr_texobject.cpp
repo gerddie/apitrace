@@ -38,7 +38,7 @@ void TexObject::collect_state_calls(CallIdSet& calls, unsigned call_before)
     for (auto&& c: m_state_calls) {
         if (c.first < call_before &&
                 states.find(c.second->name()) == states.end()) {
-            calls.insert(c.second);
+            calls.insert(*c.second);
             states.insert(c.second->name());
         }
     }

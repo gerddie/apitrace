@@ -8,7 +8,6 @@
 #include <memory>
 #include <bitset>
 
-
 namespace frametrim_reverse {
 
 using PCall=std::shared_ptr<trace::Call>;
@@ -23,7 +22,11 @@ public:
         single_state,
         repeatable_state,
         full_viewport_redraw,
-        framebuffer_op
+        framebuffer_op,
+        matrix_reset,
+        matrix_select,
+        matrix_data,
+        last_flag
     };
 
     TraceCall(const trace::Call &call, const std::string& name, bool is_state_call);
@@ -46,13 +49,13 @@ private:
     unsigned m_trace_call_no;
     std::string m_name;
     std::string m_name_with_params;
-    std::bitset<8> m_flags;
+    std::bitset<last_flag> m_flags;
 };
 using PTraceCall = TraceCall::Pointer;
 
 class CallIdSet {
 public:
-    void insert(PTraceCall call);
+    void insert(TraceCall& call);
     void insert(unsigned callno) __attribute__((deprecated));
 
     std::unordered_set<unsigned>::const_iterator begin() const;

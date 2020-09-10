@@ -57,32 +57,12 @@ void TraceObject::collect_owned_obj(Queue& objects)
 }
 
 void TraceObject::collect_last_call_before(CallIdSet& calls,
-                                         const std::vector<unsigned>& call_list,
-                                         unsigned call_before)
-{
-    for (auto c = call_list.rbegin(); c != call_list.rend(); ++c)
-        if (*c < call_before) {
-            calls.insert(*c);
-            return;
-        }
-}
-
-void TraceObject::collect_all_calls_before(CallIdSet& calls,
-                                         const std::vector<unsigned>& call_list,
-                                         unsigned call_before)
-{
-    for (auto& c : call_list)
-        if (c < call_before)
-            calls.insert(c);
-}
-
-void TraceObject::collect_last_call_before(CallIdSet& calls,
                                          const std::list<PTraceCall>& call_list,
                                          unsigned call_before)
 {
     for (auto&& c : call_list)
         if (c->call_no() < call_before) {
-            calls.insert(c);
+            calls.insert(*c);
             return;
         }
 }
@@ -93,7 +73,7 @@ void TraceObject::collect_all_calls_before(CallIdSet& calls,
 {
     for (auto& c : call_list)
         if (c->call_no() < call_before)
-            calls.insert(c);
+            calls.insert(*c);
 }
 
 
@@ -111,9 +91,8 @@ GenObject::GenObject(unsigned id, PTraceCall gen_call):
 
 void GenObject::collect_generate_call(CallIdSet& calls)
 {
-    calls.insert(m_gen_call->call_no());
+    calls.insert(*m_gen_call);
 }
-
 
 void BoundObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
 {
