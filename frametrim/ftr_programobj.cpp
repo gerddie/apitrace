@@ -69,19 +69,19 @@ ProgramObject::bind_attr_location(unsigned loc)
     m_bound_attributes.insert(loc);
 }
 
-void ProgramObject::collect_dependend_obj(Queue& objects)
+void ProgramObject::collect_dependend_obj(Queue& objects, unsigned at_call)
 {
     for(auto& i : m_attached_shaders) {
         if (!i->visited()) {
             objects.push(i);
-            i->collect_objects(objects);
+            i->collect_objects(objects, at_call);
         }
     }
 
     for(auto& i : m_bound_attr_buffers) {
         if (i.second && !i.second->visited()) {
             objects.push(i.second);
-            i.second->collect_objects(objects);
+            i.second->collect_objects(objects, at_call);
         }
     }
 }

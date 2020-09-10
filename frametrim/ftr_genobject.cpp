@@ -9,10 +9,10 @@ TraceObject::TraceObject():
 {
 }
 
-void TraceObject::collect_objects(Queue& objects)
+void TraceObject::collect_objects(Queue& objects, unsigned at_callno)
 {
-    collect_owned_obj(objects);
-    collect_dependend_obj(objects);
+    collect_owned_obj(objects, at_callno);
+    collect_dependend_obj(objects, at_callno);
 }
 
 void TraceObject::collect_calls(CallIdSet& calls, unsigned call_before)
@@ -46,25 +46,28 @@ void TraceObject::collect_state_calls(CallIdSet& calls, unsigned call_before)
     (void)call_before;
 }
 
-void TraceObject::collect_dependend_obj(Queue& objects)
+void TraceObject::collect_dependend_obj(Queue& objects, unsigned at_callno)
 {
     (void)objects;
+    (void)at_callno;
 }
 
-void TraceObject::collect_owned_obj(Queue& objects)
+void TraceObject::collect_owned_obj(Queue& objects, unsigned at_callno)
 {
     (void)objects;
+    (void)at_callno;
 }
 
-void TraceObject::collect_last_call_before(CallIdSet& calls,
+unsigned TraceObject::collect_last_call_before(CallIdSet& calls,
                                          const std::list<PTraceCall>& call_list,
                                          unsigned call_before)
 {
     for (auto&& c : call_list)
         if (c->call_no() < call_before) {
             calls.insert(*c);
-            return;
+            return c->call_no();
         }
+    return call_before;
 }
 
 void TraceObject::collect_all_calls_before(CallIdSet& calls,

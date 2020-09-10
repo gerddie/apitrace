@@ -357,7 +357,7 @@ TraceMirrorImpl::resolve()
          * in the queue */
         if (obj->visited())
             continue;
-        obj->collect_objects(required_objects);
+        obj->collect_objects(required_objects, next_required_call);
         obj->collect_calls(required_calls, next_required_call);
         obj->set_visited();
     }
@@ -395,42 +395,33 @@ TraceMirrorImpl::collect_bound_objects(ObjectSet& required_objects, unsigned bef
 PTraceCall TraceMirrorImpl::record_draw(trace::Call &call)
 {
     auto c = make_shared<TraceCall>(call);
-    if (m_current_draw_buffer) {
+    if (m_current_draw_buffer)
         m_current_draw_buffer->draw(c);
-        return nullptr;
-    } else
-        return c;
+    return c;
 }
 
 PTraceCall TraceMirrorImpl::record_viewport_call(trace::Call &call)
 {
-    if (m_current_draw_buffer) {
-        m_current_draw_buffer->viewport(call);
-        return nullptr;
-    } else {
-        auto c = make_shared<TraceCall>(call);
-        c->set_flag(TraceCall::single_state);
-        return c;
-    }
+    auto c = m_current_draw_buffer ?
+                m_current_draw_buffer->viewport(call):
+                make_shared<TraceCall>(call);
+    c->set_flag(TraceCall::single_state);
+    return c;
 }
 
 PTraceCall TraceMirrorImpl::record_clear_call(trace::Call &call)
 {
-    if (m_current_draw_buffer) {
-        m_current_draw_buffer->clear(call);
-        return nullptr;
-    } else
-        return make_shared<TraceCall>(call);;
+    return m_current_draw_buffer ?
+                m_current_draw_buffer->clear(call):
+                make_shared<TraceCall>(call);
 }
 
 PTraceCall TraceMirrorImpl::record_framebuffer_state(trace::Call &call)
 {
     auto c = make_shared<TraceCall>(call);
-    if (m_current_draw_buffer) {
+    if (m_current_draw_buffer)
         m_current_draw_buffer->set_state(c);
-        return nullptr;
-    } else
-        return c;
+    return c;
 }
 
 void

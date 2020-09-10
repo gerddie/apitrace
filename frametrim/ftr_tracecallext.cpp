@@ -51,7 +51,7 @@ void TraceCallOnBoundObj::add_owned_object(ObjectSet& out_set) const
     if (!m_object->visited()) {
         std::cerr << " added";
         out_set.push(m_object);
-        m_object->collect_objects(out_set);
+        m_object->collect_objects(out_set, call_no());
     }
     std::cerr << "\n";
 }
@@ -68,7 +68,7 @@ void TraceCallOnBoundObjWithDeps::add_dependend_objects(ObjectSet& out_set) cons
 {
     if (!m_dependency->visited()) {
         out_set.push(m_dependency);
-        m_dependency->collect_objects(out_set);
+        m_dependency->collect_objects(out_set, call_no());
     }
 }
 

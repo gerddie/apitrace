@@ -23,11 +23,11 @@ public:
     bool visited() const { return m_visited;}
     void set_visited() {m_visited = true;};
 
-    void collect_objects(Queue& objects);
+    void collect_objects(Queue& objects, unsigned at_callno);
     void collect_calls(CallIdSet& calls, unsigned call_before);
 
 protected:
-    void collect_last_call_before(CallIdSet& calls,
+    unsigned collect_last_call_before(CallIdSet& calls,
                                   const std::list<PTraceCall>& call_list,
                                   unsigned call_before);
 
@@ -35,16 +35,15 @@ protected:
                                   const std::list<PTraceCall>& call_list,
                                   unsigned call_before);
 
-private:
     virtual void collect_generate_call(CallIdSet& calls);
     virtual void collect_allocation_call(CallIdSet& calls);
     virtual void collect_data_calls(CallIdSet& calls, unsigned call_before);
     virtual void collect_bind_calls(CallIdSet& calls, unsigned call_before);
     virtual void collect_state_calls(CallIdSet& calls, unsigned call_before);
 
-    virtual void collect_owned_obj(Queue& objects);
-    virtual void collect_dependend_obj(Queue& objects);
-
+    virtual void collect_owned_obj(Queue& objects, unsigned at_callno);
+    virtual void collect_dependend_obj(Queue& objects, unsigned at_callno);
+private:
     bool m_visited;
 };
 using PTraceObject = TraceObject::Pointer;

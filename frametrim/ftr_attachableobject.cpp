@@ -25,10 +25,16 @@ void AttachableObject::collect_allocation_call(CallIdSet& calls)
     }
 }
 
-void AttachableObject::collect_dependend_obj(Queue& objects)
+void AttachableObject::collect_dependend_obj(Queue& objects, unsigned at_call)
 {
-    for(auto&& o : m_attached_to)
-        objects.push(o.second);
+    for(auto&& timeline : m_bindings) {
+        for(auto&& timepoint : timeline.second) {
+            if (timepoint.bind_call_no >= at_call &&
+                timepoint.unbind_call_no <= at_call) {
+                objects.push(timepoint.obj);
+            }
+        }
+    }
 }
 
 void AttachableObject::set_size(unsigned level, unsigned w, unsigned h)
@@ -43,16 +49,21 @@ void AttachableObject::set_size(unsigned level, unsigned w, unsigned h)
 }
 
 
-void AttachableObject::attach_to(PGenObject obj)
+void AttachableObject::attach_to(PGenObject obj, unsigned att_point, unsigned call_no)
 {
-    assert(m_attached_to.find(obj->id()) == m_attached_to.end() &&
-           "Attacheing to the same FBO twice is not handled");
-    m_attached_to[obj->id()] = obj;
+    auto& timeline = m_bindings[64 * obj->id() + att_point];
+    if (!timeline.empty()) {
+        timeline.front().unbind_call_no = call_no - 1;
+    }
+    timeline.push_front(BindTimePoint(obj, call_no));
 }
 
-void AttachableObject::detach_from(unsigned fbo_id)
+void AttachableObject::detach_from(unsigned fbo_id, unsigned att_point, unsigned call_no)
 {
-    m_attached_to.erase(fbo_id);
+    auto& timeline = m_bindings[64 * fbo_id + att_point];
+    assert(!timeline.empty());
+    timeline.front().unbind_call_no = call_no - 1;
+
 }
 
 }

@@ -34,14 +34,21 @@ void FramebufferObject::set_state(PTraceCall call)
     m_state_calls.push_back(call);
 }
 
-void FramebufferObject::viewport(const trace::Call& call)
+void FramebufferObject::bind(PTraceCall call)
+{
+    m_bind_calls.push_front(call);
+}
+
+PTraceCall FramebufferObject::viewport(const trace::Call& call)
 {
     m_viewport_x = call.arg(0).toUInt();
     m_viewport_y = call.arg(1).toUInt();
     m_viewport_width = call.arg(2).toUInt();
     m_viewport_height = call.arg(3).toUInt();
 
-    m_state_calls.push_back(make_shared<StateCall>(call, 0));
+    auto c = make_shared<StateCall>(call, 0);
+    m_state_calls.push_back(c);
+    return c;
 }
 
 void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
@@ -71,17 +78,36 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
             calls.insert(*c);
         }
     }
+
+    unsigned need_bind_before = call_before;
+    for(auto&& attach: m_attachment_calls) {
+        unsigned call_no = collect_last_call_before(calls, attach.second, call_before);
+        if (call_no < need_bind_before)
+            need_bind_before = call_no;
+    }
+
+    collect_bind_calls(calls, need_bind_before);
 }
 
-void FramebufferObject::collect_dependend_obj(Queue& objects)
+void FramebufferObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
 {
-    for (auto&& a : m_attachments)
-        if (a && !a-visited())
-            objects.push(a);
+    collect_last_call_before(calls, m_bind_calls, call_before);
+}
+
+void FramebufferObject::collect_dependend_obj(Queue& objects, unsigned at_call)
+{
+    for (auto&& timeline : m_attachments) {
+        for (auto&& binding : timeline.second) {
+            if (binding.bind_call_no >= at_call &&
+                binding.unbind_call_no <= at_call &&
+                !binding.obj->visited())
+                objects.push(binding.obj);
+        }
+    }
 }
 
 
-void FramebufferObject::clear(const trace::Call& call)
+PTraceCall FramebufferObject::clear(const trace::Call& call)
 {
     bool full_clear = true;
     if (m_viewport_width != m_width ||
@@ -94,6 +120,7 @@ void FramebufferObject::clear(const trace::Call& call)
     if (full_clear)
         c->set_flag(TraceCall::full_viewport_redraw);
     m_draw_calls.push_front(c);
+    return c;
 }
 
 void FramebufferObject::draw(PTraceCall call)
@@ -102,7 +129,8 @@ void FramebufferObject::draw(PTraceCall call)
 }
 
 void
-FramebufferObject::attach(unsigned attach_point, PAttachableObject obj, unsigned layer)
+FramebufferObject::attach(unsigned attach_point, PAttachableObject obj,
+                          unsigned layer, PTraceCall call)
 {
     unsigned idx = 0;
     switch (attach_point) {
@@ -116,18 +144,18 @@ FramebufferObject::attach(unsigned attach_point, PAttachableObject obj, unsigned
         idx = attach_point - GL_COLOR_ATTACHMENT0 + 2;
     }
 
-    if (idx >= m_attachments.size())
-        m_attachments.resize(idx + 1);
-
-    if (m_attachments[idx])
-        m_attachments[idx]->detach_from(id());
-
     if (obj) {
         m_width = obj->width(layer);
         m_height = obj->width(layer);
     }
 
-    m_attachments[idx] = obj;
+    auto& timeline = m_attachments[idx];
+    if (!timeline.empty())
+        timeline.front().unbind_call_no = call->call_no();
+
+    timeline.push_front(BindTimePoint(obj, call->call_no()));
+
+    m_attachment_calls[idx].push_front(call);
 }
 
 PTraceCall
@@ -147,8 +175,12 @@ FramebufferObjectMap::bind(const trace::Call& call)
         target == GL_READ_FRAMEBUFFER) {
         m_read_buffer = fbo;
     }
-    return fbo ? make_shared<TraceCallOnBoundObj>(call, fbo) :
-                 make_shared<TraceCall>(call);
+    if (fbo) {
+        auto c = make_shared<TraceCallOnBoundObj>(call, fbo);
+        fbo->bind(c);
+        return c;
+    } else
+        return make_shared<TraceCall>(call);
 }
 
 PFramebufferObject FramebufferObjectMap::draw_buffer() const
@@ -175,9 +207,15 @@ FramebufferObjectMap::attach_renderbuffer(const trace::Call& call, RenderbufferO
     auto rb = rb_map.by_id(call.arg(3).toUInt());
     auto attach_point = call.arg(1).toUInt();
 
-    fbo->attach(attach_point, rb, 0);
-    rb->attach_to(fbo);
-    return make_shared<TraceCallOnBoundObjWithDeps>(call, fbo, rb);
+    auto c = make_shared<TraceCallOnBoundObjWithDeps>(call, fbo, rb);
+
+    fbo->attach(attach_point, rb, 0, c);
+    if (rb)
+        rb->attach_to(fbo, attach_point, call.no);
+    else
+        rb->detach_from(fbo->id(), attach_point, call.no);
+
+    return c;
 }
 
 PTraceCall
@@ -191,9 +229,10 @@ FramebufferObjectMap::attach_texture(const trace::Call& call,
     auto layer = call.arg(level_param_idx).toUInt();
 
     PFramebufferObject fbo = bound_to_call_target(call);
-    fbo->attach(attach_point, tex, layer);
 
-    return make_shared<TraceCallOnBoundObjWithDeps>(call, fbo, tex);
+    auto c = make_shared<TraceCallOnBoundObjWithDeps>(call, fbo, tex);
+    fbo->attach(attach_point, tex, layer, c);
+    return c;
 }
 
 PFramebufferObject

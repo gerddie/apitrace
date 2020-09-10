@@ -11,21 +11,26 @@ public:
 
     using Pointer = std::shared_ptr<FramebufferObject>;
 
-    void attach(unsigned index, PAttachableObject obj, unsigned layer);
+    void attach(unsigned index, PAttachableObject obj, unsigned layer,
+                PTraceCall call);
 
-    void viewport(const trace::Call& call);
+    PTraceCall viewport(const trace::Call& call);
     void set_state(PTraceCall call);
-    void clear(const trace::Call& call);
+    PTraceCall clear(const trace::Call& call);
     void draw(PTraceCall call);
+    void bind(PTraceCall call);
 
 private:
     void collect_data_calls(CallIdSet& calls, unsigned call_before) override;
-    void collect_dependend_obj(Queue& objects) override;
+    void collect_bind_calls(CallIdSet& calls, unsigned call_before) override;
+    void collect_dependend_obj(Queue& objects, unsigned at_call) override;
 
-    std::vector<PAttachableObject> m_attachments;
+    std::unordered_map<unsigned, std::list<PTraceCall>> m_attachment_calls;
+    std::unordered_map<unsigned, BindTimeline> m_attachments;
     PGenObject m_blit_source;
     std::list<PTraceCall> m_draw_calls;
     std::list<PTraceCall> m_state_calls;
+    std::list<PTraceCall> m_bind_calls;
 
     unsigned m_viewport_x, m_viewport_y;
     unsigned m_viewport_width, m_viewport_height;
@@ -40,8 +45,6 @@ public:
     using Pointer = std::shared_ptr<RenderbufferObject>;
 private:
     unsigned evaluate_size(const trace::Call& call) override;
-
-    std::unordered_map<unsigned, BindTimeline> m_bindings;
 };
 
 using PRenderbufferObject = RenderbufferObject::Pointer;
