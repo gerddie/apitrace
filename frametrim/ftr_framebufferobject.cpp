@@ -24,9 +24,12 @@ RenderbufferObjectMap::storage(const trace::Call& call)
 }
 
 FramebufferObject::FramebufferObject(unsigned gl_id, PTraceCall gen_call):
-    GenObject(gl_id, gen_call)
+    GenObject(gl_id, gen_call),
+    m_viewport_width(0),
+    m_viewport_height(0),
+    m_width(0),
+    m_height(0)
 {
-
 }
 
 void FramebufferObject::set_state(PTraceCall call)
@@ -112,10 +115,6 @@ PTraceCall FramebufferObject::clear(const trace::Call& call)
     bool full_clear = true;
     if (m_viewport_width != m_width ||
         m_viewport_height != m_height) {
-        std::cerr << "wxh = " << m_width << "x" << m_height
-                  << " vp: " << m_viewport_width << "x" << m_viewport_height
-                  << "\n";
-
         full_clear = false;
     }
 
@@ -123,7 +122,6 @@ PTraceCall FramebufferObject::clear(const trace::Call& call)
 
     auto c = make_shared<TraceCall>(call);
     if (full_clear) {
-        std::cerr << call.no << "Clear on full viewport\n";
         c->set_flag(TraceCall::full_viewport_redraw);
     }
     m_draw_calls.push_front(c);
@@ -203,7 +201,17 @@ PFramebufferObject FramebufferObjectMap::read_buffer() const
 PTraceCall
 FramebufferObjectMap::blit(const trace::Call& call)
 {
-    assert(0 && "Blit not correctly implemented");
+    if (m_draw_buffer && m_read_buffer)
+        return make_shared<TraceCallOnBoundObjWithDeps>(call,
+                                                        m_draw_buffer,
+                                                        m_read_buffer);
+
+    if (m_draw_buffer)
+        return make_shared<TraceCallOnBoundObj>(call, m_draw_buffer);
+
+    if (m_read_buffer)
+        return make_shared<TraceCallOnBoundObj>(call, m_read_buffer);
+
     return make_shared<TraceCall>(call);
 }
 

@@ -222,7 +222,6 @@ TraceMirrorImpl::bind_fbo(trace::Call &call)
     } else {
         assert(target == GL_READ_FRAMEBUFFER);
         record_bind(bt_framebuffer, m_fbo.read_buffer(), GL_READ_FRAMEBUFFER, 0, call.no);
-        return make_shared<TraceCallOnBoundObj>(call, m_fbo.read_buffer());
         fbo = m_current_read_buffer = m_fbo.read_buffer();
     }
 
@@ -285,6 +284,10 @@ PTraceCall
 TraceMirrorImpl::call_on_bound_obj(trace::Call &call, BoundObjectMap& map)
 {
     auto bound_obj = map.bound_to_call_target_untyped(call);
+    if (!bound_obj) {
+        std::cerr << "Expected bound opject in call " << call.name() << "\n";
+        return PTraceCall(new TraceCall(call));
+    }
     return PTraceCall(new TraceCallOnBoundObj(call, bound_obj));
 }
 
@@ -349,7 +352,6 @@ TraceMirrorImpl::resolve()
     collect_bound_objects(required_objects, next_required_call);
 
     while (!required_objects.empty()) {
-        std::cerr << "Have " << required_objects.size() << " required objects\n";
         auto obj = required_objects.front();
         required_objects.pop();
 
@@ -386,7 +388,6 @@ TraceMirrorImpl::collect_bound_objects(ObjectSet& required_objects, unsigned bef
             if (timepoint.bind_call_no < before_call &&
                 timepoint.unbind_call_no >= before_call) {
                 required_objects.push(timepoint.obj);
-                std::cerr << "Add a bound object with ID " << timepoint.obj->id() << "\n";
             }
         }
     }
@@ -800,10 +801,6 @@ void TraceMirrorImpl::record_bind(BindType type, PGenObject obj,
         last.unbind_call_no = callno;
     }
     if (obj) {
-        std::cerr << callno << ": record binding of object "
-                  << object_type(type) << "@" << id
-                  << "-" << tex_unit
-                  << " with ID " << obj->id() << "\n";
         BindTimePoint new_time_point(obj, callno);
         recoed.push_front(new_time_point);
     }

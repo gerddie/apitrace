@@ -48,17 +48,29 @@ BufObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
     }
 }
 
-#define FORWARD_Call(FUNC) \
-    PTraceCall BufObjectMap:: FUNC (trace::Call& call) \
-    { \
-        PBufObject obj = this->bound_to_call_target(call); \
-        obj-> FUNC (call); \
-        return make_shared<TraceCallOnBoundObj>(call, obj); \
-    }
+PTraceCall BufObjectMap::map (trace::Call& call)
+{
+    PBufObject obj = this->bound_to_call_target(call);
+    obj->map(call);
+    m_mapped_buffers.insert(obj);
+    return make_shared<TraceCallOnBoundObj>(call, obj); \
+}
 
-FORWARD_Call(map)
-FORWARD_Call(map_range)
-FORWARD_Call(unmap)
+PTraceCall BufObjectMap::map_range (trace::Call& call)
+{
+    PBufObject obj = this->bound_to_call_target(call);
+    obj->map_range(call);
+    m_mapped_buffers.insert(obj);
+    return make_shared<TraceCallOnBoundObj>(call, obj); \
+}
+
+PTraceCall BufObjectMap::unmap(trace::Call& call)
+{
+    PBufObject obj = this->bound_to_call_target(call);
+    obj->unmap(call);
+    m_mapped_buffers.erase(obj);
+    return make_shared<TraceCallOnBoundObj>(call, obj); \
+}
 
 PTraceCall BufObjectMap::data (trace::Call& call)
 {

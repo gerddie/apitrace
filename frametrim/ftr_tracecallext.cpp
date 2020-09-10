@@ -41,19 +41,15 @@ TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call, PGenObject obj
     TraceCall(call),
     m_object(obj)
 {
-
+    assert(obj);
 }
 
 void TraceCallOnBoundObj::add_owned_object(ObjectSet& out_set) const
 {
-    std::cerr << "Bound object: " << m_object->id();
-
     if (!m_object->visited()) {
-        std::cerr << " added";
         out_set.push(m_object);
         m_object->collect_objects(out_set, call_no());
     }
-    std::cerr << "\n";
 }
 
 TraceCallOnBoundObjWithDeps::TraceCallOnBoundObjWithDeps(const trace::Call& call,

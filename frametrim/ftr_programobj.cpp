@@ -159,7 +159,10 @@ ProgramObjectMap::vertex_attr_pointer(trace::Call& call, BufObjectMap& buffers)
     auto attr_id = call.arg(0).toUInt();
     auto attr_buffer = buffers.bound_to_target(GL_ARRAY_BUFFER);
     auto program = bound_to_target(0);
-    return program->bind_attr_pointer(call, attr_id, attr_buffer);
+    if (program)
+        return program->bind_attr_pointer(call, attr_id, attr_buffer);
+    else
+        return make_shared<TraceCall>(call);
 }
 
 unsigned
