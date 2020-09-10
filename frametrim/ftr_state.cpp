@@ -630,9 +630,9 @@ void TraceMirrorImpl::register_texture_calls()
     MAP_GENOBJ(glTexImage1D, m_textures, TexObjectMap::allocation);
     MAP_GENOBJ(glTexImage2D, m_textures, TexObjectMap::allocation);
     MAP_GENOBJ(glTexImage3D, m_textures, TexObjectMap::allocation);
-    MAP_DATA(glTexSubImage1D, call_on_bound_obj, m_textures);
-    MAP_DATA(glTexSubImage2D, call_on_bound_obj, m_textures);
-    MAP_DATA(glTexSubImage3D, call_on_bound_obj, m_textures);
+    MAP_GENOBJ(glTexSubImage1D, m_textures, TexObjectMap::sub_image);
+    MAP_GENOBJ(glTexSubImage2D, m_textures, TexObjectMap::sub_image);
+    MAP_GENOBJ(glTexSubImage3D, m_textures, TexObjectMap::sub_image);
     MAP_DATA(glCopyTexSubImage2D, call_on_bound_obj, m_textures);
     MAP_GENOBJ_DATA(glTexParameter, m_textures, TexObjectMap::state, 2);
 

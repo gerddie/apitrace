@@ -9,6 +9,15 @@
 namespace frametrim_reverse {
 
 using std::make_shared;
+using std::vector;
+
+TexObject::TexObject(unsigned gl_id, PTraceCall gen_call):
+    AttachableObject(gl_id, gen_call),
+    m_dimensions(0),
+    m_max_level(0)
+{
+
+}
 
 PTraceCall TexObject::state(const trace::Call& call, unsigned nparam)
 {
@@ -17,17 +26,95 @@ PTraceCall TexObject::state(const trace::Call& call, unsigned nparam)
     return c;
 }
 
+PTraceCall TexObject::sub_image(const trace::Call& call)
+{
+    unsigned level = call.arg(1).toUInt();
+    unsigned x = call.arg(2).toUInt();
+    unsigned y = 0;
+    unsigned z = 0;
+    unsigned width = 1;
+    unsigned height = 1;
+    unsigned depth = 1;
+
+    if (m_max_level <= level)
+        m_max_level = level + 1;
+
+    switch (m_dimensions) {
+    case 1: width = call.arg(3).toUInt();
+        break;
+    case 2:
+        y = call.arg(3).toUInt();
+        width = call.arg(4).toUInt();
+        height = call.arg(5).toUInt();
+        break;
+    case 3:
+        y = call.arg(3).toUInt();
+        z = call.arg(4).toUInt();
+        width = call.arg(5).toUInt();
+        height = call.arg(6).toUInt();
+        depth = call.arg(7).toUInt();
+        break;
+    }
+
+    auto c = make_shared<TexSubImageCall>(call, level, x, y, z, width, height, depth);
+    m_data_calls.push_front(c);
+    return c;
+}
+
+class TexRegionMerger {
+public:
+
+    bool covered(PTexSubImageCall region) {
+        for(auto&& r : m_regions) {
+            if (r->m_x <= region->m_x &&
+                r->m_y <= region->m_y &&
+                r->m_z <= region->m_z &&
+                r->m_width >= region->m_width &&
+                r->m_height >= region->m_height &&
+                r->m_depth >= region->m_depth)
+                return true;
+        }
+        m_regions.push_back(region);
+        return false;
+    }
+
+    vector<PTexSubImageCall> m_regions;
+};
+
+void TexObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
+{
+    vector<TexRegionMerger> regions(m_max_level, TexRegionMerger());
+
+    for(auto&& c : m_data_calls) {
+        if (c->call_no() >= call_before)
+            continue;
+
+        if (regions[c->m_level].covered(c))
+            continue;
+        call_before = c->call_no();
+        calls.insert(*c);
+    }
+    collect_bind_calls(calls, call_before);
+    collect_allocation_call(calls);
+}
+
 unsigned TexObject::evaluate_size(const trace::Call& call)
 {
     unsigned level = call.arg(1).toUInt();
     unsigned w = call.arg(3).toUInt();
     unsigned h = 1;
 
+    m_dimensions  = 1;
+
     if (!strcmp(call.name(), "glTexImage2D")||
-        !strcmp(call.name(), "glCompressedTexImage2D")||
-        !strcmp(call.name(), "glTexImage3D")) {
+        !strcmp(call.name(), "glCompressedTexImage2D"))
+        m_dimensions  = 2;
+    if (!strcmp(call.name(), "glTexImage3D"))
+        m_dimensions  = 3;
+
+    if (m_dimensions > 1)
         h = call.arg(4).toUInt();
-    }
+
     set_size(level, w, h);
     return level;
 }
@@ -88,6 +175,12 @@ unsigned TexObjectMap::target_id_from_call(const trace::Call& call) const
 {
     unsigned target = call.arg(0).toUInt();
     return compose_target_id_with_unit(target, m_active_texture_unit);
+}
+
+PTraceCall TexObjectMap::sub_image(const trace::Call& call)
+{
+    auto texture = bound_to_call_target(call);
+    return texture->sub_image(call);
 }
 
 unsigned TexObjectMap::active_unit() const
