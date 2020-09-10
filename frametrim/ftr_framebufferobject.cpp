@@ -155,8 +155,11 @@ FramebufferObject::attach(unsigned attach_point, PAttachableObject obj,
     }
 
     auto& timeline = m_attachments[idx];
-    if (!timeline.empty())
+    if (!timeline.empty()) {
         timeline.front().unbind_call_no = call->call_no();
+        AttachableObject& o = static_cast<AttachableObject&>(*timeline.front().obj);
+        o.detach_from(id(),attach_point, call->call_no());
+    }
 
     timeline.push_front(BindTimePoint(obj, call->call_no()));
 
@@ -222,13 +225,15 @@ FramebufferObjectMap::attach_renderbuffer(const trace::Call& call, RenderbufferO
     auto rb = rb_map.by_id(call.arg(3).toUInt());
     auto attach_point = call.arg(1).toUInt();
 
-    auto c = make_shared<TraceCallOnBoundObjWithDeps>(call, fbo, rb);
+    PTraceCall c;
+    if (rb) {
+        c = make_shared<TraceCallOnBoundObjWithDeps>(call, fbo, rb);
+        rb->attach_to(fbo, attach_point, call.no);
+    } else {
+        c = make_shared<TraceCallOnBoundObj>(call, fbo);
+    }
 
     fbo->attach(attach_point, rb, 0, c);
-    if (rb)
-        rb->attach_to(fbo, attach_point, call.no);
-    else
-        rb->detach_from(fbo->id(), attach_point, call.no);
 
     return c;
 }
@@ -245,8 +250,15 @@ FramebufferObjectMap::attach_texture(const trace::Call& call,
 
     PFramebufferObject fbo = bound_to_call_target(call);
 
-    auto c = make_shared<TraceCallOnBoundObjWithDeps>(call, fbo, tex);
+    PTraceCall c;
+    if (tex) {
+        c = make_shared<TraceCallOnBoundObjWithDeps>(call, fbo, tex);
+        tex->attach_to(fbo, attach_point, call.no);
+    } else {
+        c = make_shared<TraceCallOnBoundObj>(call, fbo);
+    }
     fbo->attach(attach_point, tex, layer, c);
+
     return c;
 }
 
