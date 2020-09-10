@@ -111,14 +111,21 @@ PTraceCall FramebufferObject::clear(const trace::Call& call)
 {
     bool full_clear = true;
     if (m_viewport_width != m_width ||
-        m_viewport_height != m_height)
+        m_viewport_height != m_height) {
+        std::cerr << "wxh = " << m_width << "x" << m_height
+                  << " vp: " << m_viewport_width << "x" << m_viewport_height
+                  << "\n";
+
         full_clear = false;
+    }
 
     /* TODO: Check attachments vs. draw buffers */
 
     auto c = make_shared<TraceCall>(call);
-    if (full_clear)
+    if (full_clear) {
+        std::cerr << call.no << "Clear on full viewport\n";
         c->set_flag(TraceCall::full_viewport_redraw);
+    }
     m_draw_calls.push_front(c);
     return c;
 }
@@ -146,7 +153,7 @@ FramebufferObject::attach(unsigned attach_point, PAttachableObject obj,
 
     if (obj) {
         m_width = obj->width(layer);
-        m_height = obj->width(layer);
+        m_height = obj->heigth(layer);
     }
 
     auto& timeline = m_attachments[idx];
