@@ -48,6 +48,7 @@ private:
     void collect_data_calls(CallIdSet& calls, unsigned call_before) override;
 
     std::list<PTraceCall> m_attach_calls;
+    std::unordered_map<unsigned, std::list<PTraceCall>> m_va_pointer_calls;
     PTraceCall m_link_call;
     std::list<PTraceCall> m_data_calls;
     std::map<unsigned, std::list<PTraceCall>> m_uniforms_calls;

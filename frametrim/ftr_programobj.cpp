@@ -105,6 +105,10 @@ ProgramObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
         if (call_no < needs_bind_before)
             needs_bind_before = call_no;
     }
+
+    for (auto&& va : m_va_pointer_calls)
+        if (!va.second.empty())
+            calls.insert(*va.second.front());
     collect_bind_calls(calls, needs_bind_before);
 }
 
@@ -112,7 +116,7 @@ PTraceCall ProgramObject::bind_attr_pointer(const trace::Call& call, unsigned at
 {
     m_bound_attr_buffers[attr_id] = obj;
     auto c = make_shared<TraceCall>(call);
-    m_data_calls.push_front(c);
+    m_va_pointer_calls[attr_id].push_front(c);
     return c;
 }
 
