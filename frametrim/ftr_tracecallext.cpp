@@ -1,6 +1,7 @@
 #include "ftr_tracecallext.hpp"
 
 #include <sstream>
+#include <iostream>
 
 namespace frametrim_reverse {
 
@@ -45,11 +46,14 @@ TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call, PGenObject obj
 
 void TraceCallOnBoundObj::add_owned_object(ObjectSet& out_set) const
 {
+    std::cerr << "Bound object: " << m_object->id();
+
     if (!m_object->visited()) {
+        std::cerr << " added";
         out_set.push(m_object);
         m_object->collect_objects(out_set);
-        m_object->set_visited();
     }
+    std::cerr << "\n";
 }
 
 TraceCallOnBoundObjWithDeps::TraceCallOnBoundObjWithDeps(const trace::Call& call,
@@ -65,7 +69,6 @@ void TraceCallOnBoundObjWithDeps::add_dependend_objects(ObjectSet& out_set) cons
     if (!m_dependency->visited()) {
         out_set.push(m_dependency);
         m_dependency->collect_objects(out_set);
-        m_dependency->set_visited();
     }
 }
 

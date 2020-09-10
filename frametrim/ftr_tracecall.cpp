@@ -85,11 +85,6 @@ void CallIdSet::insert(TraceCall& call)
     }
 }
 
-void CallIdSet::insert(unsigned callno)
-{
-    m_calls.insert(callno);
-}
-
 std::unordered_set<unsigned>::const_iterator
 CallIdSet::begin() const
 {

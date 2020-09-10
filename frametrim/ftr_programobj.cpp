@@ -75,7 +75,6 @@ void ProgramObject::collect_dependend_obj(Queue& objects)
         if (!i->visited()) {
             objects.push(i);
             i->collect_objects(objects);
-            i->set_visited();
         }
     }
 
@@ -83,7 +82,6 @@ void ProgramObject::collect_dependend_obj(Queue& objects)
         if (i.second && !i.second->visited()) {
             objects.push(i.second);
             i.second->collect_objects(objects);
-            i.second->set_visited();
         }
     }
 }

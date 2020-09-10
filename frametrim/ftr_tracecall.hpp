@@ -56,7 +56,6 @@ using PTraceCall = TraceCall::Pointer;
 class CallIdSet {
 public:
     void insert(TraceCall& call);
-    void insert(unsigned callno) __attribute__((deprecated));
 
     std::unordered_set<unsigned>::const_iterator begin() const;
     std::unordered_set<unsigned>::const_iterator end() const;

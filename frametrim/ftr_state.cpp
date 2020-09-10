@@ -268,7 +268,7 @@ PTraceCall TraceMirrorImpl::bind_program(trace::Call &call)
 
 PTraceCall TraceMirrorImpl::bind_renderbuffer(trace::Call &call)
 {
-    auto rb = m_programs.bind(call, 1);
+    auto rb = m_renderbuffers.bind(call, 1);
     record_bind(bt_renderbuffer, rb, 0, 0, call.no);
     return bind_tracecall(call, rb);
 }
@@ -362,10 +362,17 @@ TraceMirrorImpl::resolve()
     collect_bound_objects(required_objects, next_required_call);
 
     while (!required_objects.empty()) {
+        std::cerr << "Have " << required_objects.size() << " required objects\n";
         auto obj = required_objects.front();
         required_objects.pop();
+
+        /* This is just a fail save, there should be no visited objects
+         * in the queue */
+        if (obj->visited())
+            continue;
         obj->collect_objects(required_objects);
         obj->collect_calls(required_calls, next_required_call);
+        obj->set_visited();
     }
 
     /* At this point only state calls should remain to be recorded
@@ -690,7 +697,6 @@ void TraceMirrorImpl::register_framebuffer_calls()
     MAP_GENOBJ(glDeleteRenderbuffers, m_renderbuffers, RenderbufferObjectMap::destroy);
     MAP_GENOBJ(glGenRenderbuffer, m_renderbuffers, RenderbufferObjectMap::generate);
     MAP_GENOBJ(glRenderbufferStorage, m_renderbuffers, RenderbufferObjectMap::storage);
-
     MAP_GENOBJ(glGenFramebuffer, m_fbo, FramebufferObjectMap::generate);
     MAP_GENOBJ(glDeleteFramebuffers, m_fbo, FramebufferObjectMap::destroy);
     MAP(glBindFramebuffer, bind_fbo);

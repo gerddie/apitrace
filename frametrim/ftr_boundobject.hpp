@@ -12,7 +12,6 @@ class BoundObjectMap {
 public:
     virtual PGenObject bound_to_call_target_untyped(const trace::Call& call) const = 0;
     virtual PGenObject by_id_untyped(unsigned id) const = 0;
-    virtual void collect_currently_bound_objects(GenObject::Queue& objects) const = 0;
 };
 
 template <typename T>
@@ -24,7 +23,6 @@ public:
     PGenObject bind(const trace::Call& call, unsigned id_index);
     PGenObject bound_to_call_target_untyped(const trace::Call& call) const override;
     PGenObject by_id_untyped(unsigned id) const override;
-    void collect_currently_bound_objects(GenObject::Queue& objects) const override;
 protected:
     typename T::Pointer bind_target(unsigned target, unsigned id);
     void add(typename T::Pointer obj);
@@ -89,17 +87,6 @@ unsigned
 GenBoundObjectMap<T>::target_id_from_call(const trace::Call& call) const
 {
     return call.arg(0).toUInt();
-}
-
-template <typename T>
-void
-GenBoundObjectMap<T>::collect_currently_bound_objects(GenObject::Queue& objects) const
-{
-    /* This breaks when we use fbos and results of draws before the target frame */
-    for(auto&& o: m_bound_to_target) {
-        if (o.second)
-            objects.push(o.second);
-    }
 }
 
 template <typename T>
