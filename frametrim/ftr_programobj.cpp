@@ -99,9 +99,13 @@ ProgramObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
     collect_all_calls_before(calls, m_attach_calls, call_before);
     collect_all_calls_before(calls, m_data_calls, call_before);
 
+    unsigned needs_bind_before = call_before;
     for (auto&& uniform_slot: m_uniforms_calls) {
-        collect_last_call_before(calls, uniform_slot.second, call_before);
+        unsigned call_no = collect_last_call_before(calls, uniform_slot.second, call_before);
+        if (call_no < needs_bind_before)
+            needs_bind_before = call_no;
     }
+    collect_bind_calls(calls, needs_bind_before);
 }
 
 PTraceCall ProgramObject::bind_attr_pointer(const trace::Call& call, unsigned attr_id, PBufObject obj)
