@@ -58,9 +58,9 @@ struct TraceMirrorImpl {
                                  TraceCall::Flags calltype);
     PTraceCall record_enable_call(trace::Call &call, const char *basename);
 
-    PTraceCall record_draw_arrays(trace::Call &call);
-    /* These calls need to be redirected to the currently bound draw framebuffer */
     PTraceCall record_draw(trace::Call &call);
+    /* These calls need to be redirected to the currently bound draw framebuffer */
+    PTraceCall record_draw_with_buffer(trace::Call &call);
     PTraceCall record_viewport_call(trace::Call &call);
     PTraceCall record_clear_call(trace::Call &call);
     PTraceCall record_framebuffer_state(trace::Call &call);
@@ -417,7 +417,7 @@ TraceMirrorImpl::collect_bound_objects(ObjectSet& required_objects,
     }
 }
 
-PTraceCall TraceMirrorImpl::record_draw(trace::Call &call)
+PTraceCall TraceMirrorImpl::record_draw_with_buffer(trace::Call &call)
 {
     auto buf = m_buffers.bound_to_target(GL_ELEMENT_ARRAY_BUFFER);
     auto c = buf ? make_shared<TraceCallOnBoundObj>(call, buf):
@@ -427,7 +427,7 @@ PTraceCall TraceMirrorImpl::record_draw(trace::Call &call)
     return c;
 }
 
-PTraceCall TraceMirrorImpl::record_draw_arrays(trace::Call &call)
+PTraceCall TraceMirrorImpl::record_draw(trace::Call &call)
 {
     auto c = make_shared<TraceCall>(call);
     if (m_current_draw_buffer)
@@ -516,7 +516,7 @@ void TraceMirrorImpl::register_draw_related_calls()
     };
 
     for (auto n: calls) {
-        m_call_table.insert(make_pair(n, bind(&TraceMirrorImpl::record_draw,
+        m_call_table.insert(make_pair(n, bind(&TraceMirrorImpl::record_draw_with_buffer,
                                               this, _1)));
     }
 
@@ -525,7 +525,9 @@ void TraceMirrorImpl::register_draw_related_calls()
     m_call_table.insert(make_pair("glViewport", bind(&TraceMirrorImpl::record_viewport_call,
                                                   this, _1)));
 
-    m_call_table.insert(make_pair("glDrawArrays",bind(&TraceMirrorImpl::record_draw_arrays,
+    m_call_table.insert(make_pair("glDrawArrays",bind(&TraceMirrorImpl::record_draw,
+                                                      this, _1)));
+    m_call_table.insert(make_pair("glDrawBuffer",bind(&TraceMirrorImpl::record_draw,
                                                       this, _1)));
 }
 
