@@ -56,17 +56,17 @@ PTraceCall FramebufferObject::viewport(const trace::Call& call)
 
 void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
 {
-    unsigned start_redraw_call = std::numeric_limits<unsigned>::max();
+    unsigned start_draw_call = std::numeric_limits<unsigned>::max();
     for (auto&& c : m_draw_calls) {
         if (c->call_no() >= call_before)
             continue;
         calls.insert(c);
+        start_draw_call = c->call_no();
         if (c->test_flag(TraceCall::full_viewport_redraw)) {
-            start_redraw_call = c->call_no();
             break;
         }
     }
-    collect_bind_calls(calls, start_redraw_call);
+    collect_bind_calls(calls, start_draw_call);
 
     /* all state changes during the draw must be recorded */
     std::unordered_set<std::string> singular_states;
@@ -74,7 +74,7 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
     for (auto&& c : m_state_calls) {
         if (c->call_no() >= call_before)
             continue;
-        if (c->call_no() > start_redraw_call)
+        if (c->call_no() > start_draw_call)
             calls.insert(c);
         auto state = c->name();
         if (singular_states.find(state) == singular_states.end()) {
@@ -83,11 +83,19 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
         }
     }
 
-    unsigned need_bind_before = start_redraw_call;
+    unsigned need_bind_before = start_draw_call;
     for(auto&& attach: m_attachment_calls) {
-        unsigned call_no = collect_last_call_before(calls, attach.second, start_redraw_call);
+        unsigned call_no = collect_last_call_before(calls, attach.second, start_draw_call);
         if (call_no < need_bind_before)
             need_bind_before = call_no;
+
+        auto attach_timeline = m_attachments[attach.first];
+        for (auto&& a : attach_timeline) {
+            if (a.bind_call_no <= call_no &&
+                a.unbind_call_no > call_no) {
+                a.obj->collect_calls(calls, call_no);
+            }
+        }
     }
 
     collect_bind_calls(calls, need_bind_before);

@@ -153,12 +153,13 @@ static int trim_to_frame(const char *filename,
         while (call && call->no != *callid_itr)
             call.reset(p.parse_call());
         if (call) {
-            std::cerr << "Copy call " << call->no << "\n";
+            std::cerr << "Copy call " << call->no << "\r";
             writer.writeCall(call.get());
             call.reset(p.parse_call());
             ++callid_itr;
         }
     }
+    std::cerr << "\nDone\n";
 
     return 0;
 }
