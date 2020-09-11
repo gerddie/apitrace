@@ -26,22 +26,12 @@ private:
 class TraceCallOnBoundObj : public TraceCall {
 public:
     TraceCallOnBoundObj(const trace::Call& call, PGenObject obj);
-
-private:
-    void add_owned_object(ObjectSet& out_set) const override;
-
-    PGenObject m_object;
-};
-
-/* Currentyl a placeholder, needed for objects that depend on
- * other objects */
-class TraceCallOnBoundObjWithDeps : public TraceCallOnBoundObj {
-public:
-    TraceCallOnBoundObjWithDeps(const trace::Call& call, PGenObject obj,
-                                PGenObject dep);
+    TraceCallOnBoundObj(const trace::Call& call,
+                        PGenObject obj,
+                        PGenObject dep);
 private:
     void add_dependend_objects(ObjectSet& out_set) const override;
-    PGenObject m_dependency;
+    std::vector<PGenObject> m_dependencys;
 };
 
 class BufferSubrangeCall : public TraceCall {

@@ -63,18 +63,22 @@ TraceCall::TraceCall(const trace::Call &call):
 
 void TraceCall::add_object_to_set(ObjectSet& out_set) const
 {
-    add_owned_object(out_set);
     add_dependend_objects(out_set);
-}
-
-void TraceCall::add_owned_object(ObjectSet& out_set) const
-{
-    (void)out_set;
 }
 
 void TraceCall::add_dependend_objects(ObjectSet& out_set) const
 {
     (void)out_set;
+}
+
+void TraceCall::add_object_calls(CallIdSet& out_calls) const
+{
+    add_dependend_object_calls(out_calls);
+}
+
+void TraceCall::add_dependend_object_calls(CallIdSet& out_calls) const
+{
+    (void)out_calls;
 }
 
 void CallIdSet::insert(PTraceCall call)

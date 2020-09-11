@@ -38,30 +38,27 @@ StateEnableCall::combined_name(const trace::Call& call, const char *basename)
 }
 
 TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call, PGenObject obj):
-    TraceCall(call),
-    m_object(obj)
+    TraceCall(call)
 {
     assert(obj);
+    m_dependencys.push_back(obj);
 }
 
-void TraceCallOnBoundObj::add_owned_object(ObjectSet& out_set) const
+
+TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call,
+                                         PGenObject obj,
+                                         PGenObject dep):
+    TraceCallOnBoundObj(call, obj)
 {
-    if (!m_object->visited())
-        out_set.push(m_object);
+    m_dependencys.push_back(dep);
 }
 
-TraceCallOnBoundObjWithDeps::TraceCallOnBoundObjWithDeps(const trace::Call& call,
-                                                         PGenObject obj,
-                                                         PGenObject dep):
-    TraceCallOnBoundObj(call, obj),
-    m_dependency(dep)
+void TraceCallOnBoundObj::add_dependend_objects(ObjectSet& out_set) const
 {
-}
-
-void TraceCallOnBoundObjWithDeps::add_dependend_objects(ObjectSet& out_set) const
-{
-    if (!m_dependency->visited())
-        out_set.push(m_dependency);
+    for(auto&& d : m_dependencys) {
+        if (!d->visited())
+            out_set.push(d);
+    }
 }
 
 BufferSubrangeCall::BufferSubrangeCall(const trace::Call& call, uint64_t start,

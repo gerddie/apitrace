@@ -42,10 +42,11 @@ public:
     const std::string& name_with_params() const { return m_name_with_params;}
 
     void add_object_to_set(ObjectSet& out_set) const;
+    void add_object_calls(CallIdSet& out_calls) const;
 
 private:
-    virtual void add_owned_object(ObjectSet& out_set) const;
     virtual void add_dependend_objects(ObjectSet& out_set) const;
+    virtual void add_dependend_object_calls(CallIdSet& out_calls) const;
 
     unsigned m_trace_call_no;
     std::string m_name;

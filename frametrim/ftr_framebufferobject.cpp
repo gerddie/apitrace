@@ -213,9 +213,9 @@ PTraceCall
 FramebufferObjectMap::blit(const trace::Call& call)
 {
     if (m_draw_buffer && m_read_buffer)
-        return make_shared<TraceCallOnBoundObjWithDeps>(call,
-                                                        m_draw_buffer,
-                                                        m_read_buffer);
+        return make_shared<TraceCallOnBoundObj>(call,
+                                                m_draw_buffer,
+                                                m_read_buffer);
 
     if (m_draw_buffer)
         return make_shared<TraceCallOnBoundObj>(call, m_draw_buffer);
@@ -235,7 +235,7 @@ FramebufferObjectMap::attach_renderbuffer(const trace::Call& call, RenderbufferO
 
     PTraceCall c;
     if (rb) {
-        c = make_shared<TraceCallOnBoundObjWithDeps>(call, fbo, rb);
+        c = make_shared<TraceCallOnBoundObj>(call, fbo, rb);
         rb->attach_to(fbo, attach_point, call.no);
     } else {
         c = make_shared<TraceCallOnBoundObj>(call, fbo);
@@ -260,7 +260,7 @@ FramebufferObjectMap::attach_texture(const trace::Call& call,
 
     PTraceCall c;
     if (tex) {
-        c = make_shared<TraceCallOnBoundObjWithDeps>(call, fbo, tex);
+        c = make_shared<TraceCallOnBoundObj>(call, fbo, tex);
         tex->attach_to(fbo, attach_point, call.no);
     } else {
         c = make_shared<TraceCallOnBoundObj>(call, fbo);
