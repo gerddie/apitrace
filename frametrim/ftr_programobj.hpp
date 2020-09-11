@@ -39,7 +39,6 @@ public:
     using BoundObject::BoundObject;
     PTraceCall attach_shader(const trace::Call& call, PGenObject shader);
     void bind_attr_location(unsigned loc);
-    PTraceCall bind_attr_pointer(const trace::Call &call, unsigned attr_id, PBufObject buf);
     PTraceCall data_call(const trace::Call& call);
     PTraceCall link(const trace::Call& call);
     PTraceCall uniform(const trace::Call& call);
@@ -48,13 +47,11 @@ private:
     void collect_data_calls(CallIdSet& calls, unsigned before_call) override;
 
     std::list<PTraceCall> m_attach_calls;
-    std::unordered_map<unsigned, std::list<PTraceCall>> m_va_pointer_calls;
     PTraceCall m_link_call;
     std::list<PTraceCall> m_data_calls;
     std::map<unsigned, std::list<PTraceCall>> m_uniforms_calls;
     std::unordered_set<PGenObject> m_attached_shaders;
     std::unordered_set<unsigned> m_bound_attributes;
-    std::unordered_map<unsigned, PBufObject> m_bound_attr_buffers;
 };
 
 class ProgramObjectMap : public CreateObjectMap<ProgramObject> {

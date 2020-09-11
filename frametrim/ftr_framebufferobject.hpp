@@ -31,6 +31,7 @@ private:
     std::list<PTraceCall> m_draw_calls;
     std::list<PTraceCall> m_state_calls;
     std::list<PTraceCall> m_bind_calls;
+    std::list<unsigned> m_full_clears;
 
     unsigned m_viewport_x, m_viewport_y;
     unsigned m_viewport_width, m_viewport_height;

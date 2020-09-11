@@ -40,10 +40,8 @@ enum BindType {
     bt_legacy_program,
     bt_renderbuffer,
     bt_sampler,
-    // Matrix manipulation
     bt_texture,
     bt_vertex_array,
-
 };
 
 struct TraceMirrorImpl {
@@ -672,7 +670,7 @@ void TraceMirrorImpl::register_texture_calls()
     MAP_GENOBJ(glTexSubImage1D, m_textures, TexObjectMap::sub_image);
     MAP_GENOBJ(glTexSubImage2D, m_textures, TexObjectMap::sub_image);
     MAP_GENOBJ(glTexSubImage3D, m_textures, TexObjectMap::sub_image);
-    MAP_DATA(glCopyTexSubImage2D, call_on_bound_obj, m_textures);
+    //MAP_DATA(glCopyTexSubImage2D, call_on_bound_obj, m_textures);
     MAP_GENOBJ_DATA(glTexParameter, m_textures, TexObjectMap::state, 2);
 
     MAP(glBindSampler, bind_sampler);
@@ -692,6 +690,7 @@ void TraceMirrorImpl::register_program_calls()
     MAP_GENOBJ(glBindAttribLocation, m_programs,
                ProgramObjectMap::bind_attr_location);
 
+#error Continue here
     MAP_GENOBJ_DATAREF(glVertexAttribPointer, m_programs,
                        ProgramObjectMap::vertex_attr_pointer, m_buffers);
 

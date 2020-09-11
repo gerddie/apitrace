@@ -131,6 +131,7 @@ PTraceCall FramebufferObject::clear(const trace::Call& call)
     auto c = make_shared<TraceCall>(call);
     if (full_clear) {
         c->set_flag(TraceCall::full_viewport_redraw);
+        m_full_clears.push_front(call.no);
     }
     m_draw_calls.push_front(c);
     return c;

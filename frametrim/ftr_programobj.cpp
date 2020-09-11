@@ -77,13 +77,6 @@ void ProgramObject::collect_dependend_obj(Queue& objects, const TraceCallRange& 
             i->collect_objects(objects, call_range);
         }
     }
-
-    for(auto& i : m_bound_attr_buffers) {
-        if (i.second && !i.second->visited()) {
-            objects.push(i.second);
-            i.second->collect_objects(objects, call_range);
-        }
-    }
 }
 
 PTraceCall ProgramObject::link(const trace::Call& call)
@@ -106,18 +99,7 @@ ProgramObject::collect_data_calls(CallIdSet& calls, unsigned before_call)
             needs_bind_before = call_no;
     }
 
-    for (auto&& va : m_va_pointer_calls)
-        if (!va.second.empty())
-            calls.insert(va.second.front());
     collect_bind_calls(calls, needs_bind_before);
-}
-
-PTraceCall ProgramObject::bind_attr_pointer(const trace::Call& call, unsigned attr_id, PBufObject obj)
-{
-    m_bound_attr_buffers[attr_id] = obj;
-    auto c = make_shared<TraceCall>(call);
-    m_va_pointer_calls[attr_id].push_front(c);
-    return c;
 }
 
 PTraceCall
@@ -159,10 +141,7 @@ ProgramObjectMap::vertex_attr_pointer(trace::Call& call, BufObjectMap& buffers)
     auto attr_id = call.arg(0).toUInt();
     auto attr_buffer = buffers.bound_to_target(GL_ARRAY_BUFFER);
     auto program = bound_to_target(0);
-    if (program)
-        return program->bind_attr_pointer(call, attr_id, attr_buffer);
-    else
-        return make_shared<TraceCall>(call);
+    return make_shared<TraceCall>(call);
 }
 
 unsigned
