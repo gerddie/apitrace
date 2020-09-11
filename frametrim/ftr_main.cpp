@@ -150,11 +150,14 @@ static int trim_to_frame(const char *filename,
     auto callid_itr = call_ids.begin();
 
     while (call && callid_itr != call_ids.end()) {
-        while (call->no != *callid_itr)
+        while (call && call->no != *callid_itr)
             call.reset(p.parse_call());
-        writer.writeCall(call.get());
-        call.reset(p.parse_call());
-        ++callid_itr;
+        if (call) {
+            std::cerr << "Copy call " << call->no << "\n";
+            writer.writeCall(call.get());
+            call.reset(p.parse_call());
+            ++callid_itr;
+        }
     }
 
     return 0;

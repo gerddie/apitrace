@@ -85,6 +85,11 @@ void CallIdSet::insert(PTraceCall call)
     }
 }
 
+void CallIdSet::merge(const CallIdSet& set)
+{
+    m_calls.insert(set.begin(), set.end());
+}
+
 std::unordered_set<PTraceCall>::const_iterator
 CallIdSet::begin() const
 {

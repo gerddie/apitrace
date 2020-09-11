@@ -57,6 +57,7 @@ using PTraceCall = TraceCall::Pointer;
 class CallIdSet {
 public:
     void insert(PTraceCall call);
+    void merge(const CallIdSet& set);
     size_t size() const {return m_calls.size(); }
     std::unordered_set<PTraceCall>::const_iterator begin() const;
     std::unordered_set<PTraceCall>::const_iterator end() const;
