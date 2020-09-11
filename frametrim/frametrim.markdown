@@ -67,6 +67,12 @@ The following types of calls need to be considered:
 * collect the call numbers of these calls and go over the original trace
   again to trim the trace
 
+## known problems:
+
+* The tests shadowmap and render_to_texture pass on radeonsi but fail on
+  Intel
+
+
 
 
 
