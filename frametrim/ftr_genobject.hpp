@@ -13,6 +13,7 @@ namespace frametrim_reverse {
 class CallIdSet;
 class TraceCall;
 using PTraceCall = std::shared_ptr<TraceCall>;
+using TraceCallRange = std::pair<unsigned, unsigned>;
 
 class TraceObject {
 public:
@@ -23,7 +24,7 @@ public:
     bool visited() const { return m_visited;}
     void set_visited() {m_visited = true;};
 
-    void collect_objects(Queue& objects, unsigned at_callno);
+    void collect_objects(Queue& objects, const TraceCallRange &call_range);
     void collect_calls(CallIdSet& calls, unsigned call_before);
 
 protected:
@@ -41,8 +42,8 @@ protected:
     virtual void collect_bind_calls(CallIdSet& calls, unsigned call_before);
     virtual void collect_state_calls(CallIdSet& calls, unsigned call_before);
 
-    virtual void collect_owned_obj(Queue& objects, unsigned at_callno);
-    virtual void collect_dependend_obj(Queue& objects, unsigned at_callno);
+    virtual void collect_owned_obj(Queue& objects, const TraceCallRange &call_range);
+    virtual void collect_dependend_obj(Queue& objects, const TraceCallRange &call_range);
 private:
     bool m_visited;
 };

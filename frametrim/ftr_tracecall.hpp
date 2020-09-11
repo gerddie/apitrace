@@ -11,6 +11,7 @@
 namespace frametrim_reverse {
 
 using PCall=std::shared_ptr<trace::Call>;
+using TraceCallRange = std::pair<unsigned, unsigned>;
 
 class TraceCall {
 public:

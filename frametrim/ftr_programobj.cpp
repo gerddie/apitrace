@@ -69,19 +69,19 @@ ProgramObject::bind_attr_location(unsigned loc)
     m_bound_attributes.insert(loc);
 }
 
-void ProgramObject::collect_dependend_obj(Queue& objects, unsigned at_call)
+void ProgramObject::collect_dependend_obj(Queue& objects, const TraceCallRange& call_range)
 {
     for(auto& i : m_attached_shaders) {
         if (!i->visited()) {
             objects.push(i);
-            i->collect_objects(objects, at_call);
+            i->collect_objects(objects, call_range);
         }
     }
 
     for(auto& i : m_bound_attr_buffers) {
         if (i.second && !i.second->visited()) {
             objects.push(i.second);
-            i.second->collect_objects(objects, at_call);
+            i.second->collect_objects(objects, call_range);
         }
     }
 }
@@ -93,15 +93,15 @@ PTraceCall ProgramObject::link(const trace::Call& call)
 }
 
 void
-ProgramObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
+ProgramObject::collect_data_calls(CallIdSet& calls, unsigned before_call)
 {
     calls.insert(*m_link_call);
-    collect_all_calls_before(calls, m_attach_calls, call_before);
-    collect_all_calls_before(calls, m_data_calls, call_before);
+    collect_all_calls_before(calls, m_attach_calls, before_call);
+    collect_all_calls_before(calls, m_data_calls, before_call);
 
-    unsigned needs_bind_before = call_before;
+    unsigned needs_bind_before = before_call;
     for (auto&& uniform_slot: m_uniforms_calls) {
-        unsigned call_no = collect_last_call_before(calls, uniform_slot.second, call_before);
+        unsigned call_no = collect_last_call_before(calls, uniform_slot.second, before_call);
         if (call_no < needs_bind_before)
             needs_bind_before = call_no;
     }

@@ -97,18 +97,17 @@ void FramebufferObject::collect_bind_calls(CallIdSet& calls, unsigned call_befor
     collect_last_call_before(calls, m_bind_calls, call_before);
 }
 
-void FramebufferObject::collect_dependend_obj(Queue& objects, unsigned at_call)
+void FramebufferObject::collect_dependend_obj(Queue& objects, const TraceCallRange &call_range)
 {
     for (auto&& timeline : m_attachments) {
         for (auto&& binding : timeline.second) {
-            if (binding.bind_call_no >= at_call &&
-                binding.unbind_call_no <= at_call &&
-                !binding.obj->visited())
+            if (binding.bind_call_no <= call_range.second &&
+                binding.unbind_call_no >= call_range.first &&
+                binding.obj && !binding.obj->visited())
                 objects.push(binding.obj);
         }
     }
 }
-
 
 PTraceCall FramebufferObject::clear(const trace::Call& call)
 {

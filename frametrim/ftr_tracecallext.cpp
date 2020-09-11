@@ -46,10 +46,8 @@ TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call, PGenObject obj
 
 void TraceCallOnBoundObj::add_owned_object(ObjectSet& out_set) const
 {
-    if (!m_object->visited()) {
+    if (!m_object->visited())
         out_set.push(m_object);
-        m_object->collect_objects(out_set, call_no());
-    }
 }
 
 TraceCallOnBoundObjWithDeps::TraceCallOnBoundObjWithDeps(const trace::Call& call,
@@ -62,10 +60,8 @@ TraceCallOnBoundObjWithDeps::TraceCallOnBoundObjWithDeps(const trace::Call& call
 
 void TraceCallOnBoundObjWithDeps::add_dependend_objects(ObjectSet& out_set) const
 {
-    if (!m_dependency->visited()) {
+    if (!m_dependency->visited())
         out_set.push(m_dependency);
-        m_dependency->collect_objects(out_set, call_no());
-    }
 }
 
 BufferSubrangeCall::BufferSubrangeCall(const trace::Call& call, uint64_t start,

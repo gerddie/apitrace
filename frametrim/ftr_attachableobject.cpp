@@ -25,12 +25,12 @@ void AttachableObject::collect_allocation_call(CallIdSet& calls)
     }
 }
 
-void AttachableObject::collect_dependend_obj(Queue& objects, unsigned at_call)
+void AttachableObject::collect_dependend_obj(Queue& objects, const TraceCallRange &range)
 {
     for(auto&& timeline : m_bindings) {
         for(auto&& timepoint : timeline.second) {
-            if (timepoint.bind_call_no >= at_call &&
-                timepoint.unbind_call_no <= at_call) {
+            if (timepoint.bind_call_no <= range.second &&
+                timepoint.unbind_call_no <= range.first) {
                 objects.push(timepoint.obj);
             }
         }

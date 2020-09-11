@@ -44,8 +44,8 @@ public:
     PTraceCall link(const trace::Call& call);
     PTraceCall uniform(const trace::Call& call);
 private:
-    void collect_dependend_obj(Queue& objects, unsigned at_call) override;
-    void collect_data_calls(CallIdSet& calls, unsigned call_before) override;
+    void collect_dependend_obj(Queue& objects, const TraceCallRange& call_range) override;
+    void collect_data_calls(CallIdSet& calls, unsigned before_call) override;
 
     std::list<PTraceCall> m_attach_calls;
     std::unordered_map<unsigned, std::list<PTraceCall>> m_va_pointer_calls;

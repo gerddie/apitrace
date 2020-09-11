@@ -9,10 +9,10 @@ TraceObject::TraceObject():
 {
 }
 
-void TraceObject::collect_objects(Queue& objects, unsigned at_callno)
+void TraceObject::collect_objects(Queue& objects, const TraceCallRange& call_range)
 {
-    collect_owned_obj(objects, at_callno);
-    collect_dependend_obj(objects, at_callno);
+    collect_owned_obj(objects, call_range);
+    collect_dependend_obj(objects, call_range);
 }
 
 void TraceObject::collect_calls(CallIdSet& calls, unsigned call_before)
@@ -46,16 +46,16 @@ void TraceObject::collect_state_calls(CallIdSet& calls, unsigned call_before)
     (void)call_before;
 }
 
-void TraceObject::collect_dependend_obj(Queue& objects, unsigned at_callno)
+void TraceObject::collect_dependend_obj(Queue& objects, const TraceCallRange &call_range)
 {
     (void)objects;
-    (void)at_callno;
+    (void)call_range;
 }
 
-void TraceObject::collect_owned_obj(Queue& objects, unsigned at_callno)
+void TraceObject::collect_owned_obj(Queue& objects, const TraceCallRange &call_range)
 {
     (void)objects;
-    (void)at_callno;
+    (void)call_range;
 }
 
 unsigned TraceObject::collect_last_call_before(CallIdSet& calls,

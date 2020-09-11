@@ -94,8 +94,7 @@ struct TraceMirrorImpl {
     unsigned buffer_offset(BindType type, GLenum id, unsigned active_unit);
     PTraceCall bind_tracecall(trace::Call &call, PGenObject obj);
     void collect_bound_objects(ObjectSet& required_objects,
-                               unsigned start_call_range,
-                               unsigned end_call_range);
+                               const TraceCallRange& range);
 
     BufObjectMap m_buffers;
     ProgramObjectMap m_programs;
@@ -329,19 +328,19 @@ TraceMirrorImpl::resolve()
 {
     ObjectSet required_objects;
     CallIdSet required_calls;
-    unsigned last_required_call = 0;
-    unsigned next_required_call = std::numeric_limits<unsigned>::max();
+    TraceCallRange required_call_range =
+            std::make_pair(std::numeric_limits<unsigned>::max(), 0);
 
     /* record all frames from the target frame set */
     for(auto& i : m_trace) {
         if (i->test_flag(TraceCall::required)) {
             i->add_object_to_set(required_objects);
             required_calls.insert(*i);
-            if (i->call_no() < next_required_call)
-                next_required_call = i->call_no();
+            if (i->call_no() < required_call_range.first)
+                required_call_range.first = i->call_no();
 
-            if (i->call_no() > last_required_call)
-                last_required_call = i->call_no();
+            if (i->call_no() > required_call_range.second)
+                required_call_range.second = i->call_no();
         }
     }
 
@@ -351,14 +350,13 @@ TraceMirrorImpl::resolve()
      * Note: in m_trace call numbera are counting up */
 
     for (auto&& c : m_trace) {
-        if (c->call_no() >= next_required_call)
+        if (c->call_no() >= required_call_range.first)
             break;
         if (c->test_flag(TraceCall::repeatable_state))
             resolve_repeatable_state_calls(*c, required_calls);
     }
 
-    collect_bound_objects(required_objects, next_required_call,
-                          last_required_call);
+    collect_bound_objects(required_objects, required_call_range);
 
     while (!required_objects.empty()) {
         auto obj = required_objects.front();
@@ -368,36 +366,35 @@ TraceMirrorImpl::resolve()
          * in the queue */
         if (obj->visited())
             continue;
-        obj->collect_objects(required_objects, next_required_call);
-        obj->collect_calls(required_calls, next_required_call);
+        obj->collect_objects(required_objects, required_call_range);
+        obj->collect_calls(required_calls, required_call_range.first);
         obj->set_visited();
     }
 
     /* At this point only state calls should remain to be recorded
      * So go in reverse to the list and add them. */
-    next_required_call = std::numeric_limits<unsigned>::max();
+    required_call_range.first = std::numeric_limits<unsigned>::max();
     for (auto c = m_trace.rbegin(); c != m_trace.rend(); ++c) {
         /*  required calls are already in the output callset */
         if ((*c)->test_flag(TraceCall::required)) {
-            next_required_call = (*c)->call_no();
+            required_call_range.first = (*c)->call_no();
             continue;
         }
 
         if ((*c)->test_flag(TraceCall::single_state))
-            resolve_state_calls(*c, required_calls, next_required_call);
+            resolve_state_calls(*c, required_calls, required_call_range.first);
     }
     return required_calls;
 }
 
 void
 TraceMirrorImpl::collect_bound_objects(ObjectSet& required_objects,
-                                       unsigned start_call_range,
-                                       unsigned end_call_range)
+                                       const TraceCallRange& range)
 {
     for(auto&& timeline : m_bind_timelines) {
         for (auto&& timepoint: timeline.second) {
-            if (timepoint.bind_call_no <= end_call_range &&
-                timepoint.unbind_call_no >= start_call_range) {
+            if (timepoint.bind_call_no <= range.second &&
+                timepoint.unbind_call_no >= range.first) {
                 required_objects.push(timepoint.obj);
             }
         }
