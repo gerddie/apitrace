@@ -64,7 +64,7 @@ unsigned TraceObject::collect_last_call_before(CallIdSet& calls,
 {
     for (auto&& c : call_list)
         if (c->call_no() < call_before) {
-            calls.insert(*c);
+            calls.insert(c);
             return c->call_no();
         }
     return call_before;
@@ -76,7 +76,7 @@ void TraceObject::collect_all_calls_before(CallIdSet& calls,
 {
     for (auto& c : call_list)
         if (c->call_no() < call_before)
-            calls.insert(*c);
+            calls.insert(c);
 }
 
 
@@ -94,7 +94,8 @@ GenObject::GenObject(unsigned id, PTraceCall gen_call):
 
 void GenObject::collect_generate_call(CallIdSet& calls)
 {
-    calls.insert(*m_gen_call);
+    if (m_gen_call)
+        calls.insert(m_gen_call);
 }
 
 void BoundObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)

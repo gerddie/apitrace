@@ -47,10 +47,10 @@ void MatrixObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
         if (c->first >= call_before)
             continue;
         if (!hit_reset) {
-            calls.insert(*c->second);
+            calls.insert(c->second);
             hit_reset = c->second->test_flag(TraceCall::matrix_reset);
         } else if (c->second->test_flag(TraceCall::matrix_select)) {
-            calls.insert(*c->second);
+            calls.insert(c->second);
             if (hit_reset)
                 break;
         }

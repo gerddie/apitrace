@@ -9,9 +9,9 @@
 
 namespace frametrim_reverse {
 
-class ShaderObject : public GenObject {
+class ShaderObject : public BoundObject {
 public:
-    using GenObject::GenObject;
+    using BoundObject::BoundObject;
     using Pointer = std::shared_ptr<ShaderObject>;
     PTraceCall source(const trace::Call& call);
     PTraceCall compile(const trace::Call& call);
@@ -67,6 +67,13 @@ public:
     PTraceCall uniform(trace::Call& call);
 private:
     unsigned target_id_from_call(const trace::Call& call) const override;
+};
+
+class LegacyProgramObjectMap : public GenObjectMap<ShaderObject> {
+public:
+    PGenObject gen_from_bind_call(const trace::Call& call);
+    PTraceCall program_string(const trace::Call& call);
+
 };
 
 }

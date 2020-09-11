@@ -60,12 +60,13 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
     for (auto&& c : m_draw_calls) {
         if (c->call_no() >= call_before)
             continue;
-        calls.insert(*c);
+        calls.insert(c);
         if (c->test_flag(TraceCall::full_viewport_redraw)) {
             start_redraw_call = c->call_no();
             break;
         }
     }
+    collect_bind_calls(calls, start_redraw_call);
 
     /* all state changes during the draw must be recorded */
     std::unordered_set<std::string> singular_states;
@@ -74,17 +75,17 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
         if (c->call_no() >= call_before)
             continue;
         if (c->call_no() > start_redraw_call)
-            calls.insert(*c);
+            calls.insert(c);
         auto state = c->name();
         if (singular_states.find(state) == singular_states.end()) {
             singular_states.insert(state);
-            calls.insert(*c);
+            calls.insert(c);
         }
     }
 
-    unsigned need_bind_before = call_before;
+    unsigned need_bind_before = start_redraw_call;
     for(auto&& attach: m_attachment_calls) {
-        unsigned call_no = collect_last_call_before(calls, attach.second, call_before);
+        unsigned call_no = collect_last_call_before(calls, attach.second, start_redraw_call);
         if (call_no < need_bind_before)
             need_bind_before = call_no;
     }

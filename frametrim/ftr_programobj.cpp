@@ -31,8 +31,8 @@ ShaderObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
     assert(m_compile_call->call_no() < call_before);
     assert(m_source_call->call_no() < call_before);
 
-    calls.insert(*m_compile_call);
-    calls.insert(*m_source_call);
+    calls.insert(m_compile_call);
+    calls.insert(m_source_call);
 }
 
 PTraceCall
@@ -95,7 +95,7 @@ PTraceCall ProgramObject::link(const trace::Call& call)
 void
 ProgramObject::collect_data_calls(CallIdSet& calls, unsigned before_call)
 {
-    calls.insert(*m_link_call);
+    calls.insert(m_link_call);
     collect_all_calls_before(calls, m_attach_calls, before_call);
     collect_all_calls_before(calls, m_data_calls, before_call);
 
@@ -108,7 +108,7 @@ ProgramObject::collect_data_calls(CallIdSet& calls, unsigned before_call)
 
     for (auto&& va : m_va_pointer_calls)
         if (!va.second.empty())
-            calls.insert(*va.second.front());
+            calls.insert(va.second.front());
     collect_bind_calls(calls, needs_bind_before);
 }
 
@@ -208,6 +208,26 @@ ProgramObjectMap::link(trace::Call& call)
     }
     return program->link(call);
 }
+
+PTraceCall LegacyProgramObjectMap::program_string(const trace::Call& call)
+{
+    auto shader = bound_to_call_target(call);
+    if (!shader) {
+        shader = make_shared<ShaderObject>(call.arg(1).toUInt(), nullptr);
+        add(shader);
+        bind(call, 1);
+    }
+    return shader->source(call);
+}
+
+PGenObject LegacyProgramObjectMap::gen_from_bind_call(const trace::Call& call)
+{
+    auto shader = make_shared<ShaderObject>(call.arg(1).toUInt(), nullptr);
+    add(shader);
+    return bind(call, 1);
+}
+
+
 
 template class CreateObjectMap<ProgramObject>;
 template class GenBoundObjectMap<ProgramObject>;

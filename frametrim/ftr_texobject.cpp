@@ -92,7 +92,7 @@ void TexObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
         if (regions[c->m_level].covered(c))
             continue;
         call_before = c->call_no();
-        calls.insert(*c);
+        calls.insert(c);
     }
     collect_bind_calls(calls, call_before);
     collect_allocation_call(calls);
@@ -125,7 +125,7 @@ void TexObject::collect_state_calls(CallIdSet& calls, unsigned call_before)
     for (auto&& c: m_state_calls) {
         if (c.first < call_before &&
                 states.find(c.second->name()) == states.end()) {
-            calls.insert(*c.second);
+            calls.insert(c.second);
             states.insert(c.second->name());
         }
     }

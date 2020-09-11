@@ -78,7 +78,7 @@ BufObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
         return;
 
     unsigned required_bind_before = call_before;
-    calls.insert(*m_allocation_call);
+    calls.insert(m_allocation_call);
     required_bind_before = m_allocation_call->call_no();
     collect_last_call_before(calls, m_bind_calls,
                              required_bind_before);
@@ -90,7 +90,7 @@ BufObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
             continue;
         if (merger.merge(c->start(), c->end())) {
             required_bind_before = c->call_no();
-            calls.insert(*c);
+            calls.insert(c);
         }
     }
     assert(required_bind_before > m_allocation_call->call_no());

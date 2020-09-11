@@ -37,8 +37,10 @@ enum BindType {
     bt_buffer,
     bt_framebuffer,
     bt_program,
+    bt_legacy_program,
     bt_renderbuffer,
     bt_sampler,
+    // Matrix manipulation
     bt_texture,
     bt_vertex_array,
 
@@ -65,13 +67,14 @@ struct TraceMirrorImpl {
     void resolve_state_calls(PTraceCall call,
                              CallIdSet& callset /* inout */,
                              unsigned last_required_call);
-    void resolve_repeatable_state_calls(TraceCall &call,
+    void resolve_repeatable_state_calls(PTraceCall call,
                                         CallIdSet& callset /* inout */);
 
     PTraceCall bind_fbo(trace::Call &call);
     PTraceCall bind_texture(trace::Call &call);
     PTraceCall bind_buffer(trace::Call &call);
     PTraceCall bind_program(trace::Call &call);
+    PTraceCall bind_legacy_program(trace::Call &call);
     PTraceCall bind_renderbuffer(trace::Call &call);
     PTraceCall bind_sampler(trace::Call &call);
     PTraceCall bind_vertex_array(trace::Call &call);
@@ -103,6 +106,7 @@ struct TraceMirrorImpl {
     FramebufferObjectMap m_fbo;
     RenderbufferObjectMap m_renderbuffers;
     MatrixObjectMap m_matrix_states;
+    LegacyProgramObjectMap m_legacy_programs;
 
     PFramebufferObject m_current_draw_buffer;
     PFramebufferObject m_current_read_buffer;
@@ -139,7 +143,10 @@ std::vector<unsigned> TraceMirror::trace() const
 {
     CallIdSet calls = impl->resolve();
 
-    std::vector<unsigned> retval(calls.begin(), calls.end());
+    std::vector<unsigned> retval(calls.size());
+    std::transform(calls.begin(), calls.end(), retval.begin(),
+                   [](PTraceCall c) { return c->call_no();});
+
     std::sort(retval.begin(), retval.end());
 
     return retval;
@@ -253,6 +260,14 @@ PTraceCall TraceMirrorImpl::bind_program(trace::Call &call)
     return bind_tracecall(call, prog);
 }
 
+PTraceCall TraceMirrorImpl::bind_legacy_program(trace::Call &call)
+{
+    auto prog = m_legacy_programs.bind(call, 1);
+    auto target = call.arg(0).toUInt();
+    record_bind(bt_legacy_program, prog, target, 0, call.no);
+    return bind_tracecall(call, prog);
+}
+
 PTraceCall TraceMirrorImpl::bind_renderbuffer(trace::Call &call)
 {
     auto rb = m_renderbuffers.bind(call, 1);
@@ -335,7 +350,7 @@ TraceMirrorImpl::resolve()
     for(auto& i : m_trace) {
         if (i->test_flag(TraceCall::required)) {
             i->add_object_to_set(required_objects);
-            required_calls.insert(*i);
+            required_calls.insert(i);
             if (i->call_no() < required_call_range.first)
                 required_call_range.first = i->call_no();
 
@@ -353,7 +368,7 @@ TraceMirrorImpl::resolve()
         if (c->call_no() >= required_call_range.first)
             break;
         if (c->test_flag(TraceCall::repeatable_state))
-            resolve_repeatable_state_calls(*c, required_calls);
+            resolve_repeatable_state_calls(c, required_calls);
     }
 
     collect_bound_objects(required_objects, required_call_range);
@@ -448,21 +463,21 @@ TraceMirrorImpl::resolve_state_calls(PTraceCall call,
         std::cerr << "Add state call " << call->call_no() << ":"
                   << call->name() << " last was " << last_call.last_before_callid << "\n";
         last_call.last_before_callid = call->call_no();
-        callset.insert(*call);
+        callset.insert(call);
         call->set_flag(TraceCall::required);
     }
 }
 
-void TraceMirrorImpl::resolve_repeatable_state_calls(TraceCall &call,
+void TraceMirrorImpl::resolve_repeatable_state_calls(PTraceCall call,
                                                      CallIdSet& callset /* inout */)
 {
-    auto& last_state_param_set = m_state_call_param_map[call.name()];
+    auto& last_state_param_set = m_state_call_param_map[call->name()];
 
-    if (last_state_param_set != call.name_with_params()) {
-        m_state_call_param_map[call.name()] = call.name_with_params();
+    if (last_state_param_set != call->name_with_params()) {
+        m_state_call_param_map[call->name()] = call->name_with_params();
 
         callset.insert(call);
-        call.set_flag(TraceCall::required);
+        call->set_flag(TraceCall::required);
     }
 }
 
@@ -485,6 +500,8 @@ void TraceMirrorImpl::register_draw_related_calls()
 {
     const std::vector<const char *> calls  = {
         "glDrawElements",
+        "glDrawRangeElements",
+        "glDrawRangeElementsBaseVertex",
         "glDrawArrays",
     };
 
@@ -755,20 +772,18 @@ void TraceMirrorImpl::register_legacy_calls()
 
     MAP(glPushClientAttr, todo);
     MAP(glPopClientAttr, todo);
-
+    */
 
     // shader calls
     MAP_GENOBJ(glGenPrograms, m_legacy_programs,
-    MatrixObjectMap();
-               LegacyProgramStateMap::generate);
+               LegacyProgramObjectMap::generate);
     MAP_GENOBJ(glDeletePrograms, m_legacy_programs,
-               LegacyProgramStateMap::destroy);
-    MAP_GENOBJ(glBindProgram, m_legacy_programs,
-               LegacyProgramStateMap::bind);
+               LegacyProgramObjectMap::destroy);
+    MAP(glBindProgram, bind_legacy_program);
     MAP_GENOBJ(glProgramString, m_legacy_programs,
-               LegacyProgramStateMap::program_string);
+               LegacyProgramObjectMap::program_string);
 
-    */
+
     // Matrix manipulation
     MAP_GENOBJ(glLoadIdentity, m_matrix_states, MatrixObjectMap::LoadIdentity);
     MAP_GENOBJ(glLoadMatrix, m_matrix_states, MatrixObjectMap::LoadMatrix);
@@ -788,6 +803,7 @@ const char *object_type(BindType type)
 #define CASE(type) case type: return #type
     CASE(bt_buffer);
     CASE(bt_program);
+    CASE(bt_legacy_program);
     CASE(bt_sampler);
     CASE(bt_framebuffer);
     CASE(bt_renderbuffer);
@@ -871,6 +887,15 @@ TraceMirrorImpl::buffer_offset(BindType type, GLenum target, unsigned active_uni
         return 800 + target;
     case bt_vertex_array:
         return 900;
+    case bt_legacy_program:
+        switch (target) {
+        case GL_VERTEX_PROGRAM_ARB:
+            return 901;
+        case GL_FRAGMENT_PROGRAM_ARB:
+            return 902;
+        default:
+            assert(0 && "unknown legacy shader bind point");
+        }
     }
     assert(0 && "Unsupported bind point");
 }
