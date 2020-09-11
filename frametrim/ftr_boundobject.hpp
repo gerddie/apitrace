@@ -122,7 +122,8 @@ template <typename T>
 typename T::Pointer
 GenBoundObjectMap<T>::bound_to_target(unsigned target) const
 {
-    return m_bound_to_target.at(target);
+    auto i = m_bound_to_target.find(target);
+    return i != m_bound_to_target.end() ? i->second : nullptr;
 }
 
 template <typename T>
