@@ -93,7 +93,9 @@ struct TraceMirrorImpl {
 
     unsigned buffer_offset(BindType type, GLenum id, unsigned active_unit);
     PTraceCall bind_tracecall(trace::Call &call, PGenObject obj);
-    void collect_bound_objects(ObjectSet& required_objects, unsigned before_call);
+    void collect_bound_objects(ObjectSet& required_objects,
+                               unsigned start_call_range,
+                               unsigned end_call_range);
 
     BufObjectMap m_buffers;
     ProgramObjectMap m_programs;
@@ -327,6 +329,7 @@ TraceMirrorImpl::resolve()
 {
     ObjectSet required_objects;
     CallIdSet required_calls;
+    unsigned last_required_call = 0;
     unsigned next_required_call = std::numeric_limits<unsigned>::max();
 
     /* record all frames from the target frame set */
@@ -336,12 +339,17 @@ TraceMirrorImpl::resolve()
             required_calls.insert(*i);
             if (i->call_no() < next_required_call)
                 next_required_call = i->call_no();
+
+            if (i->call_no() > last_required_call)
+                last_required_call = i->call_no();
         }
     }
 
     /* Now collect all calls from the beginning that refere to states that
      * can be changed repeatandly (glx and egl stuff) and where we must use
-     * the eraliest calls possible */
+     * the eraliest calls possible
+     * Note: in m_trace call numbera are counting up */
+
     for (auto&& c : m_trace) {
         if (c->call_no() >= next_required_call)
             break;
@@ -349,7 +357,8 @@ TraceMirrorImpl::resolve()
             resolve_repeatable_state_calls(*c, required_calls);
     }
 
-    collect_bound_objects(required_objects, next_required_call);
+    collect_bound_objects(required_objects, next_required_call,
+                          last_required_call);
 
     while (!required_objects.empty()) {
         auto obj = required_objects.front();
@@ -381,12 +390,14 @@ TraceMirrorImpl::resolve()
 }
 
 void
-TraceMirrorImpl::collect_bound_objects(ObjectSet& required_objects, unsigned before_call)
+TraceMirrorImpl::collect_bound_objects(ObjectSet& required_objects,
+                                       unsigned start_call_range,
+                                       unsigned end_call_range)
 {
     for(auto&& timeline : m_bind_timelines) {
         for (auto&& timepoint: timeline.second) {
-            if (timepoint.bind_call_no < before_call &&
-                timepoint.unbind_call_no >= before_call) {
+            if (timepoint.bind_call_no <= end_call_range &&
+                timepoint.unbind_call_no >= start_call_range) {
                 required_objects.push(timepoint.obj);
             }
         }
