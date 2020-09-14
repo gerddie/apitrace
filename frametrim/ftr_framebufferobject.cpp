@@ -158,8 +158,10 @@ FramebufferObject::attach(unsigned attach_point, PAttachableObject obj,
 
     auto& timeline = m_attachments[idx];
     auto old_obj = timeline.push(call->call_no(), obj);
-    AttachableObject& o = static_cast<AttachableObject&>(*old_obj);
-    o.detach_from(id(),attach_point, call->call_no());
+    if (old_obj) {
+        AttachableObject& o = static_cast<AttachableObject&>(*old_obj);
+        o.detach_from(id(),attach_point, call->call_no());
+    }
     m_attachment_calls[idx].push_front(call);
 }
 
