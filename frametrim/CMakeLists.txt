@@ -40,6 +40,7 @@ add_executable(glxtrimreverse
    ftr_texobject.cpp
    ftr_tracecall.cpp
    ftr_tracecallext.cpp
+   ftr_vertexattribarray.cpp
    )
 
 target_link_libraries (glxtrim

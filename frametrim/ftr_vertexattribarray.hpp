@@ -22,11 +22,11 @@ private:
 using PVertexAttribArray = VertexAttribArray::Pointer;
 
 class VertexAttribArrayMap  {
-
+public:
     PTraceCall pointer(const trace::Call& call, BufObjectMap& buffers);
     PTraceCall enable(const trace::Call& call, bool do_enable);
-
 private:
+    unsigned add_array(const trace::Call& call);
 
     std::vector<PVertexAttribArray> m_va;
 };

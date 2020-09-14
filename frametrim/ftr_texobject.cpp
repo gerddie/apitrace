@@ -26,7 +26,7 @@ PTraceCall TexObject::state(const trace::Call& call, unsigned nparam)
     return c;
 }
 
-PTraceCall TexObject::sub_image(const trace::Call& call)
+PTraceCall TexObject::sub_image(const trace::Call& call, PGenObject read_buffer)
 {
     unsigned level = call.arg(1).toUInt();
     unsigned x = call.arg(2).toUInt();
@@ -39,13 +39,17 @@ PTraceCall TexObject::sub_image(const trace::Call& call)
     if (m_max_level <= level)
         m_max_level = level + 1;
 
+    bool needs_readbuffer = false;
+
     switch (m_dimensions) {
     case 1: width = call.arg(3).toUInt();
+        needs_readbuffer = !call.arg(6).toPointer();
         break;
     case 2:
         y = call.arg(3).toUInt();
         width = call.arg(4).toUInt();
         height = call.arg(5).toUInt();
+        needs_readbuffer = !call.arg(8).toPointer();
         break;
     case 3:
         y = call.arg(3).toUInt();
@@ -53,10 +57,13 @@ PTraceCall TexObject::sub_image(const trace::Call& call)
         width = call.arg(5).toUInt();
         height = call.arg(6).toUInt();
         depth = call.arg(7).toUInt();
+        needs_readbuffer = !call.arg(10).toPointer();
         break;
     }
 
-    auto c = make_shared<TexSubImageCall>(call, level, x, y, z, width, height, depth);
+    auto c = make_shared<TexSubImageCall>(call, level, x, y, z,
+                                          width, height, depth,
+                                          needs_readbuffer ? read_buffer : nullptr);
     m_data_calls.push_front(c);
     return c;
 }
@@ -177,10 +184,10 @@ unsigned TexObjectMap::target_id_from_call(const trace::Call& call) const
     return compose_target_id_with_unit(target, m_active_texture_unit);
 }
 
-PTraceCall TexObjectMap::sub_image(const trace::Call& call)
+PTraceCall TexObjectMap::sub_image(const trace::Call& call, PGenObject read_buffer)
 {
     auto texture = bound_to_call_target(call);
-    return texture->sub_image(call);
+    return texture->sub_image(call, read_buffer);
 }
 
 unsigned TexObjectMap::active_unit() const

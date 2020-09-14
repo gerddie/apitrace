@@ -1,9 +1,12 @@
 #include "ftr_vertexattribarray.hpp"
+#include "ftr_boundobject.hpp"
 
 #include <GL/gl.h>
-
+#include <GL/glext.h>
 
 namespace frametrim_reverse {
+
+using std::make_shared;
 
 void VertexAttribArray::enable(unsigned  callno, bool enable)
 {
@@ -30,21 +33,38 @@ bool VertexAttribArray::is_enabled(const TraceCallRange& range)
 
 void VertexAttribArray::pointer(unsigned  callno, PBufObject obj)
 {
+    if (!m_buffer_timeline.empty())
+        m_buffer_timeline.front().unbind_call_no = callno;
 
+    m_buffer_timeline.push_front(BindTimePoint(obj, callno));
 }
 
 PTraceCall VertexAttribArrayMap::pointer(const trace::Call& call, BufObjectMap &buffers)
 {
     auto buf = buffers.bound_to_target(GL_ARRAY_BUFFER);
-    if (m_va)
-
+    unsigned index = add_array(call);
+    m_va[index]->pointer(call.no, buf);
+    return make_shared<TraceCallOnBoundObj>(call, buf);
 }
 
 PTraceCall VertexAttribArrayMap::enable(const trace::Call& call, bool do_enable)
 {
-
+    unsigned index = add_array(call);
+    m_va[index]->enable(call.no, do_enable);
+    return make_shared<TraceCall>(call);
 }
 
+unsigned VertexAttribArrayMap::add_array(const trace::Call& call)
+{
+    auto index = call.arg(0).toUInt();
+    if (m_va.size() <= index)
+        m_va.resize(index + 1);
+
+    if(!m_va[index])
+        m_va[index] = make_shared<VertexAttribArray>();
+
+    return index;
+}
 
 
 }

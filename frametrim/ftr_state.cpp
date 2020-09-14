@@ -1,11 +1,10 @@
 #include "ftr_state.hpp"
 #include "ftr_tracecall.hpp"
-#include "ftr_genobject.hpp"
-#include "ftr_bufobject.hpp"
 #include "ftr_programobj.hpp"
 #include "ftr_texobject.hpp"
 #include "ftr_framebufferobject.hpp"
 #include "ftr_matrixobject.hpp"
+#include "ftr_vertexattribarray.hpp"
 
 #include <algorithm>
 #include <functional>
@@ -106,6 +105,7 @@ struct TraceMirrorImpl {
     RenderbufferObjectMap m_renderbuffers;
     MatrixObjectMap m_matrix_states;
     LegacyProgramObjectMap m_legacy_programs;
+    VertexAttribArrayMap m_vertex_attrib_arrays;
 
     PFramebufferObject m_current_draw_buffer;
     PFramebufferObject m_current_read_buffer;
@@ -667,9 +667,9 @@ void TraceMirrorImpl::register_texture_calls()
     MAP_GENOBJ(glTexImage1D, m_textures, TexObjectMap::allocation);
     MAP_GENOBJ(glTexImage2D, m_textures, TexObjectMap::allocation);
     MAP_GENOBJ(glTexImage3D, m_textures, TexObjectMap::allocation);
-    MAP_GENOBJ(glTexSubImage1D, m_textures, TexObjectMap::sub_image);
-    MAP_GENOBJ(glTexSubImage2D, m_textures, TexObjectMap::sub_image);
-    MAP_GENOBJ(glTexSubImage3D, m_textures, TexObjectMap::sub_image);
+    MAP_GENOBJ_DATA(glTexSubImage1D, m_textures, TexObjectMap::sub_image, nullptr);
+    MAP_GENOBJ_DATA(glTexSubImage2D, m_textures, TexObjectMap::sub_image, nullptr);
+    MAP_GENOBJ_DATA(glTexSubImage3D, m_textures, TexObjectMap::sub_image, nullptr);
     //MAP_DATA(glCopyTexSubImage2D, call_on_bound_obj, m_textures);
     MAP_GENOBJ_DATA(glTexParameter, m_textures, TexObjectMap::state, 2);
 
@@ -690,9 +690,8 @@ void TraceMirrorImpl::register_program_calls()
     MAP_GENOBJ(glBindAttribLocation, m_programs,
                ProgramObjectMap::bind_attr_location);
 
-#error Continue here
-    MAP_GENOBJ_DATAREF(glVertexAttribPointer, m_programs,
-                       ProgramObjectMap::vertex_attr_pointer, m_buffers);
+    MAP_GENOBJ_DATAREF(glVertexAttribPointer, m_vertex_attrib_arrays,
+                       VertexAttribArrayMap::pointer, m_buffers);
 
     MAP_GENOBJ(glLinkProgram, m_programs, ProgramObjectMap::link);
     MAP_GENOBJ(glUniform, m_programs, ProgramObjectMap::uniform);
