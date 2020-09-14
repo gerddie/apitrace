@@ -58,7 +58,6 @@ class ProgramObjectMap : public CreateObjectMap<ProgramObject> {
 public:
     PTraceCall attach_shader(trace::Call& call, const ShaderObjectMap& shaders);
     PTraceCall bind_attr_location(trace::Call& call);
-    PTraceCall vertex_attr_pointer(trace::Call& call, BufObjectMap& buffers);
     PTraceCall data(trace::Call& call);
     PTraceCall link(trace::Call& call);
     PTraceCall uniform(trace::Call& call);
