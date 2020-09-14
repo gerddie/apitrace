@@ -150,7 +150,8 @@ void BindTimeline::collect_active_in_call_range(ObjectSet& objects, const TraceC
         if (tp.bind_call_no < call_range.second &&
             tp.unbind_call_no > call_range.first &&
             tp.obj)
-            objects.push(tp.obj);
+            if (!tp.obj->visited())
+                objects.push(tp.obj);
     }
 }
 
