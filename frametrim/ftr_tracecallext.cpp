@@ -62,6 +62,12 @@ void TraceCallOnBoundObj::add_dependend_objects(ObjectSet& out_set) const
     }
 }
 
+void TraceCallOnBoundObj::add_dependend_object_calls(CallIdSet& out_calls) const
+{
+    for(auto&& d : m_dependencys)
+        d->collect_calls(out_calls, call_no());
+}
+
 BufferSubrangeCall::BufferSubrangeCall(const trace::Call& call, uint64_t start,
                                        uint64_t end):
     TraceCall(call),

@@ -339,6 +339,7 @@ TraceMirrorImpl::resolve()
     for(auto& i : m_trace) {
         if (i->test_flag(TraceCall::required)) {
             i->add_object_to_set(required_objects);
+            i->add_object_calls(required_calls);
             required_calls.insert(i);
             if (i->call_no() < required_call_range.first)
                 required_call_range.first = i->call_no();

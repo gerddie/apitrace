@@ -93,9 +93,7 @@ BufObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
             calls.insert(c);
         }
     }
-    assert(required_bind_before > m_allocation_call->call_no());
-    collect_last_call_before(calls, m_bind_calls,
-                             required_bind_before);
+    collect_last_call_before(calls, m_bind_calls, required_bind_before);
 }
 
 Subrangemerger::Subrangemerger(uint64_t size):
