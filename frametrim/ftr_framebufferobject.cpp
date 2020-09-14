@@ -76,12 +76,14 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
 
     TraceCallRange range(start_draw_call, call_before);
 
+    m_global_state->collect_objects(local_objects, range);
+
     while (!local_objects.empty()) {
         auto obj = local_objects.front();
         local_objects.pop();
         if (obj->visited())
             continue;
-        obj->visited();
+        obj->set_visited();
         obj->collect_calls(calls, call_before);
         obj->collect_objects(local_objects, range);
     }
@@ -92,29 +94,29 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
     for (auto&& c : m_state_calls) {
         if (c->call_no() >= call_before)
             continue;
-        if (c->call_no() > start_draw_call)
+
+        if (c->call_no() > start_draw_call) {
             calls.insert(c);
-        auto state = c->name();
-        if (singular_states.find(state) == singular_states.end()) {
-            singular_states.insert(state);
-            calls.insert(c);
-            collect_last_call_before(calls, m_bind_calls, c->call_no());
+        } else {
+            auto state = c->name();
+            if (singular_states.find(state) == singular_states.end()) {
+                singular_states.insert(state);
+                calls.insert(c);
+                collect_last_call_before(calls, m_bind_calls, c->call_no());
+            }
         }
     }
+    collect_last_call_before(calls, m_bind_calls, start_draw_call);
 
     unsigned need_bind_before = start_draw_call;
     for(auto&& attach: m_attachment_calls) {
         unsigned call_no = collect_last_call_before(calls, attach.second, start_draw_call);
-        if (call_no < need_bind_before)
-            need_bind_before = call_no;
-
+        collect_last_call_before(calls, m_bind_calls, call_no);
         auto attach_timeline = m_attachments[attach.first];
         auto obj = attach_timeline.active_in_call_range(range);
         if (obj)
             obj->collect_calls(calls, call_no);
     }
-
-    collect_bind_calls(calls, need_bind_before);
 }
 
 void FramebufferObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
