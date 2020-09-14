@@ -168,7 +168,12 @@ TexObjectMap::bind_multitex(const trace::Call& call)
     auto target_id = compose_target_id_with_unit(target, unit);
 
     auto obj = bind_target(target_id, id);
-    return make_shared<TraceCallOnBoundObj>(call, obj);
+    if (obj) {
+        auto c = make_shared<TraceCallOnBoundObj>(call, obj);
+        obj->bind(c);
+        return c;
+    }
+    return make_shared<TraceCall>(call);
 }
 
 PTraceCall
