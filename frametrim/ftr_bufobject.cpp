@@ -10,12 +10,14 @@ using std::make_shared;
 PTraceCall BufObject::data(trace::Call& call)
 {
     m_size = call.arg(1).toUInt();
-    m_allocation_call = make_shared<TraceCall>(call);
-    return m_allocation_call;
+    auto ac = make_shared<TraceCall>(call);
+    m_allocation_call.push_front(ac);
+    return ac;
 }
 
 PTraceCall BufObject::sub_data(trace::Call& call)
 {
+    assert(!m_allocation_call.empty());
     unsigned start = call.arg(1).toUInt();
     unsigned end = call.arg(2).toUInt() + start;
     auto data_call = make_shared<BufferSubrangeCall>(call, start, end);
@@ -74,14 +76,8 @@ private:
 void
 BufObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
 {
-    if (m_allocation_call->call_no() >= call_before)
+    if (m_allocation_call.empty())
         return;
-
-    unsigned required_bind_before = call_before;
-    calls.insert(m_allocation_call);
-    required_bind_before = m_allocation_call->call_no();
-    collect_last_call_before(calls, m_bind_calls,
-                             required_bind_before);
 
     Subrangemerger merger(m_size);
     for(auto&& c : m_sub_data_calls) {
@@ -90,8 +86,13 @@ BufObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
         if (merger.merge(c->start(), c->end())) {
             calls.insert(c);
             collect_last_call_before(calls, m_bind_calls, c->call_no());
+            collect_last_call_before(calls, m_allocation_call, c->call_no());
         }
     }
+
+    unsigned no = collect_last_call_before(calls, m_allocation_call, call_before);
+    collect_last_call_before(calls, m_bind_calls, no);
+
 }
 
 Subrangemerger::Subrangemerger(uint64_t size):

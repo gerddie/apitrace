@@ -24,8 +24,7 @@ private:
     void collect_data_calls(CallIdSet& calls, unsigned call_before) override;
     uint64_t m_size;
     std::pair<uint64_t, uint64_t> m_mapped_range;
-
-    PTraceCall m_allocation_call;
+    std::list<PTraceCall> m_allocation_call;
     std::list<PBufferSubrangeCall> m_sub_data_calls;
 };
 
