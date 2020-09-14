@@ -59,7 +59,6 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
 {
     Queue local_objects;
 
-
     unsigned start_draw_call = std::numeric_limits<unsigned>::max();
     for (auto&& c : m_draw_calls) {
         if (c->call_no() >= call_before)
@@ -309,7 +308,5 @@ PTraceCall FramebufferObjectMap::attach_texture3d(const trace::Call& call,
 {
     return attach_texture(call, tex_map, 3, 4);
 }
-
-
 
 }
