@@ -406,12 +406,7 @@ TraceMirrorImpl::collect_bound_objects(ObjectSet& required_objects,
                                        const TraceCallRange& range)
 {
     for(auto&& timeline : m_bind_timelines) {
-        for (auto&& timepoint: timeline.second) {
-            if (timepoint.bind_call_no <= range.second &&
-                timepoint.unbind_call_no >= range.first) {
-                required_objects.push(timepoint.obj);
-            }
-        }
+        timeline.second.collect_active_in_call_range(required_objects, range);
     }
 }
 
@@ -831,15 +826,9 @@ void TraceMirrorImpl::record_bind(BindType type, PGenObject obj,
 {
     unsigned index = buffer_offset(type, id, tex_unit);
 
-    auto& recoed = m_bind_timelines[index];
-    if (!recoed.empty()) {
-        auto& last = recoed.front();
-        last.unbind_call_no = callno;
-    }
-    if (obj) {
-        BindTimePoint new_time_point(obj, callno);
-        recoed.push_front(new_time_point);
-    }
+    auto& record = m_bind_timelines[index];
+
+    record.push(callno, obj);
 }
 
 unsigned

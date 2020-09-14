@@ -28,12 +28,9 @@ void AttachableObject::collect_allocation_call(CallIdSet& calls)
 void AttachableObject::collect_dependend_obj(Queue& objects, const TraceCallRange &range)
 {
     for(auto&& timeline : m_bindings) {
-        for(auto&& timepoint : timeline.second) {
-            if (timepoint.bind_call_no <= range.second &&
-                timepoint.unbind_call_no <= range.first) {
-                objects.push(timepoint.obj);
-            }
-        }
+        auto obj = timeline.second.active_in_call_range(range);
+        if (obj)
+            objects.push(obj);
     }
 }
 
@@ -52,18 +49,13 @@ void AttachableObject::set_size(unsigned level, unsigned w, unsigned h)
 void AttachableObject::attach_to(PGenObject obj, unsigned att_point, unsigned call_no)
 {
     auto& timeline = m_bindings[64 * obj->id() + att_point];
-    if (!timeline.empty()) {
-        timeline.front().unbind_call_no = call_no - 1;
-    }
-    timeline.push_front(BindTimePoint(obj, call_no));
+    timeline.push(call_no, obj);
 }
 
 void AttachableObject::detach_from(unsigned fbo_id, unsigned att_point, unsigned call_no)
 {
     auto& timeline = m_bindings[64 * fbo_id + att_point];
-    assert(!timeline.empty());
-    timeline.front().unbind_call_no = call_no - 1;
-
+    timeline.unbind_last(call_no);
 }
 
 }

@@ -68,6 +68,8 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
     }
     collect_bind_calls(calls, start_draw_call);
 
+    TraceCallRange range(start_draw_call, call_before);
+
     /* all state changes during the draw must be recorded */
     std::unordered_set<std::string> singular_states;
 
@@ -90,12 +92,9 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
             need_bind_before = call_no;
 
         auto attach_timeline = m_attachments[attach.first];
-        for (auto&& a : attach_timeline) {
-            if (a.bind_call_no <= call_no &&
-                a.unbind_call_no > call_no) {
-                a.obj->collect_calls(calls, call_no);
-            }
-        }
+        auto obj = attach_timeline.active_in_call_range(range);
+        if (obj)
+            obj->collect_calls(calls, call_no);
     }
 
     collect_bind_calls(calls, need_bind_before);
@@ -108,14 +107,8 @@ void FramebufferObject::collect_bind_calls(CallIdSet& calls, unsigned call_befor
 
 void FramebufferObject::collect_dependend_obj(Queue& objects, const TraceCallRange &call_range)
 {
-    for (auto&& timeline : m_attachments) {
-        for (auto&& binding : timeline.second) {
-            if (binding.bind_call_no <= call_range.second &&
-                binding.unbind_call_no >= call_range.first &&
-                binding.obj && !binding.obj->visited())
-                objects.push(binding.obj);
-        }
-    }
+    for (auto&& timeline : m_attachments)
+        timeline.second.collect_active_in_call_range(objects, call_range);
 }
 
 PTraceCall FramebufferObject::clear(const trace::Call& call)
@@ -164,14 +157,9 @@ FramebufferObject::attach(unsigned attach_point, PAttachableObject obj,
     }
 
     auto& timeline = m_attachments[idx];
-    if (!timeline.empty()) {
-        timeline.front().unbind_call_no = call->call_no();
-        AttachableObject& o = static_cast<AttachableObject&>(*timeline.front().obj);
-        o.detach_from(id(),attach_point, call->call_no());
-    }
-
-    timeline.push_front(BindTimePoint(obj, call->call_no()));
-
+    auto old_obj = timeline.push(call->call_no(), obj);
+    AttachableObject& o = static_cast<AttachableObject&>(*old_obj);
+    o.detach_from(id(),attach_point, call->call_no());
     m_attachment_calls[idx].push_front(call);
 }
 

@@ -33,10 +33,7 @@ bool VertexAttribArray::is_enabled(const TraceCallRange& range)
 
 void VertexAttribArray::pointer(unsigned  callno, PBufObject obj)
 {
-    if (!m_buffer_timeline.empty())
-        m_buffer_timeline.front().unbind_call_no = callno;
-
-    m_buffer_timeline.push_front(BindTimePoint(obj, callno));
+    m_buffer_timeline.push(callno, obj);
 }
 
 PTraceCall VertexAttribArrayMap::pointer(const trace::Call& call, BufObjectMap &buffers)

@@ -91,7 +91,16 @@ struct BindTimePoint {
         unbind_call_no(std::numeric_limits<unsigned>::max()) {}
 };
 
-using BindTimeline = std::list<BindTimePoint>;
+class BindTimeline {
+public:
+    PTraceObject push(unsigned callno, PTraceObject obj);
+    PTraceObject unbind_last(unsigned callno);
+    PTraceObject active_in_call_range(const TraceCallRange &call_range) const;
+    PTraceObject active_at_call(unsigned no) const;
+    void collect_active_in_call_range(ObjectSet& objects, const TraceCallRange &call_range) const;
+private:
+    std::list<BindTimePoint> m_timeline;
+};
 
 }
 
