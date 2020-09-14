@@ -413,6 +413,7 @@ TraceMirrorImpl::collect_bound_objects(ObjectSet& required_objects,
 PTraceCall TraceMirrorImpl::record_draw_with_buffer(trace::Call &call)
 {
     auto buf = m_buffers.bound_to_target(GL_ELEMENT_ARRAY_BUFFER);
+
     auto c = buf ? make_shared<TraceCallOnBoundObj>(call, buf):
                    make_shared<TraceCall>(call);
     if (m_current_draw_buffer)
@@ -825,9 +826,7 @@ void TraceMirrorImpl::record_bind(BindType type, PGenObject obj,
                                   GLenum id, unsigned tex_unit, unsigned callno)
 {
     unsigned index = buffer_offset(type, id, tex_unit);
-
     auto& record = m_bind_timelines[index];
-
     record.push(callno, obj);
 }
 

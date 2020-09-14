@@ -102,7 +102,6 @@ GenBoundObjectMap<T>::bind_target(unsigned target, unsigned id)
                 std::cerr << "Object " << id << " not found while binding\n";
                 return nullptr;
             }
-
             m_bound_to_target[target] = obj;
         }
     } else {
