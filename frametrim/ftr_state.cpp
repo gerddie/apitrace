@@ -25,15 +25,6 @@ using std::make_shared;
 using std::placeholders::_1;
 using std::placeholders::_2;
 
-struct StateCallRecord {
-    unsigned last_before_callid;
-    StateCallRecord() :
-        last_before_callid(std::numeric_limits<unsigned>::min()){
-    }
-};
-
-using StateCallMap = std::unordered_map<std::string, StateCallRecord>;
-
 struct TraceMirrorImpl {
     TraceMirrorImpl();
 
@@ -51,12 +42,6 @@ struct TraceMirrorImpl {
     PTraceCall record_viewport_call(trace::Call &call);
     PTraceCall record_clear_call(trace::Call &call);
     PTraceCall record_framebuffer_state(trace::Call &call);
-
-    void resolve_state_calls(PTraceCall call,
-                             CallIdSet& callset /* inout */,
-                             unsigned last_required_call);
-    void resolve_repeatable_state_calls(PTraceCall call,
-                                        CallIdSet& callset /* inout */);
 
     PTraceCall bind_fbo(trace::Call &call);
     PTraceCall bind_texture(trace::Call &call);
@@ -96,9 +81,6 @@ struct TraceMirrorImpl {
     PFramebufferObject m_current_read_buffer;
 
     VertexArrayMap m_va;
-
-    StateCallMap m_state_calls;
-    std::unordered_map<std::string, std::string> m_state_call_param_map;
 
     using SamplerObjectMap = GenObjectMap<BoundObject>;
     SamplerObjectMap m_samplers;
@@ -204,6 +186,7 @@ TraceMirrorImpl::bind_fbo(trace::Call &call)
 
     PGenObject fbo;
 
+    bool draw_rebound = false;
     if (target == GL_FRAMEBUFFER) {
         m_global_state->record_bind(bt_framebuffer, m_fbo.draw_buffer(), GL_DRAW_FRAMEBUFFER, 0, call.no);
         m_global_state->record_bind(bt_framebuffer, m_fbo.read_buffer(), GL_READ_FRAMEBUFFER, 0, call.no);
@@ -342,7 +325,7 @@ TraceMirrorImpl::resolve()
         if (c->call_no() >= required_call_range.first)
             break;
         if (c->test_flag(TraceCall::repeatable_state))
-            resolve_repeatable_state_calls(c, required_calls);
+            m_global_state->resolve_repeatable_state_calls(c, required_calls);
     }
 
     m_global_state->collect_objects(required_objects, required_call_range);
@@ -371,7 +354,7 @@ TraceMirrorImpl::resolve()
         }
 
         if ((*c)->test_flag(TraceCall::single_state))
-            resolve_state_calls(*c, required_calls, required_call_range.first);
+            m_global_state->resolve_state_calls(*c, required_calls, required_call_range.first);
     }
     return required_calls;
 }
@@ -417,39 +400,6 @@ PTraceCall TraceMirrorImpl::record_framebuffer_state(trace::Call &call)
     if (m_current_draw_buffer)
         m_current_draw_buffer->set_state(c);
     return c;
-}
-
-void
-TraceMirrorImpl::resolve_state_calls(PTraceCall call,
-                                     CallIdSet& callset /* inout */,
-                                     unsigned next_required_call)
-{
-    /* Add the call if the last required call happended before
-     * the passed function was called the last time.
-     * The _last_before_callid_ value is initialized to the
-     * maximum when the object is created. */
-    auto& last_call = m_state_calls[call->name()];
-    if (call->call_no() < next_required_call &&
-        last_call.last_before_callid < call->call_no()) {
-        std::cerr << "Add state call " << call->call_no() << ":"
-                  << call->name() << " last was " << last_call.last_before_callid << "\n";
-        last_call.last_before_callid = call->call_no();
-        callset.insert(call);
-        call->set_flag(TraceCall::required);
-    }
-}
-
-void TraceMirrorImpl::resolve_repeatable_state_calls(PTraceCall call,
-                                                     CallIdSet& callset /* inout */)
-{
-    auto& last_state_param_set = m_state_call_param_map[call->name()];
-
-    if (last_state_param_set != call->name_with_params()) {
-        m_state_call_param_map[call->name()] = call->name_with_params();
-
-        callset.insert(call);
-        call->set_flag(TraceCall::required);
-    }
 }
 
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&TraceMirrorImpl::call, this, _1)))
@@ -695,8 +645,7 @@ void TraceMirrorImpl::register_framebuffer_calls()
     MAP_GENOBJ_DATAREF(glFramebufferRenderbuffer, m_fbo,
                        FramebufferObjectMap::attach_renderbuffer, m_renderbuffers);
 
-    /*MAP(glReadBuffer, ReadBuffer);
-    MAP(glDrawBuffers, DrawBuffers);*/
+    /* MAP(glReadBuffer, ReadBuffer); */
 }
 
 void TraceMirrorImpl::register_glx_state_calls()

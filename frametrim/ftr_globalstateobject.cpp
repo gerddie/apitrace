@@ -1,7 +1,10 @@
 #include "ftr_globalstateobject.hpp"
+#include "ftr_tracecall.hpp"
 
 #include <GL/gl.h>
 #include <GL/glext.h>
+#include <iostream>
+
 
 namespace frametrim_reverse {
 
@@ -19,6 +22,39 @@ GlobalStateObject::collect_owned_obj(ObjectSet& required_objects,
 {
     for(auto&& timeline : m_bind_timelines) {
         timeline.second.collect_active_in_call_range(required_objects, range);
+    }
+}
+
+void
+GlobalStateObject::resolve_state_calls(PTraceCall call,
+                                       CallIdSet& callset /* inout */,
+                                       unsigned next_required_call)
+{
+    /* Add the call if the last required call happended before
+     * the passed function was called the last time.
+     * The _last_before_callid_ value is initialized to the
+     * maximum when the object is created. */
+    auto& last_call = m_state_calls[call->name()];
+    if (call->call_no() < next_required_call &&
+        last_call.last_before_callid < call->call_no()) {
+        std::cerr << "Add state call " << call->call_no() << ":"
+                  << call->name() << " last was " << last_call.last_before_callid << "\n";
+        last_call.last_before_callid = call->call_no();
+        callset.insert(call);
+        call->set_flag(TraceCall::required);
+    }
+}
+
+void GlobalStateObject::resolve_repeatable_state_calls(PTraceCall call,
+                                                     CallIdSet& callset /* inout */)
+{
+    auto& last_state_param_set = m_state_call_param_map[call->name()];
+
+    if (last_state_param_set != call->name_with_params()) {
+        m_state_call_param_map[call->name()] = call->name_with_params();
+
+        callset.insert(call);
+        call->set_flag(TraceCall::required);
     }
 }
 

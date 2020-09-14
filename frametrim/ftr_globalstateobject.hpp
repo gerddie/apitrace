@@ -16,6 +16,15 @@ enum BindType {
     bt_vertex_array,
 };
 
+struct StateCallRecord {
+    unsigned last_before_callid;
+    StateCallRecord() :
+        last_before_callid(std::numeric_limits<unsigned>::min()){
+    }
+};
+
+using StateCallMap = std::unordered_map<std::string, StateCallRecord>;
+
 class GlobalStateObject : public TraceObject
 {
 public:
@@ -23,12 +32,23 @@ public:
     void record_bind(BindType type, PGenObject obj,
                      unsigned id, unsigned tex_unit, unsigned callno);
 
+    void resolve_state_calls(PTraceCall call,
+                             CallIdSet& callset /* inout */,
+                             unsigned next_required_call);
+
+    void resolve_repeatable_state_calls(PTraceCall call,
+                                        CallIdSet& callset /* inout */);
+
 private:
     void collect_owned_obj(ObjectSet& required_objects,
                            const TraceCallRange& range) override;
     unsigned buffer_offset(BindType type, unsigned target, unsigned active_unit);
 
     std::unordered_map<unsigned, BindTimeline> m_bind_timelines;
+
+    StateCallMap m_state_calls;
+    std::unordered_map<std::string, std::string> m_state_call_param_map;
+
 };
 
 using PGlobalStateObject = GlobalStateObject::Pointer;
