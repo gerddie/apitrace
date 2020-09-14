@@ -50,6 +50,7 @@ TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call,
                                          PGenObject dep):
     TraceCallOnBoundObj(call, obj)
 {
+    assert(dep);
     m_dependencys.push_back(dep);
 }
 
