@@ -48,7 +48,6 @@ struct TraceMirrorImpl {
 
     void process(trace::Call &call, bool required);
 
-    PTraceCall call_on_bound_obj(trace::Call &call, BoundObjectMap& map);
     PTraceCall call_on_named_obj(trace::Call &call, BoundObjectMap& map);
     PTraceCall record_call(trace::Call &call);
     PTraceCall record_state_call(trace::Call &call, unsigned num_name_params,
@@ -295,17 +294,6 @@ PTraceCall TraceMirrorImpl::bind_tracecall(trace::Call &call, PGenObject obj)
 {
     return obj ? make_shared<TraceCallOnBoundObj>(call, obj):
                  make_shared<TraceCall>(call);
-}
-
-PTraceCall
-TraceMirrorImpl::call_on_bound_obj(trace::Call &call, BoundObjectMap& map)
-{
-    auto bound_obj = map.bound_to_call_target_untyped(call);
-    if (!bound_obj) {
-        std::cerr << "Expected bound opject in call " << call.name() << "\n";
-        return PTraceCall(new TraceCall(call));
-    }
-    return PTraceCall(new TraceCallOnBoundObj(call, bound_obj));
 }
 
 PTraceCall
