@@ -56,11 +56,15 @@ PTraceCall FramebufferObject::viewport(const trace::Call& call)
 
 void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
 {
+    Queue local_objects;
+
+
     unsigned start_draw_call = std::numeric_limits<unsigned>::max();
     for (auto&& c : m_draw_calls) {
         if (c->call_no() >= call_before)
             continue;
         calls.insert(c);
+        c->add_object_to_set(local_objects);
         start_draw_call = c->call_no();
         if (c->test_flag(TraceCall::full_viewport_redraw)) {
             break;
@@ -69,6 +73,16 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
     collect_bind_calls(calls, start_draw_call);
 
     TraceCallRange range(start_draw_call, call_before);
+
+    while (!local_objects.empty()) {
+        auto obj = local_objects.front();
+        local_objects.pop();
+        if (obj->visited())
+            continue;
+        obj->visited();
+        obj->collect_calls(calls, call_before);
+        obj->collect_objects(local_objects, range);
+    }
 
     /* all state changes during the draw must be recorded */
     std::unordered_set<std::string> singular_states;
