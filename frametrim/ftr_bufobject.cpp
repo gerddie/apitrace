@@ -83,17 +83,15 @@ BufObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
     collect_last_call_before(calls, m_bind_calls,
                              required_bind_before);
 
-    required_bind_before = call_before;
     Subrangemerger merger(m_size);
     for(auto&& c : m_sub_data_calls) {
         if (c->call_no() >= call_before)
             continue;
         if (merger.merge(c->start(), c->end())) {
-            required_bind_before = c->call_no();
             calls.insert(c);
+            collect_last_call_before(calls, m_bind_calls, c->call_no());
         }
     }
-    collect_last_call_before(calls, m_bind_calls, required_bind_before);
 }
 
 Subrangemerger::Subrangemerger(uint64_t size):

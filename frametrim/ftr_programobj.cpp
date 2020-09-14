@@ -95,6 +95,7 @@ ProgramObject::collect_data_calls(CallIdSet& calls, unsigned before_call)
     unsigned needs_bind_before = before_call;
     for (auto&& uniform_slot: m_uniforms_calls) {
         unsigned call_no = collect_last_call_before(calls, uniform_slot.second, before_call);
+        collect_last_call_before(calls, m_bind_calls, call_no);
         if (call_no < needs_bind_before)
             needs_bind_before = call_no;
     }

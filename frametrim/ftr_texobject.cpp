@@ -100,6 +100,7 @@ void TexObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
             continue;
         call_before = c->call_no();
         calls.insert(c);
+        collect_last_call_before(calls, m_bind_calls, c->call_no());
     }
     collect_bind_calls(calls, call_before);
     collect_allocation_call(calls);
@@ -134,6 +135,7 @@ void TexObject::collect_state_calls(CallIdSet& calls, unsigned call_before)
                 states.find(c.second->name()) == states.end()) {
             calls.insert(c.second);
             states.insert(c.second->name());
+            collect_last_call_before(calls, m_bind_calls, c.second->call_no());
         }
     }
 }
