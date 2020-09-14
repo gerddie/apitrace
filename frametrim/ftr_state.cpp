@@ -142,10 +142,12 @@ std::vector<unsigned> TraceMirror::trace() const
 {
     CallIdSet calls = impl->resolve();
 
-    std::vector<unsigned> retval(calls.size());
-    std::transform(calls.begin(), calls.end(), retval.begin(),
-                   [](PTraceCall c) { return c->call_no();});
+    std::unordered_set<unsigned> make_sure_its_singular;
 
+    for(auto&& c: calls)
+        make_sure_its_singular.insert(c->call_no());
+
+    std::vector<unsigned> retval(make_sure_its_singular.begin(), make_sure_its_singular.end());
     std::sort(retval.begin(), retval.end());
 
     return retval;
