@@ -7,7 +7,7 @@ namespace frametrim_reverse {
 
 class FramebufferObject : public GenObject {
 public:
-    FramebufferObject(unsigned gl_id, PTraceCall gen_call);
+    FramebufferObject(unsigned gl_id, PTraceCall gen_call, PGlobalStateObject gs);
 
     using Pointer = std::shared_ptr<FramebufferObject>;
 
@@ -18,7 +18,7 @@ public:
     void set_state(PTraceCall call);
     PTraceCall clear(const trace::Call& call);
     void draw(PTraceCall call);
-    void bind(PTraceCall call);
+    void bind(PTraceCall call);   
 
 private:
     void collect_data_calls(CallIdSet& calls, unsigned call_before) override;
@@ -37,6 +37,7 @@ private:
     unsigned m_viewport_width, m_viewport_height;
 
     unsigned m_width, m_height;
+    PGlobalStateObject m_global_state;
 };
 using PFramebufferObject = FramebufferObject::Pointer;
 
@@ -58,6 +59,8 @@ public:
 
 class FramebufferObjectMap : public GenObjectMap<FramebufferObject> {
 public:
+    PTraceCall generate_with_gs(const trace::Call& call, PGlobalStateObject gs);
+
     PTraceCall blit(const trace::Call& call);
     PTraceCall bind(const trace::Call& call);
     PTraceCall attach_renderbuffer(const trace::Call& call, RenderbufferObjectMap& rb_map);

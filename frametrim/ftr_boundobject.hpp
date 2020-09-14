@@ -2,7 +2,7 @@
 #define BOUNDOBJECTMAP_HPP
 
 #include "ftr_tracecallext.hpp"
-#include "ftr_genobject.hpp"
+#include "ftr_globalstateobject.hpp"
 
 #include <iostream>
 

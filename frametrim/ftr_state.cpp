@@ -1,9 +1,11 @@
-#include "ftr_state.hpp"
-#include "ftr_tracecall.hpp"
-#include "ftr_programobj.hpp"
-#include "ftr_texobject.hpp"
+
 #include "ftr_framebufferobject.hpp"
+#include "ftr_globalstateobject.hpp"
 #include "ftr_matrixobject.hpp"
+#include "ftr_programobj.hpp"
+#include "ftr_state.hpp"
+#include "ftr_texobject.hpp"
+#include "ftr_tracecall.hpp"
 #include "ftr_vertexattribarray.hpp"
 
 #include <algorithm>
@@ -31,17 +33,6 @@ struct StateCallRecord {
 };
 
 using StateCallMap = std::unordered_map<std::string, StateCallRecord>;
-
-enum BindType {
-    bt_buffer,
-    bt_framebuffer,
-    bt_program,
-    bt_legacy_program,
-    bt_renderbuffer,
-    bt_sampler,
-    bt_texture,
-    bt_vertex_array,
-};
 
 struct TraceMirrorImpl {
     TraceMirrorImpl();
@@ -88,13 +79,7 @@ struct TraceMirrorImpl {
 
     void register_draw_related_calls();
 
-    void record_bind(BindType type, PGenObject obj,
-                     GLenum id, unsigned tex_unit, unsigned callno);
-
-    unsigned buffer_offset(BindType type, GLenum id, unsigned active_unit);
     PTraceCall bind_tracecall(trace::Call &call, PGenObject obj);
-    void collect_bound_objects(ObjectSet& required_objects,
-                               const TraceCallRange& range);
 
     BufObjectMap m_buffers;
     ProgramObjectMap m_programs;
@@ -105,6 +90,7 @@ struct TraceMirrorImpl {
     MatrixObjectMap m_matrix_states;
     LegacyProgramObjectMap m_legacy_programs;
     VertexAttribArrayMap m_vertex_attrib_arrays;
+    std::shared_ptr<GlobalStateObject> m_global_state;
 
     PFramebufferObject m_current_draw_buffer;
     PFramebufferObject m_current_read_buffer;
@@ -123,8 +109,6 @@ struct TraceMirrorImpl {
     LightTrace m_trace;
 
     std::set<std::string> m_unhandled_calls;
-
-    std::unordered_map<unsigned, BindTimeline> m_bind_timelines;
 };
 
 TraceMirror::TraceMirror()
@@ -154,6 +138,7 @@ std::vector<unsigned> TraceMirror::trace() const
 
 TraceMirrorImpl::TraceMirrorImpl()
 {
+    m_global_state = make_shared<GlobalStateObject>();
     register_state_calls();
     register_buffer_calls();
     register_texture_calls();
@@ -220,16 +205,15 @@ TraceMirrorImpl::bind_fbo(trace::Call &call)
     PGenObject fbo;
 
     if (target == GL_FRAMEBUFFER) {
-        record_bind(bt_framebuffer, m_fbo.draw_buffer(), GL_DRAW_FRAMEBUFFER, 0, call.no);
-        record_bind(bt_framebuffer, m_fbo.read_buffer(), GL_READ_FRAMEBUFFER, 0, call.no);
+        m_global_state->record_bind(bt_framebuffer, m_fbo.draw_buffer(), GL_DRAW_FRAMEBUFFER, 0, call.no);
+        m_global_state->record_bind(bt_framebuffer, m_fbo.read_buffer(), GL_READ_FRAMEBUFFER, 0, call.no);
         fbo = m_current_draw_buffer = m_fbo.draw_buffer();
-
     } else if (target == GL_DRAW_FRAMEBUFFER) {
-        record_bind(bt_framebuffer, m_fbo.draw_buffer(), GL_DRAW_FRAMEBUFFER, 0, call.no);
+        m_global_state->record_bind(bt_framebuffer, m_fbo.draw_buffer(), GL_DRAW_FRAMEBUFFER, 0, call.no);
         fbo = m_current_draw_buffer = m_fbo.draw_buffer();
     } else {
         assert(target == GL_READ_FRAMEBUFFER);
-        record_bind(bt_framebuffer, m_fbo.read_buffer(), GL_READ_FRAMEBUFFER, 0, call.no);
+        m_global_state->record_bind(bt_framebuffer, m_fbo.read_buffer(), GL_READ_FRAMEBUFFER, 0, call.no);
         fbo = m_current_read_buffer = m_fbo.read_buffer();
     }
 
@@ -241,7 +225,7 @@ PTraceCall TraceMirrorImpl::bind_texture(trace::Call &call)
     auto texture = m_textures.bind(call, 1);
     auto target = call.arg(0).toUInt();
 
-    record_bind(bt_texture, texture, target, m_textures.active_unit(), call.no);
+    m_global_state->record_bind(bt_texture, texture, target, m_textures.active_unit(), call.no);
     return bind_tracecall(call, texture);
 }
 
@@ -249,14 +233,14 @@ PTraceCall TraceMirrorImpl::bind_buffer(trace::Call &call)
 {
     auto buffer = m_buffers.bind(call, 1);
     auto target = call.arg(0).toUInt();
-    record_bind(bt_buffer, buffer, target, 0, call.no);
+    m_global_state->record_bind(bt_buffer, buffer, target, 0, call.no);
     return bind_tracecall(call, buffer);
 }
 
 PTraceCall TraceMirrorImpl::bind_program(trace::Call &call)
 {
     auto prog = m_programs.bind(call, 0);
-    record_bind(bt_program, prog, 0, 0, call.no);
+    m_global_state->record_bind(bt_program, prog, 0, 0, call.no);
     return bind_tracecall(call, prog);
 }
 
@@ -264,14 +248,14 @@ PTraceCall TraceMirrorImpl::bind_legacy_program(trace::Call &call)
 {
     auto prog = m_legacy_programs.bind(call, 1);
     auto target = call.arg(0).toUInt();
-    record_bind(bt_legacy_program, prog, target, 0, call.no);
+    m_global_state->record_bind(bt_legacy_program, prog, target, 0, call.no);
     return bind_tracecall(call, prog);
 }
 
 PTraceCall TraceMirrorImpl::bind_renderbuffer(trace::Call &call)
 {
     auto rb = m_renderbuffers.bind(call, 1);
-    record_bind(bt_renderbuffer, rb, 0, 0, call.no);
+    m_global_state->record_bind(bt_renderbuffer, rb, 0, 0, call.no);
     return bind_tracecall(call, rb);
 }
 
@@ -279,14 +263,14 @@ PTraceCall TraceMirrorImpl::bind_sampler(trace::Call &call)
 {
     auto sampler = m_samplers.bind(call, 1);
     auto target = call.arg(0).toUInt();
-    record_bind(bt_sampler, sampler, target, 0, call.no);
+    m_global_state->record_bind(bt_sampler, sampler, target, 0, call.no);
     return bind_tracecall(call, sampler);
 }
 
 PTraceCall TraceMirrorImpl::bind_vertex_array(trace::Call &call)
 {
     auto va = m_va.bind(call, 0);
-    record_bind(bt_vertex_array, va, 0, 0, call.no);
+    m_global_state->record_bind(bt_vertex_array, va, 0, 0, call.no);
     return bind_tracecall(call, va);
 }
 
@@ -361,7 +345,7 @@ TraceMirrorImpl::resolve()
             resolve_repeatable_state_calls(c, required_calls);
     }
 
-    collect_bound_objects(required_objects, required_call_range);
+    m_global_state->collect_objects(required_objects, required_call_range);
 
     while (!required_objects.empty()) {
         auto obj = required_objects.front();
@@ -390,15 +374,6 @@ TraceMirrorImpl::resolve()
             resolve_state_calls(*c, required_calls, required_call_range.first);
     }
     return required_calls;
-}
-
-void
-TraceMirrorImpl::collect_bound_objects(ObjectSet& required_objects,
-                                       const TraceCallRange& range)
-{
-    for(auto&& timeline : m_bind_timelines) {
-        timeline.second.collect_active_in_call_range(required_objects, range);
-    }
 }
 
 PTraceCall TraceMirrorImpl::record_draw_with_buffer(trace::Call &call)
@@ -700,7 +675,7 @@ void TraceMirrorImpl::register_framebuffer_calls()
     MAP_GENOBJ(glDeleteRenderbuffers, m_renderbuffers, RenderbufferObjectMap::destroy);
     MAP_GENOBJ(glGenRenderbuffer, m_renderbuffers, RenderbufferObjectMap::generate);
     MAP_GENOBJ(glRenderbufferStorage, m_renderbuffers, RenderbufferObjectMap::storage);
-    MAP_GENOBJ(glGenFramebuffer, m_fbo, FramebufferObjectMap::generate);
+    MAP_GENOBJ_DATAREF(glGenFramebuffer, m_fbo, FramebufferObjectMap::generate_with_gs, m_global_state);
     MAP_GENOBJ(glDeleteFramebuffers, m_fbo, FramebufferObjectMap::destroy);
     MAP(glBindFramebuffer, bind_fbo);
 
@@ -812,84 +787,5 @@ const char *object_type(BindType type)
         return "unknown";
     }
 }
-
-void TraceMirrorImpl::record_bind(BindType type, PGenObject obj,
-                                  GLenum id, unsigned tex_unit, unsigned callno)
-{
-    unsigned index = buffer_offset(type, id, tex_unit);
-    auto& record = m_bind_timelines[index];
-    record.push(callno, obj);
-}
-
-unsigned
-TraceMirrorImpl::buffer_offset(BindType type, GLenum target, unsigned active_unit)
-{
-    switch (type) {
-    case bt_buffer:
-        switch (target) {
-        case GL_ARRAY_BUFFER: return 1;
-        case GL_ATOMIC_COUNTER_BUFFER: 	return 2;
-        case GL_COPY_READ_BUFFER: return 3;
-        case GL_COPY_WRITE_BUFFER: return 4;
-        case GL_DISPATCH_INDIRECT_BUFFER: return 5;
-        case GL_DRAW_INDIRECT_BUFFER: return 6;
-        case GL_ELEMENT_ARRAY_BUFFER: return 7;
-        case GL_PIXEL_PACK_BUFFER: return 8;
-        case GL_PIXEL_UNPACK_BUFFER: return 9;
-        case GL_QUERY_BUFFER: return 10;
-        case GL_SHADER_STORAGE_BUFFER: return 11;
-        case GL_TEXTURE_BUFFER: return 12;
-        case GL_TRANSFORM_FEEDBACK_BUFFER: return 13;
-        case GL_UNIFORM_BUFFER: return 14;
-        default:
-            assert(0 && "unknown buffer bind point");
-        }
-    case bt_program:
-        return 15;
-    case bt_renderbuffer:
-        return 16;
-    case bt_framebuffer:
-        switch (target) {
-        case GL_READ_FRAMEBUFFER: return 17;
-        case GL_DRAW_FRAMEBUFFER: return 18;
-        default:
-            /* Since GL_FRAMEBUFFER may set both buffers we must handle this elsewhere */
-            assert(0 && "GL_FRAMEBUFFER must be handled before calling buffer_offset");
-        }
-    case bt_texture: {
-        unsigned base = active_unit * 11  + 19;
-        switch (target) {
-        case GL_TEXTURE_1D: return base;
-        case GL_TEXTURE_2D: return base + 1;
-        case GL_TEXTURE_3D: return base + 2;
-        case GL_TEXTURE_1D_ARRAY: return base + 3;
-        case GL_TEXTURE_2D_ARRAY: return base + 4;
-        case GL_TEXTURE_RECTANGLE: return base + 5;
-        case GL_TEXTURE_CUBE_MAP: return base + 6;
-        case GL_TEXTURE_CUBE_MAP_ARRAY: return base + 7;
-        case GL_TEXTURE_BUFFER: return base + 8;
-        case GL_TEXTURE_2D_MULTISAMPLE: return base + 9;
-        case GL_TEXTURE_2D_MULTISAMPLE_ARRAY: return base + 10;
-        default:
-            assert(0 && "unknown texture bind point");
-        }
-    }
-    case bt_sampler:
-        return 800 + target;
-    case bt_vertex_array:
-        return 900;
-    case bt_legacy_program:
-        switch (target) {
-        case GL_VERTEX_PROGRAM_ARB:
-            return 901;
-        case GL_FRAGMENT_PROGRAM_ARB:
-            return 902;
-        default:
-            assert(0 && "unknown legacy shader bind point");
-        }
-    }
-    assert(0 && "Unsupported bind point");
-}
-
 
 }

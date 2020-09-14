@@ -23,12 +23,13 @@ RenderbufferObjectMap::storage(const trace::Call& call)
     return rb->allocate(call);
 }
 
-FramebufferObject::FramebufferObject(unsigned gl_id, PTraceCall gen_call):
+FramebufferObject::FramebufferObject(unsigned gl_id, PTraceCall gen_call, PGlobalStateObject gs):
     GenObject(gl_id, gen_call),
     m_viewport_width(0),
     m_viewport_height(0),
     m_width(0),
-    m_height(0)
+    m_height(0),
+    m_global_state(gs)
 {
 }
 
@@ -214,6 +215,18 @@ PFramebufferObject FramebufferObjectMap::draw_buffer() const
 PFramebufferObject FramebufferObjectMap::read_buffer() const
 {
     return m_read_buffer;
+}
+
+PTraceCall
+FramebufferObjectMap::generate_with_gs(const trace::Call& call, PGlobalStateObject gs)
+{
+    const auto ids = call.arg(1).toArray();
+    auto c = std::make_shared<TraceCall>(call);
+    for (auto& v : ids->values) {
+        auto id = v->toUInt();
+        add(make_shared<FramebufferObject>(id, c, gs));
+    }
+    return c;
 }
 
 PTraceCall
