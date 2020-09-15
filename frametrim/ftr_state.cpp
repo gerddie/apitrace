@@ -297,7 +297,6 @@ TraceMirrorImpl::record_enable_call(trace::Call &call, const char *basename)
 CallIdSet
 TraceMirrorImpl::resolve()
 {
-    ObjectSet required_objects;
     CallIdSet required_calls;
     TraceCallRange required_call_range =
             std::make_pair(std::numeric_limits<unsigned>::max(), 0);
@@ -305,7 +304,6 @@ TraceMirrorImpl::resolve()
     /* record all frames from the target frame set */
     for(auto& i : m_trace) {
         if (i->test_flag(TraceCall::required)) {
-            i->add_object_to_set(required_objects);
             i->add_object_calls(required_calls);
             required_calls.insert(i);
             if (i->call_no() < required_call_range.first)
@@ -328,6 +326,7 @@ TraceMirrorImpl::resolve()
             m_global_state->resolve_repeatable_state_calls(c, required_calls);
     }
 
+    ObjectSet required_objects;
     m_global_state->collect_objects(required_objects, required_call_range);
 
     while (!required_objects.empty()) {
@@ -336,12 +335,7 @@ TraceMirrorImpl::resolve()
 
         /* This is just a fail save, there should be no visited objects
          * in the queue */
-        if (obj->visited(required_call_range.first))
-            continue;
-        obj->set_visited(required_call_range.first);
-        obj->collect_objects(required_objects, required_call_range);
         obj->collect_calls(required_calls, required_call_range.first);
-
     }
 
     /* At this point only state calls should remain to be recorded

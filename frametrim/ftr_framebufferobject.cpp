@@ -57,8 +57,14 @@ PTraceCall FramebufferObject::viewport(const trace::Call& call)
 
 void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
 {
-    Queue local_objects;
+    static unsigned nesting = 0;
 
+    for (unsigned i = 0; i < nesting; ++i)
+        std::cerr << " ";
+
+    std::cerr << "Col""lect FBO calls for " << id() << "\n";
+
+    ++nesting;
     unsigned start_draw_call = std::numeric_limits<unsigned>::max();
     for (auto&& c : m_draw_calls) {
         if (c->call_no() >= call_before)
@@ -75,6 +81,7 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
 
     TraceCallRange range(start_draw_call, call_before);
 
+    Queue local_objects;
     m_global_state->collect_objects(local_objects, range);
 
     while (!local_objects.empty()) {
@@ -115,6 +122,7 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
         if (obj)
             obj->collect_calls(calls, call_no);
     }
+    --nesting;
 }
 
 void FramebufferObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
@@ -232,14 +240,6 @@ FramebufferObjectMap::generate_with_gs(const trace::Call& call, PGlobalStateObje
 PTraceCall
 FramebufferObjectMap::blit(const trace::Call& call)
 {
-    if (m_draw_buffer && m_read_buffer)
-        return make_shared<TraceCallOnBoundObj>(call,
-                                                m_draw_buffer,
-                                                m_read_buffer);
-
-    if (m_draw_buffer)
-        return make_shared<TraceCallOnBoundObj>(call, m_draw_buffer);
-
     if (m_read_buffer)
         return make_shared<TraceCallOnBoundObj>(call, m_read_buffer);
 
