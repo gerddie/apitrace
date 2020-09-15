@@ -47,6 +47,8 @@ public:
     void add_object_to_set(ObjectSet& out_set) const;
     void add_object_calls(CallIdSet& out_calls) const;
 
+    void depends_on_call(Pointer call);
+
 private:
     virtual void add_dependend_objects(ObjectSet& out_set) const;
     virtual void add_dependend_object_calls(CallIdSet& out_calls) const;
@@ -55,6 +57,8 @@ private:
     std::string m_name;
     std::string m_name_with_params;
     std::bitset<last_flag> m_flags;
+    std::vector<Pointer> m_depends_on;
+
 };
 using PTraceCall = TraceCall::Pointer;
 

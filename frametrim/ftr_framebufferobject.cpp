@@ -67,7 +67,8 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
         if (c->call_no() >= call_before)
             continue;
         calls.insert(c);
-        collect_last_call_before(calls, m_bind_calls, c->call_no());
+        unsigned bind_call = collect_last_call_before(calls, m_bind_calls,
+                                                      c->call_no());
         start_draw_call = c->call_no();
         c->add_object_calls(calls);
         if (c->test_flag(TraceCall::full_viewport_redraw)) {
@@ -102,7 +103,6 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
             if (singular_states.find(state) == singular_states.end()) {
                 singular_states.insert(state);
                 calls.insert(c);
-                collect_last_call_before(calls, m_bind_calls, c->call_no());
             }
         }
     }

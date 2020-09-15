@@ -62,6 +62,11 @@ TraceCall::TraceCall(const trace::Call &call):
 {
 }
 
+void TraceCall::depends_on_call(Pointer call)
+{
+    m_depends_on.push_back(call);
+}
+
 void TraceCall::add_object_to_set(ObjectSet& out_set) const
 {
     add_dependend_objects(out_set);
@@ -75,6 +80,8 @@ void TraceCall::add_dependend_objects(ObjectSet& out_set) const
 void TraceCall::add_object_calls(CallIdSet& out_calls) const
 {
     add_dependend_object_calls(out_calls);
+    for(auto&& c : m_depends_on)
+        out_calls.insert(c);
 }
 
 void TraceCall::add_dependend_object_calls(CallIdSet& out_calls) const
@@ -86,7 +93,6 @@ void CallIdSet::insert(PTraceCall call)
 {
     if (!call->test_flag(TraceCall::recorded)) {
         m_calls.insert(call);
-        std::cerr << "Insert " << call->name_with_params() << "\n";
         call->set_flag(TraceCall::recorded);
         call->add_object_calls(*this);
     }

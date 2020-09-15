@@ -25,6 +25,7 @@ private:
 
 class TraceCallOnBoundObj : public TraceCall {
 public:
+    using Pointer = std::shared_ptr<TraceCallOnBoundObj>;
     TraceCallOnBoundObj(const trace::Call& call);
     TraceCallOnBoundObj(const trace::Call& call, PGenObject obj);
     TraceCallOnBoundObj(const trace::Call& call,
@@ -39,6 +40,7 @@ private:
 
     PObjectVector m_entry_dependencies;
 };
+using PTraceCallOnBoundObj = TraceCallOnBoundObj::Pointer;
 
 class BufferSubrangeCall : public TraceCall {
 public:
