@@ -86,6 +86,7 @@ void CallIdSet::insert(PTraceCall call)
     if (!call->test_flag(TraceCall::recorded)) {
         m_calls.insert(call);
         call->set_flag(TraceCall::recorded);
+        call->add_object_calls(*this);
     }
 }
 
