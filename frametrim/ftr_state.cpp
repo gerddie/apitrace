@@ -89,8 +89,6 @@ struct TraceMirrorImpl {
     using CallTable = std::multimap<const char *, ftr_callback, frametrim::string_part_less>;
     CallTable m_call_table;
 
-    LightTrace m_trace;
-
     std::set<std::string> m_unhandled_calls;
     PTraceCall m_last_fbo_bind_call;
 
@@ -176,7 +174,7 @@ void TraceMirrorImpl::process(trace::Call& call, bool required)
     if (c) {
         if (required)
             c->set_flag(TraceCall::required);
-        m_trace.push_back(c);
+        m_global_state->prepend_call(c);
     }
 }
 
@@ -325,61 +323,34 @@ CallIdSet
 TraceMirrorImpl::resolve()
 {
     CallIdSet required_calls;
-    TraceCallRange required_call_range =
-            std::make_pair(std::numeric_limits<unsigned>::max(), 0);
 
-    /* record all frames from the target frame set */
-    for(auto& i : m_trace) {
-        if (i->test_flag(TraceCall::required)) {
-            i->add_object_calls(required_calls);
-            required_calls.insert(i);
-            if (i->call_no() < required_call_range.first)
-                required_call_range.first = i->call_no();
-
-            if (i->call_no() > required_call_range.second)
-                required_call_range.second = i->call_no();
-        }
-    }
+    unsigned first_target_frame_call = m_global_state->get_required_calls(required_calls);
 
     /* Now collect all calls from the beginning that refere to states that
      * can be changed repeatandly (glx and egl stuff) and where we must use
      * the eraliest calls possible
      * Note: in m_trace call numbera are counting up */
 
-    for (auto&& c : m_trace) {
-        if (c->call_no() >= required_call_range.first)
-            break;
-        if (c->test_flag(TraceCall::repeatable_state))
-            m_global_state->resolve_repeatable_state_calls(c, required_calls);
-    }
+    m_global_state->get_repeatable_states_from_beginning(required_calls,
+                                                         first_target_frame_call);
 
     ObjectSet required_objects;
     m_global_state->collect_objects_of_type(required_objects,
-                                            required_call_range.first,
+                                            first_target_frame_call,
                                             std::bitset<16>(0xffff));
 
     while (!required_objects.empty()) {
         auto obj = required_objects.front();
         required_objects.pop();
-
         /* This is just a fail save, there should be no visited objects
          * in the queue */
-        obj->collect_calls(required_calls, required_call_range.first);
+        obj->collect_calls(required_calls, first_target_frame_call);
     }
 
     /* At this point only state calls should remain to be recorded
      * So go in reverse to the list and add them. */
-    required_call_range.first = std::numeric_limits<unsigned>::max();
-    for (auto c = m_trace.rbegin(); c != m_trace.rend(); ++c) {
-        /*  required calls are already in the output callset */
-        if ((*c)->test_flag(TraceCall::required)) {
-            required_call_range.first = (*c)->call_no();
-            continue;
-        }
+    m_global_state->get_last_states_before(required_calls, first_target_frame_call);
 
-        if ((*c)->test_flag(TraceCall::single_state))
-            m_global_state->resolve_state_calls(*c, required_calls, required_call_range.first);
-    }
     return required_calls;
 }
 

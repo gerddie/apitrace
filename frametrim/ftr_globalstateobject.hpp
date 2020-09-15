@@ -35,25 +35,39 @@ public:
     void record_bind(BindType type, PGenObject obj,
                      unsigned id, unsigned tex_unit, unsigned callno);
 
-    void resolve_state_calls(PTraceCall call,
-                             CallIdSet& callset /* inout */,
-                             unsigned next_required_call);
-
-    void resolve_repeatable_state_calls(PTraceCall call,
-                                        CallIdSet& callset /* inout */);
-
     PObjectVector currently_bound_objects_of_type(std::bitset<16> typemask);
 
     void collect_objects_of_type(Queue& objects, unsigned call,
                                  std::bitset<16> typemask) override;
 
+    void prepend_call(PTraceCall call);
+
+    unsigned get_required_calls(CallIdSet &required_calls) const;
+
+    void get_repeatable_states_from_beginning(CallIdSet &required_calls,
+                                              unsigned before) const;
+
+    void get_last_states_before(CallIdSet &required_calls,
+                                unsigned before) const;
+
 private:
+    using ParamMap = std::unordered_map<std::string, std::string>;
+
+    void resolve_state_calls(PTraceCall call,
+                             CallIdSet& callset /* inout */,
+                             unsigned next_required_call,
+                             StateCallMap& map) const;
+
+    void resolve_repeatable_state_calls(PTraceCall call,
+                                        CallIdSet& callset /* inout */,
+                                        ParamMap& param_map) const;
+
+
     unsigned buffer_offset(BindType type, unsigned target, unsigned active_unit);
 
-    std::unordered_map<unsigned, BindTimeline> m_bind_timelines;
+    std::list<PTraceCall> m_trace;
 
-    StateCallMap m_state_calls;
-    std::unordered_map<std::string, std::string> m_state_call_param_map;
+    std::unordered_map<unsigned, BindTimeline> m_bind_timelines;
 
     std::unordered_map<unsigned, PTraceObject> m_curently_bound;
 

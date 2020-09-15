@@ -48,36 +48,86 @@ void GlobalStateObject::collect_objects_of_type(Queue& objects, unsigned call,
     }
 }
 
+void GlobalStateObject::prepend_call(PTraceCall call)
+{
+    m_trace.push_front(call);
+}
+
+unsigned GlobalStateObject::get_required_calls(CallIdSet& required_calls) const
+{
+    unsigned first_required_call = std::numeric_limits<unsigned>::max();
+    /* record all frames from the target frame set */
+    for(auto& i : m_trace) {
+        if (i->test_flag(TraceCall::required)) {
+            i->add_object_calls(required_calls);
+            required_calls.insert(i);
+            first_required_call = i->call_no();
+        }
+    }
+    return first_required_call;
+}
+
+void
+GlobalStateObject::get_repeatable_states_from_beginning(CallIdSet &required_calls,
+                                                        unsigned before) const
+{
+    std::unordered_map<std::string, std::string> param_map;
+
+    /* Traces start at the highest number so start at the end
+     * to record the earliest call */
+    for (auto i = m_trace.rbegin(); i != m_trace.rend(); ++i) {
+        if ((*i)->call_no() >= before)
+            return;
+        if ((*i)->test_flag(TraceCall::repeatable_state)) {
+            resolve_repeatable_state_calls(*i, required_calls, param_map);
+        }
+    }
+}
+
+void
+GlobalStateObject::get_last_states_before(CallIdSet &required_calls,
+                                          unsigned before) const
+{
+    StateCallMap state_calls;
+
+
+    for (auto&& c : m_trace) {
+        /*  required calls are already in the output callset */
+        if (c->call_no() >= before)
+            continue;
+
+        if (c->test_flag(TraceCall::single_state))
+            resolve_state_calls(c, required_calls, before, state_calls);
+    }
+}
+
+
 void
 GlobalStateObject::resolve_state_calls(PTraceCall call,
                                        CallIdSet& callset /* inout */,
-                                       unsigned next_required_call)
+                                       unsigned next_required_call,
+                                       StateCallMap &map) const
 {
     /* Add the call if the last required call happended before
      * the passed function was called the last time.
      * The _last_before_callid_ value is initialized to the
      * maximum when the object is created. */
-    auto& last_call = m_state_calls[call->name()];
+    auto& last_call = map[call->name()];
     if (call->call_no() < next_required_call &&
         last_call.last_before_callid < call->call_no()) {
-        std::cerr << "Add state call " << call->call_no() << ":"
-                  << call->name() << " last was " << last_call.last_before_callid << "\n";
         last_call.last_before_callid = call->call_no();
         callset.insert(call);
-        call->set_flag(TraceCall::required);
     }
 }
 
 void GlobalStateObject::resolve_repeatable_state_calls(PTraceCall call,
-                                                     CallIdSet& callset /* inout */)
+                                                       CallIdSet& callset /* inout */,
+                                                       ParamMap &param_map) const
 {
-    auto& last_state_param_set = m_state_call_param_map[call->name()];
-
+    auto& last_state_param_set = param_map[call->name()];
     if (last_state_param_set != call->name_with_params()) {
-        m_state_call_param_map[call->name()] = call->name_with_params();
-
+        param_map[call->name()] = call->name_with_params();
         callset.insert(call);
-        call->set_flag(TraceCall::required);
     }
 }
 

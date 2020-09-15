@@ -83,6 +83,8 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
     m_global_state->collect_objects_of_type(local_objects, start_draw_call,
                                             std::bitset<16>(0xffff));
 
+    m_global_state->get_last_states_before(calls, start_draw_call);
+
     while (!local_objects.empty()) {
         auto obj = local_objects.front();
         local_objects.pop();
