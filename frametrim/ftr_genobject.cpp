@@ -15,12 +15,6 @@ void TraceObject::collect_objects_of_type(Queue& objects, unsigned call,
 
 }
 
-void TraceObject::collect_objects(Queue& objects, const TraceCallRange& call_range)
-{
-    collect_owned_obj(objects, call_range);
-    collect_dependend_obj(objects, call_range);
-}
-
 void TraceObject::collect_calls(CallIdSet& calls, unsigned call_before)
 {
     if (m_visited > call_before) {
@@ -53,18 +47,6 @@ void TraceObject::collect_state_calls(CallIdSet& calls, unsigned call_before)
 {
     (void)calls;
     (void)call_before;
-}
-
-void TraceObject::collect_dependend_obj(Queue& objects, const TraceCallRange &call_range)
-{
-    (void)objects;
-    (void)call_range;
-}
-
-void TraceObject::collect_owned_obj(Queue& objects, const TraceCallRange &call_range)
-{
-    (void)objects;
-    (void)call_range;
 }
 
 unsigned TraceObject::collect_last_call_before(CallIdSet& calls,

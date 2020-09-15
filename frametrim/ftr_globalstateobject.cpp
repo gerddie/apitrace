@@ -16,15 +16,6 @@ void GlobalStateObject::record_bind(BindType type, PGenObject obj,
     record.push(callno, obj);
 }
 
-void
-GlobalStateObject::collect_owned_obj(ObjectSet& required_objects,
-                                     const TraceCallRange& range)
-{
-    for(auto&& timeline : m_bind_timelines) {
-        timeline.second.collect_active_in_call_range(required_objects, range);
-    }
-}
-
 void GlobalStateObject::collect_objects_of_type(Queue& objects, unsigned call,
                                                 std::bitset<16> typemask)
 {

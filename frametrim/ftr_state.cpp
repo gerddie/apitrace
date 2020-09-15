@@ -327,7 +327,9 @@ TraceMirrorImpl::resolve()
     }
 
     ObjectSet required_objects;
-    m_global_state->collect_objects(required_objects, required_call_range);
+    m_global_state->collect_objects_of_type(required_objects,
+                                            required_call_range.first,
+                                            std::bitset<16>(0xffff));
 
     while (!required_objects.empty()) {
         auto obj = required_objects.front();
@@ -361,6 +363,7 @@ PTraceCall TraceMirrorImpl::record_draw_with_buffer(trace::Call &call)
     ObjectSet required_objects;
     std::bitset<16> typemask((1 << 16) - 1);
     typemask.flip(bt_renderbuffer);
+    typemask.flip(bt_framebuffer);
 
     m_global_state->collect_objects_of_type(required_objects, call.no, typemask);
     while (!required_objects.empty()) {

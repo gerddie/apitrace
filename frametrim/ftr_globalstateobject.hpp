@@ -43,8 +43,6 @@ public:
                                  std::bitset<16> typemask) override;
 
 private:
-    void collect_owned_obj(ObjectSet& required_objects,
-                           const TraceCallRange& range) override;
     unsigned buffer_offset(BindType type, unsigned target, unsigned active_unit);
 
     std::unordered_map<unsigned, BindTimeline> m_bind_timelines;

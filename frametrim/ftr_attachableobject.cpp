@@ -25,15 +25,6 @@ void AttachableObject::collect_allocation_call(CallIdSet& calls)
     }
 }
 
-void AttachableObject::collect_dependend_obj(Queue& objects, const TraceCallRange &range)
-{
-    for(auto&& timeline : m_bindings) {
-        auto obj = timeline.second.active_in_call_range(range);
-        if (obj)
-            objects.push(obj);
-    }
-}
-
 void AttachableObject::set_size(unsigned level, unsigned w, unsigned h)
 {
     if (m_width.size() <= level)

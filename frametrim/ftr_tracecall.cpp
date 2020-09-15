@@ -1,6 +1,7 @@
 #include "ftr_tracecall.hpp"
 
 #include <sstream>
+#include <iostream>
 
 
 namespace trace {
@@ -85,6 +86,7 @@ void CallIdSet::insert(PTraceCall call)
 {
     if (!call->test_flag(TraceCall::recorded)) {
         m_calls.insert(call);
+        std::cerr << "Insert " << call->name_with_params() << "\n";
         call->set_flag(TraceCall::recorded);
         call->add_object_calls(*this);
     }

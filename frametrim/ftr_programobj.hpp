@@ -43,7 +43,6 @@ public:
     PTraceCall link(const trace::Call& call);
     PTraceCall uniform(const trace::Call& call);
 private:
-    void collect_dependend_obj(Queue& objects, const TraceCallRange& call_range) override;
     void collect_data_calls(CallIdSet& calls, unsigned before_call) override;
 
     std::list<PTraceCall> m_attach_calls;

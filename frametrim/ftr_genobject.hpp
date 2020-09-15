@@ -25,7 +25,6 @@ public:
     bool visited(unsigned callno) const { return m_visited <= callno;}
     void set_visited(unsigned callno) {m_visited = callno;};
 
-    void collect_objects(Queue& objects, const TraceCallRange &call_range);
     void collect_calls(CallIdSet& calls, unsigned call_before);
 
     virtual void collect_objects_of_type(Queue& objects, unsigned call,
@@ -45,9 +44,6 @@ protected:
     virtual void collect_data_calls(CallIdSet& calls, unsigned call_before);
     virtual void collect_bind_calls(CallIdSet& calls, unsigned call_before);
     virtual void collect_state_calls(CallIdSet& calls, unsigned call_before);
-
-    virtual void collect_owned_obj(Queue& objects, const TraceCallRange &call_range);
-    virtual void collect_dependend_obj(Queue& objects, const TraceCallRange &call_range);
 private:
     unsigned m_visited;
 };

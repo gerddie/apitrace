@@ -58,11 +58,8 @@ PTraceCall FramebufferObject::viewport(const trace::Call& call)
 void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
 {
     static unsigned nesting = 0;
-
-    for (unsigned i = 0; i < nesting; ++i)
-        std::cerr << " ";
-
-    std::cerr << "Collect FBO calls for " << id() << "\n";
+    std::cerr << "N:" << nesting << " Collect FBO calls for "
+              << id() << " collect before " << call_before << "\n";
 
     ++nesting;
     unsigned start_draw_call = std::numeric_limits<unsigned>::max();
@@ -82,7 +79,8 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
     TraceCallRange range(start_draw_call, call_before);
 
     Queue local_objects;
-    m_global_state->collect_objects(local_objects, range);
+    m_global_state->collect_objects_of_type(local_objects, start_draw_call,
+                                            std::bitset<16>(0xffff));
 
     while (!local_objects.empty()) {
         auto obj = local_objects.front();
@@ -124,12 +122,6 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
 void FramebufferObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
 {
     collect_last_call_before(calls, m_bind_calls, call_before);
-}
-
-void FramebufferObject::collect_dependend_obj(Queue& objects, const TraceCallRange &call_range)
-{
-    for (auto&& timeline : m_attachments)
-        timeline.second.collect_active_in_call_range(objects, call_range);
 }
 
 PTraceCall FramebufferObject::clear(const trace::Call& call)
@@ -204,7 +196,7 @@ FramebufferObjectMap::bind(const trace::Call& call)
         m_read_buffer = fbo;
     }
     if (fbo) {
-        auto c = make_shared<TraceCallOnBoundObj>(call, fbo);
+        auto c = make_shared<TraceCall>(call);
         fbo->bind(c);
         return c;
     } else

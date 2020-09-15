@@ -22,8 +22,6 @@ protected:
 private:
     virtual unsigned evaluate_size(const trace::Call& call) = 0;
 
-    void collect_dependend_obj(Queue& objects, const TraceCallRange& range) override;
-
     std::vector<unsigned> m_width;
     std::vector<unsigned> m_heigth;
     std::vector<PTraceCall> m_allocation_call;
