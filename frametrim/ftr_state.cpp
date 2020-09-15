@@ -536,8 +536,8 @@ void TraceMirrorImpl::register_state_calls()
 
     MAP_DATA(glEnable, record_enable_call, "Enable");
     MAP_DATA(glDisable, record_enable_call, "Enable");
-    MAP_DATA(glEnableVertexAttrinArray, record_enable_call, "EnableVA");
-    MAP_DATA(glDisableVertexAttrinArray, record_enable_call, "EnableVA");
+    MAP_DATA(glEnableVertexAttribArray, record_enable_call, "EnableVA");
+    MAP_DATA(glDisableVertexAttrbArray, record_enable_call, "EnableVA");
 }
 
 void TraceMirrorImpl::register_buffer_calls()
@@ -555,7 +555,7 @@ void TraceMirrorImpl::register_buffer_calls()
 
     MAP_GENOBJ(glGenVertexArrays, m_va, VertexArrayMap::generate);
     MAP(glBindVertexArray, bind_vertex_array);
-    MAP_GENOBJ(glDeleteVertexArraym, m_va, VertexArrayMap::destroy);
+    MAP_GENOBJ(glDeleteVertexArray, m_va, VertexArrayMap::destroy);
 }
 
 void TraceMirrorImpl::register_texture_calls()
