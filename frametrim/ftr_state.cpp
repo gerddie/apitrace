@@ -37,6 +37,7 @@ struct TraceMirrorImpl {
     PTraceCall record_enable_call(trace::Call &call, const char *basename);
 
     PTraceCall record_draw(trace::Call &call);
+    PTraceCall record_draw_buffer(trace::Call &call);
     /* These calls need to be redirected to the currently bound draw framebuffer */
     PTraceCall record_draw_with_buffer(trace::Call &call);
     PTraceCall record_viewport_call(trace::Call &call);
@@ -184,20 +185,29 @@ TraceMirrorImpl::bind_fbo(trace::Call &call)
 
     unsigned target = call.arg(0).toUInt();
 
-    PGenObject fbo;
+    PFramebufferObject fbo;
 
     bool draw_rebound = false;
     if (target == GL_FRAMEBUFFER) {
         m_global_state->record_bind(bt_framebuffer, m_fbo.draw_buffer(), GL_DRAW_FRAMEBUFFER, 0, call.no);
         m_global_state->record_bind(bt_framebuffer, m_fbo.read_buffer(), GL_READ_FRAMEBUFFER, 0, call.no);
-        fbo = m_current_draw_buffer = m_fbo.draw_buffer();
+        fbo = m_fbo.draw_buffer();
     } else if (target == GL_DRAW_FRAMEBUFFER) {
         m_global_state->record_bind(bt_framebuffer, m_fbo.draw_buffer(), GL_DRAW_FRAMEBUFFER, 0, call.no);
-        fbo = m_current_draw_buffer = m_fbo.draw_buffer();
+        fbo = m_fbo.draw_buffer();
     } else {
         assert(target == GL_READ_FRAMEBUFFER);
         m_global_state->record_bind(bt_framebuffer, m_fbo.read_buffer(), GL_READ_FRAMEBUFFER, 0, call.no);
         fbo = m_current_read_buffer = m_fbo.read_buffer();
+    }
+    if (fbo) {
+        if (!m_current_draw_buffer ||
+            fbo->id() != m_current_draw_buffer->id()) {
+            m_current_draw_buffer = fbo;
+            auto c = make_shared<TraceCallOnBoundObj>(call, fbo);
+            c->add_object_set(m_global_state->currently_bound_objects_of_type(std::bitset<16>(0xffff)));
+            return c;
+        }
     }
 
     return bind_tracecall(call, fbo);
@@ -379,6 +389,15 @@ PTraceCall TraceMirrorImpl::record_draw(trace::Call &call)
     return c;
 }
 
+PTraceCall TraceMirrorImpl::record_draw_buffer(trace::Call &call)
+{
+    auto c = make_shared<TraceCallOnBoundObj>(call, m_current_draw_buffer);
+
+    if (m_current_draw_buffer)
+        m_current_draw_buffer->draw(c);
+    return c;
+}
+
 PTraceCall TraceMirrorImpl::record_viewport_call(trace::Call &call)
 {
     auto c = m_current_draw_buffer ?
@@ -438,8 +457,7 @@ void TraceMirrorImpl::register_draw_related_calls()
 
     m_call_table.insert(make_pair("glDrawArrays",bind(&TraceMirrorImpl::record_draw,
                                                       this, _1)));
-    m_call_table.insert(make_pair("glDrawBuffer",bind(&TraceMirrorImpl::record_draw,
-                                                      this, _1)));
+    m_call_table.insert(make_pair("glDrawBuffer",bind(&TraceMirrorImpl::record_draw_buffer,                                                      this, _1)));
 }
 
 void TraceMirrorImpl::register_state_calls()
