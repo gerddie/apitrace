@@ -29,7 +29,6 @@ public:
 
     virtual void collect_objects_of_type(Queue& objects, unsigned call,
                                          std::bitset<16> typemask);
-
 protected:
     unsigned collect_last_call_before(CallIdSet& calls,
                                   const std::list<PTraceCall>& call_list,
@@ -48,6 +47,7 @@ private:
     unsigned m_visited;
 };
 using PTraceObject = TraceObject::Pointer;
+using PObjectVector = std::shared_ptr<std::vector<PTraceObject>>;
 
 class GenObject : public TraceObject {
 public:
@@ -65,6 +65,8 @@ private:
 
 using ObjectSet = GenObject::Queue;
 using PGenObject = GenObject::Pointer;
+
+
 
 class BoundObject : public GenObject {
 public:
@@ -98,6 +100,7 @@ public:
     PTraceObject active_in_call_range(const TraceCallRange &call_range) const;
     PTraceObject active_at_call(unsigned no) const;
     void collect_active_in_call_range(ObjectSet& objects, const TraceCallRange &call_range) const;
+    void collect_currently_active(ObjectSet& objects) const;
 private:
     std::list<BindTimePoint> m_timeline;
 };

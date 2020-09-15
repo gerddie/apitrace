@@ -8,12 +8,34 @@
 
 namespace frametrim_reverse {
 
+GlobalStateObject::GlobalStateObject():
+    m_bind_dirty(false)
+{
+
+}
+
 void GlobalStateObject::record_bind(BindType type, PGenObject obj,
                                     unsigned id, unsigned tex_unit, unsigned callno)
 {
     unsigned index = buffer_offset(type, id, tex_unit);
     auto& record = m_bind_timelines[index];
     record.push(callno, obj);
+    m_bind_dirty = true;
+    m_curently_bound[index] = obj;
+}
+
+
+PObjectVector
+GlobalStateObject::currently_bound_objects_of_type(std::bitset<16> typemask)
+{
+    if (m_bind_dirty) {
+        m_curently_bound_shadow = std::make_shared<std::vector<PTraceObject>>();
+        for(auto&& bindings : m_curently_bound) {
+            if (typemask.test(bindings.first / 128) && bindings.second)
+                m_curently_bound_shadow->push_back(bindings.second);
+        }
+    }
+    return m_curently_bound_shadow;
 }
 
 void GlobalStateObject::collect_objects_of_type(Queue& objects, unsigned call,

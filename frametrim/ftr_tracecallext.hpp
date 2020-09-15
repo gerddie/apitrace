@@ -31,10 +31,13 @@ public:
                         PGenObject obj,
                         PGenObject dep);
     void add_object(PTraceObject obj);
+    void add_object_set(PObjectVector entry_dependencies);
 private:
     void add_dependend_objects(ObjectSet& out_set) const override;
     void add_dependend_object_calls(CallIdSet& out_calls) const override;
     std::vector<PTraceObject> m_dependencys;
+
+    PObjectVector m_entry_dependencies;
 };
 
 class BufferSubrangeCall : public TraceCall {

@@ -136,6 +136,12 @@ PTraceObject BindTimeline::active_at_call(unsigned no) const
     return nullptr;
 }
 
+void BindTimeline::collect_currently_active(ObjectSet& objects) const
+{
+    if (!m_timeline.empty() && m_timeline.front().obj)
+        objects.push(m_timeline.front().obj);
+}
+
 void BindTimeline::collect_active_in_call_range(ObjectSet& objects, const TraceCallRange &call_range) const
 {
     for (auto&& tp: m_timeline) {

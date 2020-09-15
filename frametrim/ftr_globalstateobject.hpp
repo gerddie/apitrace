@@ -29,6 +29,9 @@ class GlobalStateObject : public TraceObject
 {
 public:
     using Pointer = std::shared_ptr<GlobalStateObject>;
+
+    GlobalStateObject();
+
     void record_bind(BindType type, PGenObject obj,
                      unsigned id, unsigned tex_unit, unsigned callno);
 
@@ -38,6 +41,8 @@ public:
 
     void resolve_repeatable_state_calls(PTraceCall call,
                                         CallIdSet& callset /* inout */);
+
+    PObjectVector currently_bound_objects_of_type(std::bitset<16> typemask);
 
     void collect_objects_of_type(Queue& objects, unsigned call,
                                  std::bitset<16> typemask) override;
@@ -50,6 +55,10 @@ private:
     StateCallMap m_state_calls;
     std::unordered_map<std::string, std::string> m_state_call_param_map;
 
+    std::unordered_map<unsigned, PTraceObject> m_curently_bound;
+
+    mutable bool m_bind_dirty;
+    PObjectVector m_curently_bound_shadow;
 };
 
 using PGlobalStateObject = GlobalStateObject::Pointer;

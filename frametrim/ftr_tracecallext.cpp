@@ -73,10 +73,20 @@ void TraceCallOnBoundObj::add_object(PTraceObject obj)
         m_dependencys.push_back(obj);
 }
 
+void TraceCallOnBoundObj::add_object_set(PObjectVector entry_dependencies)
+{
+    m_entry_dependencies = entry_dependencies;
+}
+
 void TraceCallOnBoundObj::add_dependend_object_calls(CallIdSet& out_calls) const
 {
     for(auto&& d : m_dependencys)
         d->collect_calls(out_calls, call_no());
+
+    if (m_entry_dependencies) {
+        for(auto&& d : *m_entry_dependencies)
+            d->collect_calls(out_calls, call_no());
+    }
 }
 
 BufferSubrangeCall::BufferSubrangeCall(const trace::Call& call, uint64_t start,

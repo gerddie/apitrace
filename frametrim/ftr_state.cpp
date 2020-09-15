@@ -360,15 +360,11 @@ PTraceCall TraceMirrorImpl::record_draw_with_buffer(trace::Call &call)
 {
     auto c = make_shared<TraceCallOnBoundObj>(call);
 
-    ObjectSet required_objects;
     std::bitset<16> typemask((1 << 16) - 1);
-    typemask.flip(bt_framebuffer);
+        typemask.flip(bt_framebuffer);
 
-    m_global_state->collect_objects_of_type(required_objects, call.no, typemask);
-    while (!required_objects.empty()) {
-        c->add_object(required_objects.front());
-        required_objects.pop();
-    }
+    auto bindings = m_global_state->currently_bound_objects_of_type(typemask);
+    c->add_object_set(bindings);
 
     if (m_current_draw_buffer)
         m_current_draw_buffer->draw(c);
