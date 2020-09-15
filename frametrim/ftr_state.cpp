@@ -356,10 +356,18 @@ TraceMirrorImpl::resolve()
 
 PTraceCall TraceMirrorImpl::record_draw_with_buffer(trace::Call &call)
 {
-    auto buf = m_buffers.bound_to_target(GL_ELEMENT_ARRAY_BUFFER);
+    auto c = make_shared<TraceCallOnBoundObj>(call);
 
-    auto c = buf ? make_shared<TraceCallOnBoundObj>(call, buf):
-                   make_shared<TraceCall>(call);
+    ObjectSet required_objects;
+    std::bitset<16> typemask((1 << 16) - 1);
+    typemask.flip(bt_renderbuffer);
+
+    m_global_state->collect_objects_of_type(required_objects, call.no, typemask);
+    while (!required_objects.empty()) {
+        c->add_object(required_objects.front());
+        required_objects.pop();
+    }
+
     if (m_current_draw_buffer)
         m_current_draw_buffer->draw(c);
     return c;

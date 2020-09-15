@@ -7,6 +7,7 @@
 #include <queue>
 #include <memory>
 #include <list>
+#include <bitset>
 
 namespace frametrim_reverse {
 
@@ -26,6 +27,9 @@ public:
 
     void collect_objects(Queue& objects, const TraceCallRange &call_range);
     void collect_calls(CallIdSet& calls, unsigned call_before);
+
+    virtual void collect_objects_of_type(Queue& objects, unsigned call,
+                                         std::bitset<16> typemask);
 
 protected:
     unsigned collect_last_call_before(CallIdSet& calls,

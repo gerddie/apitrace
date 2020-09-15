@@ -37,6 +37,11 @@ StateEnableCall::combined_name(const trace::Call& call, const char *basename)
     return s.str();
 }
 
+TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call):
+    TraceCall(call)
+{
+}
+
 TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call, PGenObject obj):
     TraceCall(call)
 {
@@ -60,6 +65,12 @@ void TraceCallOnBoundObj::add_dependend_objects(ObjectSet& out_set) const
         if (!d->visited(call_no()))
             out_set.push(d);
     }
+}
+
+void TraceCallOnBoundObj::add_object(PTraceObject obj)
+{
+    if (obj)
+        m_dependencys.push_back(obj);
 }
 
 void TraceCallOnBoundObj::add_dependend_object_calls(CallIdSet& out_calls) const

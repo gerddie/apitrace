@@ -9,6 +9,12 @@ TraceObject::TraceObject():
 {
 }
 
+void TraceObject::collect_objects_of_type(Queue& objects, unsigned call,
+                                          std::bitset<16> typemask)
+{
+
+}
+
 void TraceObject::collect_objects(Queue& objects, const TraceCallRange& call_range)
 {
     collect_owned_obj(objects, call_range);
@@ -17,11 +23,14 @@ void TraceObject::collect_objects(Queue& objects, const TraceCallRange& call_ran
 
 void TraceObject::collect_calls(CallIdSet& calls, unsigned call_before)
 {
-    collect_generate_call(calls);
-    collect_allocation_call(calls);
-    collect_data_calls(calls, call_before);
-    collect_bind_calls(calls, call_before);
-    collect_state_calls(calls, call_before);
+    if (m_visited > call_before) {
+        collect_generate_call(calls);
+        collect_allocation_call(calls);
+        collect_data_calls(calls, call_before);
+        collect_bind_calls(calls, call_before);
+        collect_state_calls(calls, call_before);
+        m_visited = call_before;
+    }
 }
 
 void TraceObject::collect_generate_call(CallIdSet& calls)
@@ -75,8 +84,9 @@ void TraceObject::collect_all_calls_before(CallIdSet& calls,
                                          unsigned call_before)
 {
     for (auto& c : call_list)
-        if (c->call_no() < call_before)
+        if (c->call_no() < call_before) {
             calls.insert(c);
+        }
 }
 
 

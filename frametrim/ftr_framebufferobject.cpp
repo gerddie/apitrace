@@ -62,7 +62,7 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
     for (unsigned i = 0; i < nesting; ++i)
         std::cerr << " ";
 
-    std::cerr << "Col""lect FBO calls for " << id() << "\n";
+    std::cerr << "Collect FBO calls for " << id() << "\n";
 
     ++nesting;
     unsigned start_draw_call = std::numeric_limits<unsigned>::max();
@@ -87,11 +87,7 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
     while (!local_objects.empty()) {
         auto obj = local_objects.front();
         local_objects.pop();
-        if (obj->visited(range.first))
-            continue;
-        obj->set_visited(range.first);
-        obj->collect_calls(calls, call_before);
-        obj->collect_objects(local_objects, range);
+        obj->collect_calls(calls, start_draw_call);
     }
 
     /* all state changes during the draw must be recorded */

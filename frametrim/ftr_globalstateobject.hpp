@@ -13,7 +13,7 @@ enum BindType {
     bt_renderbuffer,
     bt_sampler,
     bt_texture,
-    bt_vertex_array,
+    bt_vertex_array
 };
 
 struct StateCallRecord {
@@ -38,6 +38,9 @@ public:
 
     void resolve_repeatable_state_calls(PTraceCall call,
                                         CallIdSet& callset /* inout */);
+
+    void collect_objects_of_type(Queue& objects, unsigned call,
+                                 std::bitset<16> typemask) override;
 
 private:
     void collect_owned_obj(ObjectSet& required_objects,
