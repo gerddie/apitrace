@@ -362,7 +362,6 @@ PTraceCall TraceMirrorImpl::record_draw_with_buffer(trace::Call &call)
 
     ObjectSet required_objects;
     std::bitset<16> typemask((1 << 16) - 1);
-    typemask.flip(bt_renderbuffer);
     typemask.flip(bt_framebuffer);
 
     m_global_state->collect_objects_of_type(required_objects, call.no, typemask);
