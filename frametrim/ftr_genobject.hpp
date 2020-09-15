@@ -23,7 +23,7 @@ public:
     using Queue = std::queue<Pointer>;
 
     bool visited(unsigned callno) const { return m_visited <= callno;}
-    void set_visited(unsigned callno) {m_visited = callno;};
+    void set_visited(unsigned callno) {if (m_visited > callno) m_visited = callno;};
 
     void collect_calls(CallIdSet& calls, unsigned call_before);
 
