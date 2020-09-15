@@ -57,7 +57,7 @@ TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call,
 void TraceCallOnBoundObj::add_dependend_objects(ObjectSet& out_set) const
 {
     for(auto&& d : m_dependencys) {
-        if (!d->visited())
+        if (!d->visited(call_no()))
             out_set.push(d);
     }
 }

@@ -21,8 +21,8 @@ public:
     using Pointer = std::shared_ptr<TraceObject>;
     using Queue = std::queue<Pointer>;
 
-    bool visited() const { return m_visited;}
-    void set_visited() {m_visited = true;};
+    bool visited(unsigned callno) const { return m_visited <= callno;}
+    void set_visited(unsigned callno) {m_visited = callno;};
 
     void collect_objects(Queue& objects, const TraceCallRange &call_range);
     void collect_calls(CallIdSet& calls, unsigned call_before);
@@ -45,7 +45,7 @@ protected:
     virtual void collect_owned_obj(Queue& objects, const TraceCallRange &call_range);
     virtual void collect_dependend_obj(Queue& objects, const TraceCallRange &call_range);
 private:
-    bool m_visited;
+    unsigned m_visited;
 };
 using PTraceObject = TraceObject::Pointer;
 

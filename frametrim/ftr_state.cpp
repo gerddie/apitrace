@@ -336,11 +336,12 @@ TraceMirrorImpl::resolve()
 
         /* This is just a fail save, there should be no visited objects
          * in the queue */
-        if (obj->visited())
+        if (obj->visited(required_call_range.first))
             continue;
+        obj->set_visited(required_call_range.first);
         obj->collect_objects(required_objects, required_call_range);
         obj->collect_calls(required_calls, required_call_range.first);
-        obj->set_visited();
+
     }
 
     /* At this point only state calls should remain to be recorded

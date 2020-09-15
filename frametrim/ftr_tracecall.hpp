@@ -27,6 +27,9 @@ public:
         matrix_reset,
         matrix_select,
         matrix_data,
+        buffer_data_reset,
+        buffer_map,
+        buffer_unmap,
         last_flag
     };
 

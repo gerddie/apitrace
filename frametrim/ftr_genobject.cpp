@@ -5,7 +5,7 @@ namespace frametrim_reverse {
 using std::make_shared;
 
 TraceObject::TraceObject():
-    m_visited(false)
+    m_visited(std::numeric_limits<unsigned>::max())
 {
 }
 
@@ -150,7 +150,7 @@ void BindTimeline::collect_active_in_call_range(ObjectSet& objects, const TraceC
         if (tp.bind_call_no < call_range.second &&
             tp.unbind_call_no > call_range.first &&
             tp.obj)
-            if (!tp.obj->visited())
+            if (!tp.obj->visited(call_range.first))
                 objects.push(tp.obj);
     }
 }

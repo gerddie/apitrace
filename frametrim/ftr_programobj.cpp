@@ -72,7 +72,7 @@ ProgramObject::bind_attr_location(unsigned loc)
 void ProgramObject::collect_dependend_obj(Queue& objects, const TraceCallRange& call_range)
 {
     for(auto& i : m_attached_shaders) {
-        if (!i->visited()) {
+        if (!i->visited(call_range.first)) {
             objects.push(i);
             i->collect_objects(objects, call_range);
         }

@@ -80,9 +80,9 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
     while (!local_objects.empty()) {
         auto obj = local_objects.front();
         local_objects.pop();
-        if (obj->visited())
+        if (obj->visited(range.first))
             continue;
-        obj->set_visited();
+        obj->set_visited(range.first);
         obj->collect_calls(calls, call_before);
         obj->collect_objects(local_objects, range);
     }
@@ -107,7 +107,6 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
     }
     collect_last_call_before(calls, m_bind_calls, start_draw_call);
 
-    unsigned need_bind_before = start_draw_call;
     for(auto&& attach: m_attachment_calls) {
         unsigned call_no = collect_last_call_before(calls, attach.second, start_draw_call);
         collect_last_call_before(calls, m_bind_calls, call_no);

@@ -10,14 +10,14 @@ using std::make_shared;
 PTraceCall BufObject::data(trace::Call& call)
 {
     m_size = call.arg(1).toUInt();
-    auto ac = make_shared<TraceCall>(call);
-    m_allocation_call.push_front(ac);
+    auto ac = make_shared<BufferSubrangeCall>(call, 0, m_size);
+    ac->set_flag(TraceCall::buffer_data_reset);
+    m_sub_data_calls.push_front(ac);
     return ac;
 }
 
 PTraceCall BufObject::sub_data(trace::Call& call)
 {
-    assert(!m_allocation_call.empty());
     unsigned start = call.arg(1).toUInt();
     unsigned end = call.arg(2).toUInt() + start;
     auto data_call = make_shared<BufferSubrangeCall>(call, start, end);
@@ -25,22 +25,41 @@ PTraceCall BufObject::sub_data(trace::Call& call)
     return data_call;
 }
 
-void BufObject::map(trace::Call& call)
+PTraceCall BufObject::map(trace::Call& call)
 {
     m_mapped_range.first = call.ret->toUInt();
     m_mapped_range.second = m_mapped_range.first + m_size;
+    auto c = make_shared<TraceCall>(call);
+    c->set_flag(TraceCall::buffer_map);
+    m_map_calls.push_front(c);
+    return c;
 }
 
-void BufObject::map_range(trace::Call& call)
+PTraceCall BufObject::map_range(trace::Call& call)
 {
     m_mapped_range.first = call.ret->toUInt();
     m_mapped_range.second = m_mapped_range.first + call.arg(2).toUInt();
+    auto c = make_shared<TraceCall>(call);
+    c->set_flag(TraceCall::buffer_map);
+    m_map_calls.push_front(c);
+    return c;
 }
 
-void BufObject::unmap(trace::Call& call)
+PTraceCall BufObject::flush_mapped_range(trace::Call& call)
 {
-    (void)call;
+    auto c = make_shared<TraceCall>(call);
+    m_map_calls.push_front(c);
+    return c;
+}
+
+PTraceCall BufObject::unmap(trace::Call& call)
+{
     m_mapped_range.first = m_mapped_range.second = 0;
+    auto c = make_shared<TraceCall>(call);
+    c->set_flag(TraceCall::buffer_unmap);
+    m_map_calls.push_front(c);
+    return c;
+
 }
 
 bool BufObject::address_in_mapped_range(uint64_t addr) const
@@ -76,9 +95,6 @@ private:
 void
 BufObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
 {
-    if (m_allocation_call.empty())
-        return;
-
     Subrangemerger merger(m_size);
     for(auto&& c : m_sub_data_calls) {
         if (c->call_no() >= call_before)
@@ -86,13 +102,40 @@ BufObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
         if (merger.merge(c->start(), c->end())) {
             calls.insert(c);
             collect_last_call_before(calls, m_bind_calls, c->call_no());
-            collect_last_call_before(calls, m_allocation_call, c->call_no());
+        }
+        if (c->test_flag(TraceCall::buffer_data_reset)) {
+            calls.insert(c);
+            collect_last_call_before(calls, m_bind_calls, c->call_no());
+            break;
         }
     }
 
-    unsigned no = collect_last_call_before(calls, m_allocation_call, call_before);
-    collect_last_call_before(calls, m_bind_calls, no);
+    for(auto&& c : m_map_calls) {
+        if (c->call_no() >= call_before)
+            continue;
+        calls.insert(c);
+        if (c->test_flag(TraceCall::buffer_map)) {
+            /* Find the call that defines the size of the buffer */
+            for(auto&& c : m_sub_data_calls) {
+                if (c->call_no() >= c->call_no() ||
+                    !c->test_flag(TraceCall::buffer_data_reset))
+                    continue;
+                calls.insert(c);
+                break;
+            }
+            collect_last_call_before(calls, m_bind_calls, c->call_no());
+            /* We boldly assume that one map/unmap cycle is used to
+             * write all data needed for the next draw */
+            break;
+        }
+        if (c->test_flag(TraceCall::buffer_unmap)) {
+            /* Not sure whether this is really needed, is it possible to re-bind
+             * a buffer that is mapped? */
+            collect_last_call_before(calls, m_bind_calls, c->call_no());
+        }
+    }
 
+    collect_last_call_before(calls, m_bind_calls, call_before);
 }
 
 Subrangemerger::Subrangemerger(uint64_t size):
