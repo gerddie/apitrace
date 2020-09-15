@@ -11,12 +11,12 @@ class VertexAttribArray : public TraceObject
 public:
     using Pointer = std::shared_ptr<VertexAttribArray>;
 
-    void enable(unsigned  callno, bool enable);
-    bool is_enabled(const TraceCallRange& range);
+    void enable(PTraceCall call);
+    PTraceCall enable_call(const TraceCallRange& range) const;
     void pointer(unsigned  callno, PBufObject obj);
 
 private:
-    std::list<std::pair<unsigned, unsigned>> m_enabled;
+    std::list<PTraceCall> m_enabled_timeline;
     BindTimeline m_buffer_timeline;
 };
 using PVertexAttribArray = VertexAttribArray::Pointer;
@@ -24,7 +24,7 @@ using PVertexAttribArray = VertexAttribArray::Pointer;
 class VertexAttribArrayMap  {
 public:
     PTraceCall pointer(const trace::Call& call, BufObjectMap& buffers);
-    PTraceCall enable(const trace::Call& call, bool do_enable);
+    PTraceCall enable(const trace::Call& call);
 private:
     unsigned add_array(const trace::Call& call);
 
