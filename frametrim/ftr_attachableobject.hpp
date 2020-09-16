@@ -17,6 +17,8 @@ public:
     unsigned width(unsigned level) const { return m_width[level];}
     unsigned heigth(unsigned level) const { return m_heigth[level];}
 
+    void set_draw_trigger(TraceObject *fbo, unsigned callno);
+
 protected:
     void set_size(unsigned level, unsigned w, unsigned h);
     void collect_allocation_call(CallSet& calls) override;
@@ -28,7 +30,9 @@ private:
     std::vector<unsigned> m_heigth;
     std::vector<PTraceCall> m_allocation_call;
 
-    std::unordered_map<unsigned, BindTimeline> m_bindings;
+    std::unordered_map<unsigned, BindTimeline<PGenObject>> m_bindings;
+
+    std::list<std::pair<unsigned, TraceObject *>> m_data_source_triggers;
 
 };
 

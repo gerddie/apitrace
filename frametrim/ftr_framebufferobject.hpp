@@ -25,7 +25,7 @@ private:
     void collect_bind_calls(CallSet& calls, unsigned call_before) override;
 
     std::unordered_map<unsigned, ReverseCallList> m_attachment_calls;
-    std::unordered_map<unsigned, BindTimeline> m_attachments;
+    std::unordered_map<unsigned, BindTimeline<PAttachableObject>> m_attachments;
     PGenObject m_blit_source;
     ReverseCallList m_draw_calls;
     ReverseCallList m_state_calls;

@@ -70,7 +70,7 @@ private:
 
     std::list<PTraceCall> m_trace;
 
-    std::unordered_map<unsigned, BindTimeline> m_bind_timelines;
+    std::unordered_map<unsigned, BindTimeline<PTraceObject>> m_bind_timelines;
     std::unordered_map<unsigned, PTraceObject> m_curently_bound;
 
     mutable bool m_bind_dirty;

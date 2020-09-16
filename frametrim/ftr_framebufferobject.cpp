@@ -67,9 +67,8 @@ void FramebufferObject::collect_data_calls(CallSet& calls, unsigned call_before)
         if (c->call_no() >= call_before)
             continue;
         calls.insert(c);
-        collect_last_call_before(calls, m_bind_calls,
-                                 c->call_no());
         start_draw_call = c->call_no();
+
         c->add_object_calls(calls);
         if (c->test_flag(TraceCall::full_viewport_redraw)) {
             break;
@@ -111,7 +110,7 @@ void FramebufferObject::collect_data_calls(CallSet& calls, unsigned call_before)
         auto attach_timeline = m_attachments[attach.first];
         auto obj = attach_timeline.active_at_call(start_draw_call);
         if (obj)
-            obj->collect_calls(calls, call_no);
+            obj->collect_calls(calls, call_no);        
     }
     --nesting;
 }
@@ -143,6 +142,12 @@ PTraceCall FramebufferObject::clear(const trace::Call& call)
 void FramebufferObject::draw(PTraceCall call)
 {
     m_draw_calls.push_front(call);
+    for(auto&& attach: m_attachment_calls) {
+        auto attach_timeline = m_attachments[attach.first];
+        auto obj = attach_timeline.active_at_call(call->call_no());
+        if (obj)
+            obj->set_draw_trigger(this, call->call_no());
+    }
 }
 
 void
@@ -237,16 +242,11 @@ FramebufferObjectMap::attach_renderbuffer(const trace::Call& call, RenderbufferO
     auto rb = rb_map.by_id(call.arg(3).toUInt());
     auto attach_point = call.arg(1).toUInt();
 
-    PTraceCall c;
-    if (rb) {
-        c = make_shared<TraceCallOnBoundObj>(call, rb);
+    PTraceCall c = make_shared<TraceCall>(call);
+    if (rb)
         rb->attach_to(fbo, attach_point, call.no);
-    } else {
-        c = make_shared<TraceCall>(call);
-    }
 
     fbo->attach(attach_point, rb, 0, c);
-
     return c;
 }
 
@@ -262,15 +262,11 @@ FramebufferObjectMap::attach_texture(const trace::Call& call,
 
     PFramebufferObject fbo = bound_to_call_target(call);
 
-    PTraceCall c;
-    if (tex) {
-        c = make_shared<TraceCallOnBoundObj>(call, fbo, tex);
+    PTraceCall c = make_shared<TraceCall>(call);
+    if (tex)
         tex->attach_to(fbo, attach_point, call.no);
-    } else {
-        c = make_shared<TraceCallOnBoundObj>(call, fbo);
-    }
-    fbo->attach(attach_point, tex, layer, c);
 
+    fbo->attach(attach_point, tex, layer, c);
     return c;
 }
 

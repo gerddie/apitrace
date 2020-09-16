@@ -25,6 +25,11 @@ void AttachableObject::collect_allocation_call(CallSet& calls)
     }
 }
 
+void AttachableObject::set_draw_trigger(TraceObject *fbo, unsigned callno)
+{
+    m_data_source_triggers.push_front(std::make_pair(callno, fbo));
+}
+
 void AttachableObject::set_size(unsigned level, unsigned w, unsigned h)
 {
     if (m_width.size() <= level)

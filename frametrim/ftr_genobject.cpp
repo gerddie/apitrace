@@ -17,41 +17,4 @@ void GenObject::collect_generate_call(CallSet& calls)
         calls.insert(m_gen_call);
 }
 
-PTraceObject BindTimeline::push(unsigned callno, PTraceObject obj)
-{
-    PTraceObject last = nullptr;
-    if (!m_timeline.empty()) {
-        m_timeline.front().unbind_call_no = callno;
-        last = m_timeline.front().obj;
-    }
-
-    m_timeline.push_front(BindTimePoint(obj, callno));
-    return last;
-}
-
-PTraceObject BindTimeline::unbind_last(unsigned callno)
-{
-    if (!m_timeline.empty()) {
-        m_timeline.front().unbind_call_no = callno;
-        return m_timeline.front().obj;
-    }
-    return nullptr;
-}
-
-PTraceObject BindTimeline::active_at_call(unsigned no) const
-{
-    for (auto&& tp: m_timeline) {
-        if (tp.bind_call_no <= no  &&
-            tp.unbind_call_no > no)
-            return tp.obj;
-    }
-    return nullptr;
-}
-
-void BindTimeline::collect_currently_active(ObjectVector& objects) const
-{
-    if (!m_timeline.empty() && m_timeline.front().obj)
-        objects.push_back(m_timeline.front().obj);
-}
-
 }

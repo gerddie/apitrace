@@ -27,25 +27,68 @@ private:
 
 using PGenObject = GenObject::Pointer;
 
+template <typename Pointer>
 struct BindTimePoint {
-    PTraceObject obj;
+    Pointer obj;
     unsigned bind_call_no;
     unsigned unbind_call_no;
 
-    BindTimePoint(PTraceObject o, unsigned callno):
+    BindTimePoint(Pointer o, unsigned callno):
         obj(o), bind_call_no(callno),
         unbind_call_no(std::numeric_limits<unsigned>::max()) {}
 };
 
+template <typename Pointer>
 class BindTimeline {
 public:
-    PTraceObject push(unsigned callno, PTraceObject obj);
-    PTraceObject unbind_last(unsigned callno);
-    PTraceObject active_at_call(unsigned no) const;
+    Pointer push(unsigned callno, Pointer obj);
+    Pointer unbind_last(unsigned callno);
+    Pointer active_at_call(unsigned no) const;
     void collect_currently_active(ObjectVector& objects) const;
 private:
-    std::list<BindTimePoint> m_timeline;
+    std::list<BindTimePoint<Pointer>> m_timeline;
 };
+
+template <typename Pointer>
+Pointer BindTimeline<Pointer>::push(unsigned callno, Pointer obj)
+{
+    Pointer last = nullptr;
+    if (!m_timeline.empty()) {
+        m_timeline.front().unbind_call_no = callno;
+        last = m_timeline.front().obj;
+    }
+
+    m_timeline.push_front(BindTimePoint<Pointer>(obj, callno));
+    return last;
+}
+
+template <typename Pointer>
+Pointer BindTimeline<Pointer>::unbind_last(unsigned callno)
+{
+    if (!m_timeline.empty()) {
+        m_timeline.front().unbind_call_no = callno;
+        return m_timeline.front().obj;
+    }
+    return nullptr;
+}
+
+template <typename Pointer>
+Pointer BindTimeline<Pointer>::active_at_call(unsigned no) const
+{
+    for (auto&& tp: m_timeline) {
+        if (tp.bind_call_no <= no  &&
+            tp.unbind_call_no > no)
+            return tp.obj;
+    }
+    return nullptr;
+}
+
+template <typename Pointer>
+void BindTimeline<Pointer>::collect_currently_active(ObjectVector& objects) const
+{
+    if (!m_timeline.empty() && m_timeline.front().obj)
+        objects.push_back(m_timeline.front().obj);
+}
 
 }
 

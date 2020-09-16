@@ -17,7 +17,7 @@ public:
 
 private:
     std::list<PTraceCall> m_enabled_timeline;
-    BindTimeline m_buffer_timeline;
+    BindTimeline<PBufObject> m_buffer_timeline;
 };
 using PVertexAttribArray = VertexAttribArray::Pointer;
 
