@@ -77,17 +77,14 @@ void FramebufferObject::collect_data_calls(CallSet& calls, unsigned call_before)
     }
     collect_bind_calls(calls, start_draw_call);
 
-    Queue local_objects;
+    ObjectVector local_objects;
     m_global_state->collect_objects_of_type(local_objects, start_draw_call,
                                             std::bitset<16>(0xffff));
+    for(auto&& obj : local_objects)
+        obj->collect_calls(calls, start_draw_call);
+
 
     m_global_state->get_last_states_before(calls, start_draw_call);
-
-    while (!local_objects.empty()) {
-        auto obj = local_objects.front();
-        local_objects.pop();
-        obj->collect_calls(calls, start_draw_call);
-    }
 
     /* all state changes during the draw must be recorded */
     std::unordered_set<std::string> singular_states;

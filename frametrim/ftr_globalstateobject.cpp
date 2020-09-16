@@ -38,14 +38,14 @@ GlobalStateObject::currently_bound_objects_of_type(std::bitset<16> typemask)
     return m_curently_bound_shadow;
 }
 
-void GlobalStateObject::collect_objects_of_type(Queue& objects, unsigned call,
+void GlobalStateObject::collect_objects_of_type(ObjectVector& objects, unsigned call,
                                                 std::bitset<16> typemask)
 {
    for(auto&& timeline : m_bind_timelines) {
       if (typemask.test(timeline.first / 128)) {
          auto obj = timeline.second.active_at_call(call);
          if (obj)
-            objects.push(obj);
+            objects.push_back(obj);
       }
    }
 }

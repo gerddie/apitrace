@@ -8,7 +8,7 @@ TraceObject::TraceObject():
 {
 }
 
-void TraceObject::collect_objects_of_type(Queue& objects, unsigned call,
+void TraceObject::collect_objects_of_type(ObjectVector& objects, unsigned call,
                                           TypeFlags  typemask)
 {
     (void)objects;

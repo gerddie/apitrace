@@ -37,7 +37,7 @@ public:
 
     PObjectVector currently_bound_objects_of_type(std::bitset<16> typemask);
 
-    void collect_objects_of_type(Queue& objects, unsigned call,
+    void collect_objects_of_type(ObjectVector& objects, unsigned call,
                                  std::bitset<16> typemask) override;
 
     void prepend_call(PTraceCall call);

@@ -67,12 +67,12 @@ void TraceCall::depends_on_call(Pointer call)
     m_depends_on.push_back(call);
 }
 
-void TraceCall::add_object_to_set(ObjectSet& out_set) const
+void TraceCall::add_object_to_set(ObjectVector& out_set) const
 {
     add_dependend_objects(out_set);
 }
 
-void TraceCall::add_dependend_objects(ObjectSet& out_set) const
+void TraceCall::add_dependend_objects(ObjectVector& out_set) const
 {
     (void)out_set;
 }

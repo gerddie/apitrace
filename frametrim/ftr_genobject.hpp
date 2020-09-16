@@ -25,7 +25,6 @@ private:
     PTraceCall m_gen_call;
 };
 
-using ObjectSet = GenObject::Queue;
 using PGenObject = GenObject::Pointer;
 
 struct BindTimePoint {
@@ -43,7 +42,7 @@ public:
     PTraceObject push(unsigned callno, PTraceObject obj);
     PTraceObject unbind_last(unsigned callno);
     PTraceObject active_at_call(unsigned no) const;
-    void collect_currently_active(ObjectSet& objects) const;
+    void collect_currently_active(ObjectVector& objects) const;
 private:
     std::list<BindTimePoint> m_timeline;
 };

@@ -40,7 +40,7 @@ public:
     PTraceCall PushMatrix(const trace::Call& call);
     PTraceCall matrix_op(const trace::Call& call);
 
-    void collect_current_state(GenObject::Queue& objects) const;
+    void collect_current_state(ObjectVector &objects) const;
 
 private:
     std::stack<PMatrixObject> m_mv_matrix;

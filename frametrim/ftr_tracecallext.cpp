@@ -59,11 +59,11 @@ TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call,
     m_dependencys.push_back(dep);
 }
 
-void TraceCallOnBoundObj::add_dependend_objects(ObjectSet& out_set) const
+void TraceCallOnBoundObj::add_dependend_objects(ObjectVector& out_set) const
 {
     for(auto&& d : m_dependencys) {
         if (!d->visited(call_no()))
-            out_set.push(d);
+            out_set.push_back(d);
     }
 }
 

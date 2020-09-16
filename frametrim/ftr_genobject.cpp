@@ -48,10 +48,10 @@ PTraceObject BindTimeline::active_at_call(unsigned no) const
     return nullptr;
 }
 
-void BindTimeline::collect_currently_active(ObjectSet& objects) const
+void BindTimeline::collect_currently_active(ObjectVector& objects) const
 {
     if (!m_timeline.empty() && m_timeline.front().obj)
-        objects.push(m_timeline.front().obj);
+        objects.push_back(m_timeline.front().obj);
 }
 
 }

@@ -19,14 +19,14 @@ class TraceObject {
 public:
     TraceObject();
     using Pointer = std::shared_ptr<TraceObject>;
-    using Queue = std::queue<Pointer>;
+    using Vector = std::vector<Pointer>;
 
     bool visited(unsigned callno) const { return m_visited <= callno;}
     void set_visited(unsigned callno) {if (m_visited > callno) m_visited = callno;};
 
     void collect_calls(CallSet& calls, unsigned call_before);
 
-    virtual void collect_objects_of_type(Queue& objects, unsigned call,
+    virtual void collect_objects_of_type(Vector& objects, unsigned call,
                                          TypeFlags typemask);
 protected:
     unsigned collect_last_call_before(CallSet& calls,
@@ -45,9 +45,10 @@ protected:
 private:
     unsigned m_visited;
 };
-using PTraceObject = TraceObject::Pointer;
-using PObjectVector = std::shared_ptr<std::vector<PTraceObject>>;
 
+using PTraceObject = TraceObject::Pointer;
+using ObjectVector = TraceObject::Vector;
+using PObjectVector = std::shared_ptr<ObjectVector>;
 
 }
 

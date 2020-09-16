@@ -45,13 +45,13 @@ public:
     const std::string& name() const { return m_name;}
     const std::string& name_with_params() const { return m_name_with_params;}
 
-    void add_object_to_set(ObjectSet& out_set) const;
+    void add_object_to_set(ObjectVector& out_set) const;
     void add_object_calls(CallSet& out_calls) const;
 
     void depends_on_call(Pointer call);
 
 private:
-    virtual void add_dependend_objects(ObjectSet& out_set) const;
+    virtual void add_dependend_objects(ObjectVector& out_set) const;
     virtual void add_dependend_object_calls(CallSet& out_calls) const;
 
     unsigned m_trace_call_no;

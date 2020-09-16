@@ -333,14 +333,12 @@ TraceMirrorImpl::resolve()
     m_global_state->get_repeatable_states_from_beginning(required_calls,
                                                          first_target_frame_call);
 
-    ObjectSet required_objects;
+    ObjectVector required_objects;
     m_global_state->collect_objects_of_type(required_objects,
                                             first_target_frame_call,
                                             std::bitset<16>(0xffff));
 
-    while (!required_objects.empty()) {
-        auto obj = required_objects.front();
-        required_objects.pop();
+    for(auto&& obj : required_objects) {
         /* This is just a fail save, there should be no visited objects
          * in the queue */
         obj->collect_calls(required_calls, first_target_frame_call);
