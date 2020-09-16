@@ -55,7 +55,7 @@ PTraceCall FramebufferObject::viewport(const trace::Call& call)
     return c;
 }
 
-void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
+void FramebufferObject::collect_data_calls(CallSet& calls, unsigned call_before)
 {
     static unsigned nesting = 0;
     std::cerr << "N:" << nesting << " Collect FBO calls for "
@@ -121,7 +121,7 @@ void FramebufferObject::collect_data_calls(CallIdSet& calls, unsigned call_befor
     --nesting;
 }
 
-void FramebufferObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
+void FramebufferObject::collect_bind_calls(CallSet& calls, unsigned call_before)
 {
     collect_last_call_before(calls, m_bind_calls, call_before);
 }

@@ -53,7 +53,7 @@ struct TraceMirrorImpl {
     PTraceCall bind_sampler(trace::Call &call);
     PTraceCall bind_vertex_array(trace::Call &call);
 
-    CallIdSet resolve();
+    CallSet resolve();
 
     void register_state_calls();
     void register_buffer_calls();
@@ -106,7 +106,7 @@ TraceMirror::~TraceMirror()
 
 std::vector<unsigned> TraceMirror::trace() const
 {
-    CallIdSet calls = impl->resolve();
+    CallSet calls = impl->resolve();
 
     std::unordered_set<unsigned> make_sure_its_singular;
 
@@ -319,10 +319,10 @@ TraceMirrorImpl::record_enable_call(trace::Call &call, const char *basename)
     return make_shared<StateEnableCall>(call, basename);
 }
 
-CallIdSet
+CallSet
 TraceMirrorImpl::resolve()
 {
-    CallIdSet required_calls;
+    CallSet required_calls;
 
     unsigned first_target_frame_call = m_global_state->get_required_calls(required_calls);
 

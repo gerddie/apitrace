@@ -93,7 +93,7 @@ private:
 };
 
 void
-BufObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
+BufObject::collect_data_calls(CallSet& calls, unsigned call_before)
 {
     Subrangemerger merger(m_size);
     for(auto&& c : m_sub_data_calls) {

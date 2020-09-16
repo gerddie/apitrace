@@ -20,7 +20,7 @@ private:
     using MatrixCallList = std::vector<std::pair<unsigned, PTraceCall>>;
     void insert_last_select_from_before(MatrixCallList& calls, unsigned callno);
 
-    void collect_data_calls(CallIdSet& calls, unsigned call_before) override;
+    void collect_data_calls(CallSet& calls, unsigned call_before) override;
 
     MatrixCallList  m_calls;
     Pointer m_parent;

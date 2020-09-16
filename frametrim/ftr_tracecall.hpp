@@ -45,13 +45,13 @@ public:
     const std::string& name_with_params() const { return m_name_with_params;}
 
     void add_object_to_set(ObjectSet& out_set) const;
-    void add_object_calls(CallIdSet& out_calls) const;
+    void add_object_calls(CallSet& out_calls) const;
 
     void depends_on_call(Pointer call);
 
 private:
     virtual void add_dependend_objects(ObjectSet& out_set) const;
-    virtual void add_dependend_object_calls(CallIdSet& out_calls) const;
+    virtual void add_dependend_object_calls(CallSet& out_calls) const;
 
     unsigned m_trace_call_no;
     std::string m_name;
@@ -62,10 +62,10 @@ private:
 };
 using PTraceCall = TraceCall::Pointer;
 
-class CallIdSet {
+class CallSet {
 public:
     void insert(PTraceCall call);
-    void merge(const CallIdSet& set);
+    void merge(const CallSet& set);
     size_t size() const {return m_calls.size(); }
     std::unordered_set<PTraceCall>::const_iterator begin() const;
     std::unordered_set<PTraceCall>::const_iterator end() const;

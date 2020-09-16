@@ -17,7 +17,7 @@ AttachableObject::allocate(const trace::Call& call)
     return c;
 }
 
-void AttachableObject::collect_allocation_call(CallIdSet& calls)
+void AttachableObject::collect_allocation_call(CallSet& calls)
 {
     for (auto&& c: m_allocation_call) {
         calls.insert(c);

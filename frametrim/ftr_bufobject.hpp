@@ -23,7 +23,7 @@ public:
     bool address_in_mapped_range(uint64_t addr) const;
 
 private:
-    void collect_data_calls(CallIdSet& calls, unsigned call_before) override;
+    void collect_data_calls(CallSet& calls, unsigned call_before) override;
     uint64_t m_size;
     std::pair<uint64_t, uint64_t> m_mapped_range;
     std::list<PBufferSubrangeCall> m_sub_data_calls;

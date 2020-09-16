@@ -21,8 +21,8 @@ public:
     void bind(PTraceCall call);   
 
 private:
-    void collect_data_calls(CallIdSet& calls, unsigned call_before) override;
-    void collect_bind_calls(CallIdSet& calls, unsigned call_before) override;
+    void collect_data_calls(CallSet& calls, unsigned call_before) override;
+    void collect_bind_calls(CallSet& calls, unsigned call_before) override;
 
     std::unordered_map<unsigned, std::list<PTraceCall>> m_attachment_calls;
     std::unordered_map<unsigned, BindTimeline> m_attachments;

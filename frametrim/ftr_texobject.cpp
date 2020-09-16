@@ -88,7 +88,7 @@ public:
     vector<PTexSubImageCall> m_regions;
 };
 
-void TexObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
+void TexObject::collect_data_calls(CallSet& calls, unsigned call_before)
 {
     vector<TexRegionMerger> regions(m_max_level, TexRegionMerger());
 
@@ -127,7 +127,7 @@ unsigned TexObject::evaluate_size(const trace::Call& call)
     return level;
 }
 
-void TexObject::collect_state_calls(CallIdSet& calls, unsigned call_before)
+void TexObject::collect_state_calls(CallSet& calls, unsigned call_before)
 {
     std::unordered_set<std::string> states;
     for (auto&& c: m_state_calls) {

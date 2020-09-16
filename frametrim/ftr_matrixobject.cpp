@@ -40,7 +40,7 @@ MatrixObject::insert_last_select_from_before(MatrixCallList& calls, unsigned cal
     }
 }
 
-void MatrixObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
+void MatrixObject::collect_data_calls(CallSet& calls, unsigned call_before)
 {
     bool hit_reset = false;
     for(auto c = m_calls.rbegin(); c != m_calls.rend(); ++c) {

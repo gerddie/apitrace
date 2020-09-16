@@ -53,7 +53,7 @@ void GlobalStateObject::prepend_call(PTraceCall call)
     m_trace.push_front(call);
 }
 
-unsigned GlobalStateObject::get_required_calls(CallIdSet& required_calls) const
+unsigned GlobalStateObject::get_required_calls(CallSet& required_calls) const
 {
     unsigned first_required_call = std::numeric_limits<unsigned>::max();
     /* record all frames from the target frame set */
@@ -68,7 +68,7 @@ unsigned GlobalStateObject::get_required_calls(CallIdSet& required_calls) const
 }
 
 void
-GlobalStateObject::get_repeatable_states_from_beginning(CallIdSet &required_calls,
+GlobalStateObject::get_repeatable_states_from_beginning(CallSet &required_calls,
                                                         unsigned before) const
 {
     std::unordered_map<std::string, std::string> param_map;
@@ -85,7 +85,7 @@ GlobalStateObject::get_repeatable_states_from_beginning(CallIdSet &required_call
 }
 
 void
-GlobalStateObject::get_last_states_before(CallIdSet &required_calls,
+GlobalStateObject::get_last_states_before(CallSet &required_calls,
                                           unsigned before) const
 {
     StateCallMap state_calls;
@@ -104,7 +104,7 @@ GlobalStateObject::get_last_states_before(CallIdSet &required_calls,
 
 void
 GlobalStateObject::resolve_state_calls(PTraceCall call,
-                                       CallIdSet& callset /* inout */,
+                                       CallSet& callset /* inout */,
                                        unsigned next_required_call,
                                        StateCallMap &map) const
 {
@@ -121,7 +121,7 @@ GlobalStateObject::resolve_state_calls(PTraceCall call,
 }
 
 void GlobalStateObject::resolve_repeatable_state_calls(PTraceCall call,
-                                                       CallIdSet& callset /* inout */,
+                                                       CallSet& callset /* inout */,
                                                        ParamMap &param_map) const
 {
     auto& last_state_param_set = param_map[call->name()];

@@ -16,7 +16,7 @@ public:
     PTraceCall source(const trace::Call& call);
     PTraceCall compile(const trace::Call& call);
 private:
-    void collect_data_calls(CallIdSet& calls, unsigned call_before) override;
+    void collect_data_calls(CallSet& calls, unsigned call_before) override;
     PTraceCall m_source_call;
     PTraceCall m_compile_call;
 };
@@ -43,7 +43,7 @@ public:
     PTraceCall link(const trace::Call& call);
     PTraceCall uniform(const trace::Call& call);
 private:
-    void collect_data_calls(CallIdSet& calls, unsigned before_call) override;
+    void collect_data_calls(CallSet& calls, unsigned before_call) override;
 
     std::list<PTraceCall> m_attach_calls;
     PTraceCall m_link_call;

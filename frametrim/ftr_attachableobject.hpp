@@ -18,7 +18,7 @@ public:
     unsigned heigth(unsigned level) const { return m_heigth[level];}
 protected:
     void set_size(unsigned level, unsigned w, unsigned h);
-    void collect_allocation_call(CallIdSet& calls) override;
+    void collect_allocation_call(CallSet& calls) override;
 private:
     virtual unsigned evaluate_size(const trace::Call& call) = 0;
 

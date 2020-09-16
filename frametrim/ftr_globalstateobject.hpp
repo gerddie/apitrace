@@ -42,24 +42,24 @@ public:
 
     void prepend_call(PTraceCall call);
 
-    unsigned get_required_calls(CallIdSet &required_calls) const;
+    unsigned get_required_calls(CallSet &required_calls) const;
 
-    void get_repeatable_states_from_beginning(CallIdSet &required_calls,
+    void get_repeatable_states_from_beginning(CallSet &required_calls,
                                               unsigned before) const;
 
-    void get_last_states_before(CallIdSet &required_calls,
+    void get_last_states_before(CallSet &required_calls,
                                 unsigned before) const;
 
 private:
     using ParamMap = std::unordered_map<std::string, std::string>;
 
     void resolve_state_calls(PTraceCall call,
-                             CallIdSet& callset /* inout */,
+                             CallSet& callset /* inout */,
                              unsigned next_required_call,
                              StateCallMap& map) const;
 
     void resolve_repeatable_state_calls(PTraceCall call,
-                                        CallIdSet& callset /* inout */,
+                                        CallSet& callset /* inout */,
                                         ParamMap& param_map) const;
 
 

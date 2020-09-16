@@ -15,7 +15,7 @@ void TraceObject::collect_objects_of_type(Queue& objects, unsigned call,
 
 }
 
-void TraceObject::collect_calls(CallIdSet& calls, unsigned call_before)
+void TraceObject::collect_calls(CallSet& calls, unsigned call_before)
 {
     if (m_visited > call_before) {
         m_visited = call_before;
@@ -27,29 +27,29 @@ void TraceObject::collect_calls(CallIdSet& calls, unsigned call_before)
     }
 }
 
-void TraceObject::collect_generate_call(CallIdSet& calls)
+void TraceObject::collect_generate_call(CallSet& calls)
 {
     (void)calls;
 }
 
-void TraceObject::collect_allocation_call(CallIdSet& calls)
+void TraceObject::collect_allocation_call(CallSet& calls)
 {
     (void)calls;
 }
 
-void TraceObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
-{
-    (void)calls;
-    (void)call_before;
-}
-
-void TraceObject::collect_state_calls(CallIdSet& calls, unsigned call_before)
+void TraceObject::collect_data_calls(CallSet& calls, unsigned call_before)
 {
     (void)calls;
     (void)call_before;
 }
 
-unsigned TraceObject::collect_last_call_before(CallIdSet& calls,
+void TraceObject::collect_state_calls(CallSet& calls, unsigned call_before)
+{
+    (void)calls;
+    (void)call_before;
+}
+
+unsigned TraceObject::collect_last_call_before(CallSet& calls,
                                          const std::list<PTraceCall>& call_list,
                                          unsigned call_before)
 {
@@ -61,7 +61,7 @@ unsigned TraceObject::collect_last_call_before(CallIdSet& calls,
     return call_before;
 }
 
-void TraceObject::collect_all_calls_before(CallIdSet& calls,
+void TraceObject::collect_all_calls_before(CallSet& calls,
                                          const std::list<PTraceCall> &call_list,
                                          unsigned call_before)
 {
@@ -72,7 +72,7 @@ void TraceObject::collect_all_calls_before(CallIdSet& calls,
 }
 
 
-void TraceObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
+void TraceObject::collect_bind_calls(CallSet& calls, unsigned call_before)
 {
     (void)calls;
     (void)call_before;
@@ -84,13 +84,13 @@ GenObject::GenObject(unsigned id, PTraceCall gen_call):
 {
 }
 
-void GenObject::collect_generate_call(CallIdSet& calls)
+void GenObject::collect_generate_call(CallSet& calls)
 {
     if (m_gen_call)
         calls.insert(m_gen_call);
 }
 
-void BoundObject::collect_bind_calls(CallIdSet& calls, unsigned call_before)
+void BoundObject::collect_bind_calls(CallSet& calls, unsigned call_before)
 {
     collect_last_call_before(calls, m_bind_calls, call_before);
 }

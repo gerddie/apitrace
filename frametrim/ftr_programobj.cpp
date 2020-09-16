@@ -26,7 +26,7 @@ ShaderObject::compile(const trace::Call& call)
 
 
 void
-ShaderObject::collect_data_calls(CallIdSet& calls, unsigned call_before)
+ShaderObject::collect_data_calls(CallSet& calls, unsigned call_before)
 {
     assert(m_compile_call->call_no() < call_before);
     assert(m_source_call->call_no() < call_before);
@@ -76,7 +76,7 @@ PTraceCall ProgramObject::link(const trace::Call& call)
 }
 
 void
-ProgramObject::collect_data_calls(CallIdSet& calls, unsigned before_call)
+ProgramObject::collect_data_calls(CallSet& calls, unsigned before_call)
 {
     calls.insert(m_link_call);
     collect_all_calls_before(calls, m_attach_calls, before_call);

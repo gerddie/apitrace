@@ -77,19 +77,19 @@ void TraceCall::add_dependend_objects(ObjectSet& out_set) const
     (void)out_set;
 }
 
-void TraceCall::add_object_calls(CallIdSet& out_calls) const
+void TraceCall::add_object_calls(CallSet& out_calls) const
 {
     add_dependend_object_calls(out_calls);
     for(auto&& c : m_depends_on)
         out_calls.insert(c);
 }
 
-void TraceCall::add_dependend_object_calls(CallIdSet& out_calls) const
+void TraceCall::add_dependend_object_calls(CallSet& out_calls) const
 {
     (void)out_calls;
 }
 
-void CallIdSet::insert(PTraceCall call)
+void CallSet::insert(PTraceCall call)
 {
     if (!call->test_flag(TraceCall::recorded)) {
         m_calls.insert(call);
@@ -98,19 +98,19 @@ void CallIdSet::insert(PTraceCall call)
     }
 }
 
-void CallIdSet::merge(const CallIdSet& set)
+void CallSet::merge(const CallSet& set)
 {
     m_calls.insert(set.begin(), set.end());
 }
 
 std::unordered_set<PTraceCall>::const_iterator
-CallIdSet::begin() const
+CallSet::begin() const
 {
     return m_calls.begin();
 }
 
 std::unordered_set<PTraceCall>::const_iterator
-CallIdSet::end() const
+CallSet::end() const
 {
     return m_calls.end();
 }

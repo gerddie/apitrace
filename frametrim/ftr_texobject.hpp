@@ -47,8 +47,8 @@ public:
     PTraceCall sub_image(const trace::Call& call, PGenObject read_buffer);
 private:
     unsigned evaluate_size(const trace::Call& call) override;
-    void collect_state_calls(CallIdSet& calls, unsigned call_before) override;
-    void collect_data_calls(CallIdSet& calls, unsigned call_before) override;
+    void collect_state_calls(CallSet& calls, unsigned call_before) override;
+    void collect_data_calls(CallSet& calls, unsigned call_before) override;
 
     unsigned m_dimensions;
     unsigned m_max_level;
