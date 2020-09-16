@@ -76,11 +76,6 @@ private:
     std::unordered_set<PTraceCall> m_calls;
 };
 
-
-
-using LightTrace = std::vector<PTraceCall>;
-
-
 }
 
 #endif // TRACECALL_HPP
