@@ -12,7 +12,7 @@ public:
     using Pointer = std::shared_ptr<VertexAttribArray>;
 
     void enable(PTraceCall call);
-    PTraceCall enable_call(const TraceCallRange& range) const;
+    PTraceCall enable_call(unsigned call_no) const;
     void pointer(unsigned  callno, PBufObject obj);
 
 private:

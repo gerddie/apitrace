@@ -42,9 +42,7 @@ class BindTimeline {
 public:
     PTraceObject push(unsigned callno, PTraceObject obj);
     PTraceObject unbind_last(unsigned callno);
-    PTraceObject active_in_call_range(const TraceCallRange &call_range) const;
     PTraceObject active_at_call(unsigned no) const;
-    void collect_active_in_call_range(ObjectSet& objects, const TraceCallRange &call_range) const;
     void collect_currently_active(ObjectSet& objects) const;
 private:
     std::list<BindTimePoint> m_timeline;

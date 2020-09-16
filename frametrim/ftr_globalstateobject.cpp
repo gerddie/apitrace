@@ -41,11 +41,13 @@ GlobalStateObject::currently_bound_objects_of_type(std::bitset<16> typemask)
 void GlobalStateObject::collect_objects_of_type(Queue& objects, unsigned call,
                                                 std::bitset<16> typemask)
 {
-    const TraceCallRange range(call - 1, call + 1);
-    for(auto&& timeline : m_bind_timelines) {
-        if (typemask.test(timeline.first / 128))
-            timeline.second.collect_active_in_call_range(objects, range);
-    }
+   for(auto&& timeline : m_bind_timelines) {
+      if (typemask.test(timeline.first / 128)) {
+         auto obj = timeline.second.active_at_call(call);
+         if (obj)
+            objects.push(obj);
+      }
+   }
 }
 
 void GlobalStateObject::prepend_call(PTraceCall call)

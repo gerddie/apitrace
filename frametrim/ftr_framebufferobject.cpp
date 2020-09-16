@@ -77,8 +77,6 @@ void FramebufferObject::collect_data_calls(CallSet& calls, unsigned call_before)
     }
     collect_bind_calls(calls, start_draw_call);
 
-    TraceCallRange range(start_draw_call, call_before);
-
     Queue local_objects;
     m_global_state->collect_objects_of_type(local_objects, start_draw_call,
                                             std::bitset<16>(0xffff));
@@ -114,7 +112,7 @@ void FramebufferObject::collect_data_calls(CallSet& calls, unsigned call_before)
         unsigned call_no = collect_last_call_before(calls, attach.second, start_draw_call);
         collect_last_call_before(calls, m_bind_calls, call_no);
         auto attach_timeline = m_attachments[attach.first];
-        auto obj = attach_timeline.active_in_call_range(range);
+        auto obj = attach_timeline.active_at_call(start_draw_call);
         if (obj)
             obj->collect_calls(calls, call_no);
     }

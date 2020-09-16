@@ -15,8 +15,6 @@ class TraceCall;
 using PTraceCall = std::shared_ptr<TraceCall>;
 using ReverseCallList = std::list<PTraceCall>;
 
-using TraceCallRange = std::pair<unsigned, unsigned>;
-
 class TraceObject {
 public:
     TraceObject();

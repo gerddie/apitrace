@@ -38,16 +38,6 @@ PTraceObject BindTimeline::unbind_last(unsigned callno)
     return nullptr;
 }
 
-PTraceObject BindTimeline::active_in_call_range(const TraceCallRange &call_range) const
-{
-    for (auto&& tp: m_timeline) {
-        if (tp.bind_call_no < call_range.second &&
-            tp.unbind_call_no >call_range.first)
-            return tp.obj;
-    }
-    return nullptr;
-}
-
 PTraceObject BindTimeline::active_at_call(unsigned no) const
 {
     for (auto&& tp: m_timeline) {
@@ -62,17 +52,6 @@ void BindTimeline::collect_currently_active(ObjectSet& objects) const
 {
     if (!m_timeline.empty() && m_timeline.front().obj)
         objects.push(m_timeline.front().obj);
-}
-
-void BindTimeline::collect_active_in_call_range(ObjectSet& objects, const TraceCallRange &call_range) const
-{
-    for (auto&& tp: m_timeline) {
-        if (tp.bind_call_no < call_range.second &&
-            tp.unbind_call_no > call_range.first &&
-            tp.obj)
-            if (!tp.obj->visited(call_range.first))
-                objects.push(tp.obj);
-    }
 }
 
 }

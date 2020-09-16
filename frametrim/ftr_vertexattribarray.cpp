@@ -14,10 +14,10 @@ void VertexAttribArray::enable(PTraceCall call)
 }
 
 PTraceCall
-VertexAttribArray::enable_call(const TraceCallRange& range) const
+VertexAttribArray::enable_call(unsigned call_no) const
 {
     for (auto&& e : m_enabled_timeline) {
-        if (e->call_no() < range.first)
+        if (e->call_no() < call_no)
             return e;
     }
     return nullptr;
