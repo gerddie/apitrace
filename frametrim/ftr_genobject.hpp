@@ -11,7 +11,6 @@
 
 namespace frametrim_reverse {
 
-
 class GenObject : public TraceObject {
 public:
     using Pointer = std::shared_ptr<GenObject>;
@@ -28,23 +27,6 @@ private:
 
 using ObjectSet = GenObject::Queue;
 using PGenObject = GenObject::Pointer;
-
-
-
-class BoundObject : public GenObject {
-public:
-    using GenObject::GenObject;
-    using Pointer=std::shared_ptr<BoundObject>;
-
-    void bind(PTraceCall call) {
-        m_bind_calls.push_front(call);
-    }
-
-protected:
-    void collect_bind_calls(CallSet& calls, unsigned call_before) override;
-
-    std::list<PTraceCall> m_bind_calls;
-};
 
 struct BindTimePoint {
     PTraceObject obj;

@@ -8,6 +8,23 @@
 
 namespace frametrim_reverse {
 
+class BoundObject : public GenObject {
+public:
+    using GenObject::GenObject;
+    using Pointer=std::shared_ptr<BoundObject>;
+
+    void bind(PTraceCall call) {
+        m_bind_calls.push_front(call);
+    }
+
+protected:
+    void collect_bind_calls(CallSet& calls, unsigned call_before) override;
+
+    std::list<PTraceCall> m_bind_calls;
+};
+
+using PBoundObject = BoundObject::Pointer;
+
 class BoundObjectMap {
 public:
     virtual PGenObject bound_to_call_target_untyped(const trace::Call& call) const = 0;

@@ -17,11 +17,6 @@ void GenObject::collect_generate_call(CallSet& calls)
         calls.insert(m_gen_call);
 }
 
-void BoundObject::collect_bind_calls(CallSet& calls, unsigned call_before)
-{
-    collect_last_call_before(calls, m_bind_calls, call_before);
-}
-
 PTraceObject BindTimeline::push(unsigned callno, PTraceObject obj)
 {
     PTraceObject last = nullptr;

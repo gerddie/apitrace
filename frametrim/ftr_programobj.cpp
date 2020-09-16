@@ -1,8 +1,6 @@
 #include "ftr_programobj.hpp"
 #include "ftr_tracecall.hpp"
 
-#include "ftr_genobject_impl.hpp"
-
 #include <GL/gl.h>
 #include <GL/glext.h>
 

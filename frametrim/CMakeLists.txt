@@ -29,16 +29,17 @@ add_executable(glxtrim
    )
 
 add_executable(glxtrimreverse
-   ftr_main.cpp
-   ftr_state.cpp
    ftr_attachableobject.cpp
+   ftr_boundobject.cpp
    ftr_bufobject.cpp
+   ftr_framebufferobject.cpp
    ftr_genobject.cpp
    ftr_globalstateobject.cpp
-   ftr_framebufferobject.cpp
+   ftr_main.cpp
    ftr_matrixobject.cpp
    ftr_programobj.cpp
    ftr_texobject.cpp
+   ftr_state.cpp
    ftr_tracecall.cpp
    ftr_tracecallext.cpp
    ftr_traceobject.cpp
