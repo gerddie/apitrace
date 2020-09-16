@@ -72,7 +72,6 @@ void TraceObject::collect_all_calls_before(CallSet& calls,
         }
 }
 
-
 void TraceObject::collect_bind_calls(CallSet& calls, unsigned call_before)
 {
     (void)calls;

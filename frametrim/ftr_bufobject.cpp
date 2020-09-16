@@ -87,9 +87,8 @@ public:
     bool merge(uint64_t start, uint64_t end);
 
 private:
-    uint64_t m_size;
-    bool m_all_written;
     std::vector<BufferSubRange> m_subranges;
+    uint64_t m_size;
 };
 
 void
@@ -139,8 +138,7 @@ BufObject::collect_data_calls(CallSet& calls, unsigned call_before)
 }
 
 Subrangemerger::Subrangemerger(uint64_t size):
-    m_size(size),
-    m_all_written(false)
+    m_size(size)
 {
 
 }
@@ -199,7 +197,6 @@ PTraceCall BufObjectMap::sub_data(trace::Call& call)
     assert(obj);
     return obj->sub_data(call);
 }
-
 
 PTraceCall BufObjectMap::memcopy(trace::Call& call)
 {

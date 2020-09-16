@@ -71,7 +71,6 @@ PTraceCall TexObject::sub_image(const trace::Call& call, PGenObject read_buffer)
 
 class TexRegionMerger {
 public:
-
     bool covered(PTexSubImageCall region) {
         for(auto&& r : m_regions) {
             if (r->m_x <= region->m_x &&

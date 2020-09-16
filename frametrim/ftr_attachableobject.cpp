@@ -36,7 +36,6 @@ void AttachableObject::set_size(unsigned level, unsigned w, unsigned h)
     m_heigth[level] = h;
 }
 
-
 void AttachableObject::attach_to(PGenObject obj, unsigned att_point, unsigned call_no)
 {
     auto& timeline = m_bindings[64 * obj->id() + att_point];

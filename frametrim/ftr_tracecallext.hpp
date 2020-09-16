@@ -50,11 +50,7 @@ public:
 private:
     uint64_t m_start, m_end;
 };
-
 using PBufferSubrangeCall = std::shared_ptr<BufferSubrangeCall>;
-
-
-
 
 }
 

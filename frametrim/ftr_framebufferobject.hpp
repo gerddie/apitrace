@@ -47,9 +47,7 @@ public:
 private:
     unsigned evaluate_size(const trace::Call& call) override;
 };
-
 using PRenderbufferObject = RenderbufferObject::Pointer;
-
 
 class RenderbufferObjectMap : public GenObjectMap<RenderbufferObject> {
 public:

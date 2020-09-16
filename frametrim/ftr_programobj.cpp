@@ -22,7 +22,6 @@ ShaderObject::compile(const trace::Call& call)
     return m_compile_call;
 }
 
-
 void
 ShaderObject::collect_data_calls(CallSet& calls, unsigned call_before)
 {
@@ -116,7 +115,8 @@ ProgramObjectMap::attach_shader(trace::Call& call, const ShaderObjectMap& shader
     return program->attach_shader(call, shader);
 }
 
-PTraceCall ProgramObjectMap::bind_attr_location(trace::Call& call)
+PTraceCall
+ProgramObjectMap::bind_attr_location(trace::Call& call)
 {
     auto program = by_id(call.arg(0).toUInt());
     assert(program);
@@ -185,8 +185,6 @@ PGenObject LegacyProgramObjectMap::gen_from_bind_call(const trace::Call& call)
     add(shader);
     return bind(call, 1);
 }
-
-
 
 template class CreateObjectMap<ProgramObject>;
 template class GenBoundObjectMap<ProgramObject>;

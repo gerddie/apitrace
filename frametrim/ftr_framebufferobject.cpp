@@ -187,7 +187,6 @@ FramebufferObjectMap::bind(const trace::Call& call)
         m_draw_buffer = fbo;
     }
 
-
     if (target == GL_FRAMEBUFFER ||
         target == GL_READ_FRAMEBUFFER) {
         m_read_buffer = fbo;

@@ -57,5 +57,4 @@ unsigned VertexAttribArrayMap::add_array(const trace::Call& call)
     return index;
 }
 
-
 }

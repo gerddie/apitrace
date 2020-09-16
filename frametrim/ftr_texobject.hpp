@@ -35,9 +35,7 @@ public:
     unsigned m_depth;
     bool m_read_buffer;
 };
-
 using PTexSubImageCall = std::shared_ptr<TexSubImageCall>;
-
 
 class TexObject : public AttachableObject {
 public:
@@ -74,7 +72,6 @@ private:
 
     unsigned m_active_texture_unit;
 };
-
 
 }
 

@@ -74,7 +74,6 @@ private:
     mutable bool m_bind_dirty;
     PObjectVector m_curently_bound_shadow;
 };
-
 using PGlobalStateObject = GlobalStateObject::Pointer;
 
 }

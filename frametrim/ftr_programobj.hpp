@@ -68,7 +68,6 @@ class LegacyProgramObjectMap : public GenObjectMap<ShaderObject> {
 public:
     PGenObject gen_from_bind_call(const trace::Call& call);
     PTraceCall program_string(const trace::Call& call);
-
 };
 
 }
