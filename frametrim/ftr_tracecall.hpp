@@ -4,9 +4,11 @@
 #include "ftr_genobject.hpp"
 
 #include "trace_model.hpp"
+
 #include <queue>
 #include <memory>
 #include <bitset>
+#include <unordered_set>
 
 namespace frametrim_reverse {
 

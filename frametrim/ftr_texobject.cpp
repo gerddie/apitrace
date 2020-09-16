@@ -5,6 +5,7 @@
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <sstream>
+#include <cstring>
 
 namespace frametrim_reverse {
 

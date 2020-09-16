@@ -51,9 +51,7 @@ public:
 
 private:
     std::unordered_set<PBufObject, BufferIdHash> m_mapped_buffers;
-
 };
-
 
 }
 #endif // BUFOBJECT_HPP
