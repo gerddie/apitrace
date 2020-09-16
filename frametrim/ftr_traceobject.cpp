@@ -23,7 +23,8 @@ PTraceCall ReverseCallList::last() const
 }
 
 TraceObject::TraceObject():
-    m_visited(std::numeric_limits<unsigned>::max())
+    m_visited(std::numeric_limits<unsigned>::max()),
+    m_visiting(false)
 {
 }
 
@@ -38,13 +39,15 @@ void TraceObject::collect_objects_of_type(ObjectVector& objects, unsigned call,
 
 void TraceObject::collect_calls(CallSet& calls, unsigned call_before)
 {
-    if (m_visited > call_before) {
-        collect_generate_call(calls);
-        collect_allocation_call(calls);
-        collect_data_calls(calls, call_before);
-        collect_bind_calls(calls, call_before);
-        collect_state_calls(calls, call_before);
-        m_visited = call_before;
+    if (m_visited > call_before && !m_visiting) {
+       m_visiting = true;
+       collect_generate_call(calls);
+       collect_allocation_call(calls);
+       collect_data_calls(calls, call_before);
+       collect_bind_calls(calls, call_before);
+       collect_state_calls(calls, call_before);
+       m_visited = call_before;
+       m_visiting = false;
     }
 }
 

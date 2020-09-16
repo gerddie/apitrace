@@ -92,6 +92,8 @@ void TexObject::collect_data_calls(CallSet& calls, unsigned call_before)
 {
     vector<TexRegionMerger> regions(m_max_level, TexRegionMerger());
 
+    trigger_fbo_calls(calls, call_before);
+
     for(auto&& c : m_data_calls) {
         if (c->call_no() >= call_before)
             continue;

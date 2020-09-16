@@ -22,6 +22,7 @@ public:
 protected:
     void set_size(unsigned level, unsigned w, unsigned h);
     void collect_allocation_call(CallSet& calls) override;
+    void trigger_fbo_calls(CallSet &calls, unsigned before_call) const;
 
 private:
     virtual unsigned evaluate_size(const trace::Call& call) = 0;

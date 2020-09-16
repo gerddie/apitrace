@@ -58,6 +58,7 @@ protected:
     virtual void collect_state_calls(CallSet& calls, unsigned call_before);
 private:
     unsigned m_visited;
+    bool m_visiting;
 };
 
 using PTraceObject = TraceObject::Pointer;
