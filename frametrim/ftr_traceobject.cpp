@@ -3,10 +3,30 @@
 
 namespace frametrim_reverse {
 
+void ReverseCallList::push_front(PTraceCall call)
+{
+    m_calls.push_front(call);
+}
+
+PTraceCall ReverseCallList::last_before(unsigned call_no) const
+{
+    for (auto&& c : m_calls) {
+        if (c->call_no() < call_no)
+            return c;
+    }
+    return nullptr;
+}
+
+PTraceCall ReverseCallList::last() const
+{
+   return !m_calls.empty() ? m_calls.front() : nullptr;
+}
+
 TraceObject::TraceObject():
     m_visited(std::numeric_limits<unsigned>::max())
 {
 }
+
 
 void TraceObject::collect_objects_of_type(ObjectVector& objects, unsigned call,
                                           TypeFlags  typemask)
@@ -51,7 +71,7 @@ void TraceObject::collect_state_calls(CallSet& calls, unsigned call_before)
 }
 
 unsigned TraceObject::collect_last_call_before(CallSet& calls,
-                                         const std::list<PTraceCall>& call_list,
+                                         const ReverseCallList& call_list,
                                          unsigned call_before)
 {
     for (auto&& c : call_list)
@@ -63,7 +83,7 @@ unsigned TraceObject::collect_last_call_before(CallSet& calls,
 }
 
 void TraceObject::collect_all_calls_before(CallSet& calls,
-                                         const std::list<PTraceCall> &call_list,
+                                         const ReverseCallList& call_list,
                                          unsigned call_before)
 {
     for (auto& c : call_list)

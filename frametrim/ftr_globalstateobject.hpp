@@ -2,6 +2,9 @@
 #define GLOBALSTATEOBJECT_HPP
 
 #include "ftr_genobject.hpp"
+#include "ftr_tracecall.hpp"
+
+#include "trace_model.hpp"
 
 namespace frametrim_reverse {
 
@@ -50,13 +53,13 @@ public:
     void get_last_states_before(CallSet &required_calls,
                                 unsigned before) const;
 
+    PTraceCall enable_disable(const trace::Call& call);
+
+    PTraceCall state_call(const trace::Call& call, unsigned num_param_selectors);
+    PTraceCall repeatable_state_call(const trace::Call& call, unsigned num_param_selectors);
+
 private:
     using ParamMap = std::unordered_map<std::string, std::string>;
-
-    void resolve_state_calls(PTraceCall call,
-                             CallSet& callset /* inout */,
-                             unsigned next_required_call,
-                             StateCallMap& map) const;
 
     void resolve_repeatable_state_calls(PTraceCall call,
                                         CallSet& callset /* inout */,
@@ -68,11 +71,15 @@ private:
     std::list<PTraceCall> m_trace;
 
     std::unordered_map<unsigned, BindTimeline> m_bind_timelines;
-
     std::unordered_map<unsigned, PTraceObject> m_curently_bound;
 
     mutable bool m_bind_dirty;
     PObjectVector m_curently_bound_shadow;
+
+    std::unordered_map<unsigned, ReverseCallList> m_enable_calls;
+    std::unordered_map<std::string, ReverseCallList> m_state_calls;
+
+    std::unordered_map<std::string, std::vector<PTraceCall>> m_repeatable_state_calls;
 };
 using PGlobalStateObject = GlobalStateObject::Pointer;
 

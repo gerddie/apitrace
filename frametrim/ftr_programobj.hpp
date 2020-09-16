@@ -45,10 +45,10 @@ public:
 private:
     void collect_data_calls(CallSet& calls, unsigned before_call) override;
 
-    std::list<PTraceCall> m_attach_calls;
+    ReverseCallList m_attach_calls;
     PTraceCall m_link_call;
-    std::list<PTraceCall> m_data_calls;
-    std::map<unsigned, std::list<PTraceCall>> m_uniforms_calls;
+    ReverseCallList m_data_calls;
+    std::map<unsigned, ReverseCallList> m_uniforms_calls;
     std::unordered_set<PGenObject> m_attached_shaders;
     std::unordered_set<unsigned> m_bound_attributes;
 };

@@ -102,7 +102,7 @@ PTraceCall
 ProgramObject::uniform(const trace::Call& call)
 {
     auto c = make_shared<TraceCall>(call);
-    m_uniforms_calls[call.arg(0).toUInt()].push_back(c);
+    m_uniforms_calls[call.arg(0).toUInt()].push_front(c);
     return c;
 }
 

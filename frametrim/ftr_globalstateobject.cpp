@@ -1,12 +1,13 @@
 #include "ftr_globalstateobject.hpp"
-#include "ftr_tracecall.hpp"
+#include "ftr_tracecallext.hpp"
 
 #include <GL/gl.h>
 #include <GL/glext.h>
 #include <iostream>
 
-
 namespace frametrim_reverse {
+
+using std::make_shared;
 
 GlobalStateObject::GlobalStateObject():
     m_bind_dirty(false)
@@ -24,7 +25,6 @@ void GlobalStateObject::record_bind(BindType type, PGenObject obj,
     m_curently_bound[index] = obj;
 }
 
-
 PObjectVector
 GlobalStateObject::currently_bound_objects_of_type(std::bitset<16> typemask)
 {
@@ -36,6 +36,32 @@ GlobalStateObject::currently_bound_objects_of_type(std::bitset<16> typemask)
         }
     }
     return m_curently_bound_shadow;
+}
+
+PTraceCall
+GlobalStateObject::enable_disable(const trace::Call& call)
+{
+   auto c = make_shared<TraceCall>(call);
+   m_enable_calls[call.arg(0).toUInt()].push_front(c);
+   return c;
+}
+
+PTraceCall
+GlobalStateObject::state_call(const trace::Call& call,
+                                   unsigned num_param_selectors)
+{
+    auto c = make_shared<StateCall>(call, num_param_selectors);
+    m_state_calls[c->name()].push_front(c);
+    return c;
+}
+
+PTraceCall
+GlobalStateObject::repeatable_state_call(const trace::Call& call,
+                                              unsigned num_param_selectors)
+{
+    auto c = make_shared<StateCall>(call, num_param_selectors);
+    m_repeatable_state_calls[c->name()].push_back(c);
+    return c;
 }
 
 void GlobalStateObject::collect_objects_of_type(ObjectVector& objects, unsigned call,
@@ -73,53 +99,28 @@ void
 GlobalStateObject::get_repeatable_states_from_beginning(CallSet &required_calls,
                                                         unsigned before) const
 {
-    std::unordered_map<std::string, std::string> param_map;
-
-    /* Traces start at the highest number so start at the end
-     * to record the earliest call */
-    for (auto i = m_trace.rbegin(); i != m_trace.rend(); ++i) {
-        if ((*i)->call_no() >= before)
+   for(auto&& state: m_repeatable_state_calls) {
+      std::unordered_map<std::string, std::string> param_map;
+      for (auto&& c: state.second) {
+         if (c->call_no() >= before)
             return;
-        if ((*i)->test_flag(TraceCall::repeatable_state)) {
-            resolve_repeatable_state_calls(*i, required_calls, param_map);
-        }
-    }
+         resolve_repeatable_state_calls(c, required_calls, param_map);
+      }
+   }
 }
 
 void
 GlobalStateObject::get_last_states_before(CallSet &required_calls,
                                           unsigned before) const
 {
-    StateCallMap state_calls;
+   for (auto&& state : m_state_calls) {
+       required_calls.insert(state.second.last_before(before));
+   }
 
+   for (auto&& enable : m_enable_calls) {
+      required_calls.insert(enable.second.last_before(before));
+   }
 
-    for (auto&& c : m_trace) {
-        /*  required calls are already in the output callset */
-        if (c->call_no() >= before)
-            continue;
-
-        if (c->test_flag(TraceCall::single_state))
-            resolve_state_calls(c, required_calls, before, state_calls);
-    }
-}
-
-
-void
-GlobalStateObject::resolve_state_calls(PTraceCall call,
-                                       CallSet& callset /* inout */,
-                                       unsigned next_required_call,
-                                       StateCallMap &map) const
-{
-    /* Add the call if the last required call happended before
-     * the passed function was called the last time.
-     * The _last_before_callid_ value is initialized to the
-     * maximum when the object is created. */
-    auto& last_call = map[call->name()];
-    if (call->call_no() < next_required_call &&
-        last_call.last_before_callid < call->call_no()) {
-        last_call.last_before_callid = call->call_no();
-        callset.insert(call);
-    }
 }
 
 void GlobalStateObject::resolve_repeatable_state_calls(PTraceCall call,

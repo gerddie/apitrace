@@ -35,7 +35,7 @@ FramebufferObject::FramebufferObject(unsigned gl_id, PTraceCall gen_call, PGloba
 
 void FramebufferObject::set_state(PTraceCall call)
 {
-    m_state_calls.push_back(call);
+    m_state_calls.push_front(call);
 }
 
 void FramebufferObject::bind(PTraceCall call)
@@ -51,7 +51,7 @@ PTraceCall FramebufferObject::viewport(const trace::Call& call)
     m_viewport_height = call.arg(3).toUInt();
 
     auto c = make_shared<StateCall>(call, 0);
-    m_state_calls.push_back(c);
+    m_state_calls.push_front(c);
     return c;
 }
 

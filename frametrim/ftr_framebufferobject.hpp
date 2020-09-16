@@ -24,12 +24,12 @@ private:
     void collect_data_calls(CallSet& calls, unsigned call_before) override;
     void collect_bind_calls(CallSet& calls, unsigned call_before) override;
 
-    std::unordered_map<unsigned, std::list<PTraceCall>> m_attachment_calls;
+    std::unordered_map<unsigned, ReverseCallList> m_attachment_calls;
     std::unordered_map<unsigned, BindTimeline> m_attachments;
     PGenObject m_blit_source;
-    std::list<PTraceCall> m_draw_calls;
-    std::list<PTraceCall> m_state_calls;
-    std::list<PTraceCall> m_bind_calls;
+    ReverseCallList m_draw_calls;
+    ReverseCallList m_state_calls;
+    ReverseCallList m_bind_calls;
     std::list<unsigned> m_full_clears;
 
     unsigned m_viewport_x, m_viewport_y;

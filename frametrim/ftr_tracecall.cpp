@@ -91,6 +91,8 @@ void TraceCall::add_dependend_object_calls(CallSet& out_calls) const
 
 void CallSet::insert(PTraceCall call)
 {
+    if (!call)
+        return;
     if (!call->test_flag(TraceCall::recorded)) {
         m_calls.insert(call);
         call->set_flag(TraceCall::recorded);

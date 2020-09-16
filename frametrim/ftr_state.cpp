@@ -387,10 +387,11 @@ PTraceCall TraceMirrorImpl::record_draw_buffer(trace::Call &call)
 
 PTraceCall TraceMirrorImpl::record_viewport_call(trace::Call &call)
 {
-    auto c = m_current_draw_buffer ?
-                m_current_draw_buffer->viewport(call):
-                make_shared<TraceCall>(call);
-    c->set_flag(TraceCall::single_state);
+    PTraceCall c;
+    if (m_current_draw_buffer)
+        c = m_current_draw_buffer->viewport(call);
+    else
+        c = m_global_state->state_call(call, 0);
     return c;
 }
 
@@ -484,8 +485,8 @@ void TraceMirrorImpl::register_state_calls()
     };
 
     for (auto n: state_calls_0) {
-        m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_state_call,
-                                                   this, _1, 0, TraceCall::single_state)));
+        m_call_table.insert(std::make_pair(n, bind(&GlobalStateObject::state_call,
+                                                   m_global_state, _1, 0)));
     }
 
     const std::vector<const char *> state_calls_1  = {
@@ -500,8 +501,8 @@ void TraceMirrorImpl::register_state_calls()
     };
 
     for (auto n: state_calls_1) {
-        m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_state_call,
-                                                   this, _1, 1, TraceCall::single_state)));
+        m_call_table.insert(std::make_pair(n, bind(&GlobalStateObject::state_call,
+                                                   m_global_state, _1, 0)));
     }
 
     const std::vector<const char *> state_calls_2  = {
@@ -510,8 +511,8 @@ void TraceMirrorImpl::register_state_calls()
     };
 
     for (auto n: state_calls_2) {
-        m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_state_call,
-                                                   this, _1, 2, TraceCall::single_state)));
+        m_call_table.insert(std::make_pair(n, bind(&GlobalStateObject::state_call,
+                                                   m_global_state, _1, 0)));
     }
 
     const std::vector<const char *> state_calls = {
@@ -545,8 +546,8 @@ void TraceMirrorImpl::register_state_calls()
         m_call_table.insert(std::make_pair(n, bind(&TraceMirrorImpl::record_call, this, _1)));
     }
 
-    MAP_DATA(glEnable, record_enable_call, "Enable");
-    MAP_DATA(glDisable, record_enable_call, "Enable");
+    MAP_GENOBJ(glEnable, *m_global_state, GlobalStateObject::enable_disable);
+    MAP_GENOBJ(glDisable, *m_global_state, GlobalStateObject::enable_disable);
     MAP_GENOBJ(glEnableVertexAttribArray, m_vertex_attrib_arrays,
                VertexAttribArrayMap::enable);
     MAP_GENOBJ(glDisableVertexAttribArray, m_vertex_attrib_arrays,
@@ -658,8 +659,6 @@ void TraceMirrorImpl::register_framebuffer_calls()
 
 void TraceMirrorImpl::register_glx_state_calls()
 {
-    auto required_func = bind(&TraceMirrorImpl::record_state_call,
-                              this, _1, 0, TraceCall::repeatable_state);
     const std::vector<const char *> required_calls = {
         "glXChooseFBConfig",
         "glXChooseVisual",
@@ -671,7 +670,8 @@ void TraceMirrorImpl::register_glx_state_calls()
         "glXMakeCurrent",
     };
     for (auto& i : required_calls)
-        m_call_table.insert(std::make_pair(i, required_func));
+        m_call_table.insert(std::make_pair(i, bind(&GlobalStateObject::repeatable_state_call,
+                                                   m_global_state, _1, 0)));
 }
 
 void TraceMirrorImpl::register_legacy_calls()

@@ -20,7 +20,7 @@ public:
 protected:
     void collect_bind_calls(CallSet& calls, unsigned call_before) override;
 
-    std::list<PTraceCall> m_bind_calls;
+    ReverseCallList m_bind_calls;
 };
 
 using PBoundObject = BoundObject::Pointer;
