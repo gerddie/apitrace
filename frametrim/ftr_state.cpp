@@ -187,7 +187,6 @@ TraceMirrorImpl::bind_fbo(trace::Call &call)
 
     PFramebufferObject fbo;
 
-    bool draw_rebound = false;
     switch (target) {
     case GL_FRAMEBUFFER:
         m_global_state->record_bind(bt_framebuffer, m_fbo.read_buffer(), GL_READ_FRAMEBUFFER, 0, call.no);

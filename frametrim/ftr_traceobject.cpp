@@ -19,12 +19,12 @@ void TraceObject::collect_objects_of_type(Queue& objects, unsigned call,
 void TraceObject::collect_calls(CallSet& calls, unsigned call_before)
 {
     if (m_visited > call_before) {
-        m_visited = call_before;
         collect_generate_call(calls);
         collect_allocation_call(calls);
         collect_data_calls(calls, call_before);
         collect_bind_calls(calls, call_before);
         collect_state_calls(calls, call_before);
+        m_visited = call_before;
     }
 }
 

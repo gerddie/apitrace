@@ -67,8 +67,8 @@ void FramebufferObject::collect_data_calls(CallSet& calls, unsigned call_before)
         if (c->call_no() >= call_before)
             continue;
         calls.insert(c);
-        unsigned bind_call = collect_last_call_before(calls, m_bind_calls,
-                                                      c->call_no());
+        collect_last_call_before(calls, m_bind_calls,
+                                 c->call_no());
         start_draw_call = c->call_no();
         c->add_object_calls(calls);
         if (c->test_flag(TraceCall::full_viewport_redraw)) {
