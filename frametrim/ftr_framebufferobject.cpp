@@ -239,10 +239,10 @@ FramebufferObjectMap::attach_renderbuffer(const trace::Call& call, RenderbufferO
 
     PTraceCall c;
     if (rb) {
-        c = make_shared<TraceCallOnBoundObj>(call, fbo, rb);
+        c = make_shared<TraceCallOnBoundObj>(call, rb);
         rb->attach_to(fbo, attach_point, call.no);
     } else {
-        c = make_shared<TraceCallOnBoundObj>(call, fbo);
+        c = make_shared<TraceCall>(call);
     }
 
     fbo->attach(attach_point, rb, 0, c);
