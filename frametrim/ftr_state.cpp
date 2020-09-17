@@ -323,24 +323,23 @@ TraceMirrorImpl::resolve()
 {
     CallSet required_calls;
 
+    /* Collect all calls that were marked "required" when the trace was scanned */
     unsigned first_target_frame_call = m_global_state->get_required_calls(required_calls);
 
     /* Now collect all calls from the beginning that refere to states that
      * can be changed repeatandly (glx and egl stuff) and where we must use
      * the eraliest calls possible
      * Note: in m_trace call numbera are counting up */
-
     m_global_state->get_repeatable_states_from_beginning(required_calls,
                                                          first_target_frame_call);
 
+    /* Collect al object that were bound at the beginning of the target frame */
     ObjectVector required_objects;
     m_global_state->collect_objects_of_type(required_objects,
                                             first_target_frame_call,
                                             std::bitset<16>(0xffff));
 
     for(auto&& obj : required_objects) {
-        /* This is just a fail save, there should be no visited objects
-         * in the queue */
         obj->collect_calls(required_calls, first_target_frame_call);
     }
 
