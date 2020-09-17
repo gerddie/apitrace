@@ -83,6 +83,8 @@ The following types of calls need to be considered:
      states and the data (scan reverse to get the last buffer content etc.)
    - for textures - if they were bound to an fbo and the fbo finished drawing
      before new data was sent to the texture, then mark this fbo as required
+   - note that if glTexSubImage has a nullpointer the data source is the
+     read framebnffer
    - for renderbuffers do the same if they ever were bound to a read framebuffer
 
  * for fbo's scan the last draw round before the target frame and use the same
