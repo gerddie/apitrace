@@ -37,28 +37,6 @@ StateEnableCall::combined_name(const trace::Call& call, const char *basename)
     return s.str();
 }
 
-TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call):
-    TraceCall(call)
-{
-}
-
-TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call, PGenObject obj):
-    TraceCall(call)
-{
-    assert(obj);
-    add_dependend_object(obj);
-}
-
-
-TraceCallOnBoundObj::TraceCallOnBoundObj(const trace::Call& call,
-                                         PGenObject obj,
-                                         PGenObject dep):
-    TraceCallOnBoundObj(call, obj)
-{
-    assert(dep);
-    add_dependend_object(dep);
-}
-
 BufferSubrangeCall::BufferSubrangeCall(const trace::Call& call, uint64_t start,
                                        uint64_t end):
     TraceCall(call),

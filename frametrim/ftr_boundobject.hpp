@@ -29,6 +29,8 @@ class BoundObjectMap {
 public:
     virtual PGenObject bound_to_call_target_untyped(const trace::Call& call) const = 0;
     virtual PGenObject by_id_untyped(unsigned id) const = 0;
+
+    PTraceCall create_call(const trace::Call& call, PTraceObject obj) const;
 };
 
 template <typename T>
@@ -87,7 +89,8 @@ GenBoundObjectMap<T>::bind(const trace::Call& call, unsigned id_index)
     auto id = call.arg(id_index).toUInt();
     auto obj = bind_target(target, id);
     if (obj) {
-        auto c = std::make_shared<TraceCallOnBoundObj>(call, obj);
+        auto c = std::make_shared<TraceCall>(call);
+        c->add_dependend_object(obj);
         obj->bind(c);
         return obj;
     } else {

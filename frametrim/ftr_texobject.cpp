@@ -173,7 +173,7 @@ TexObjectMap::bind_multitex(const trace::Call& call)
 
     auto obj = bind_target(target_id, id);
     if (obj) {
-        auto c = make_shared<TraceCallOnBoundObj>(call, obj);
+        auto c = create_call(call, obj);
         obj->bind(c);
         return c;
     }

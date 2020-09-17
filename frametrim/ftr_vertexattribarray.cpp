@@ -33,8 +33,10 @@ PTraceCall VertexAttribArrayMap::pointer(const trace::Call& call, BufObjectMap &
     auto buf = buffers.bound_to_target(GL_ARRAY_BUFFER);
     unsigned index = add_array(call);
     m_va[index]->pointer(call.no, buf);
-    return buf ? make_shared<TraceCallOnBoundObj>(call, buf):
-                 make_shared<TraceCall>(call);
+    auto c = make_shared<TraceCall>(call);
+    if (buf)
+        c->add_dependend_object(buf);
+    return c;
 }
 
 PTraceCall VertexAttribArrayMap::enable(const trace::Call& call)

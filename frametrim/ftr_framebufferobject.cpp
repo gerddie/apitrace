@@ -239,10 +239,7 @@ FramebufferObjectMap::generate_with_gs(const trace::Call& call, PGlobalStateObje
 PTraceCall
 FramebufferObjectMap::blit(const trace::Call& call)
 {
-    if (m_read_buffer)
-        return make_shared<TraceCallOnBoundObj>(call, m_read_buffer);
-
-    return make_shared<TraceCall>(call);
+    return create_call(call, m_read_buffer);
 }
 
 PTraceCall
@@ -253,8 +250,9 @@ FramebufferObjectMap::attach_renderbuffer(const trace::Call& call, RenderbufferO
     auto attach_point = call.arg(1).toUInt();
 
     PTraceCall c = make_shared<TraceCall>(call);
-    if (rb)
+    if (rb) {
         rb->attach_to(fbo, attach_point, call.no);
+    }
 
     fbo->attach(attach_point, rb, 0, c);
     return c;

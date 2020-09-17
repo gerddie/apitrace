@@ -166,7 +166,7 @@ PTraceCall BufObjectMap::map (trace::Call& call)
     PBufObject obj = this->bound_to_call_target(call);
     obj->map(call);
     m_mapped_buffers.insert(obj);
-    return make_shared<TraceCallOnBoundObj>(call, obj); \
+    return create_call(call, obj);
 }
 
 PTraceCall BufObjectMap::map_range (trace::Call& call)
@@ -174,7 +174,7 @@ PTraceCall BufObjectMap::map_range (trace::Call& call)
     PBufObject obj = this->bound_to_call_target(call);
     obj->map_range(call);
     m_mapped_buffers.insert(obj);
-    return make_shared<TraceCallOnBoundObj>(call, obj); \
+    return create_call(call, obj);
 }
 
 PTraceCall BufObjectMap::unmap(trace::Call& call)
@@ -182,10 +182,10 @@ PTraceCall BufObjectMap::unmap(trace::Call& call)
     PBufObject obj = this->bound_to_call_target(call);
     obj->unmap(call);
     m_mapped_buffers.erase(obj);
-    return make_shared<TraceCallOnBoundObj>(call, obj); \
+    return create_call(call, obj);
 }
 
-PTraceCall BufObjectMap::data (trace::Call& call)
+PTraceCall BufObjectMap::data(trace::Call& call)
 {
     PBufObject obj = this->bound_to_call_target(call);
     return obj->data(call);
@@ -203,11 +203,11 @@ PTraceCall BufObjectMap::memcopy(trace::Call& call)
     auto dest_addr = call.arg(0).toUInt();
     for (auto& buf : m_mapped_buffers) {
         if (buf->address_in_mapped_range(dest_addr)) {
-            return make_shared<TraceCallOnBoundObj>(call, buf);
+            return create_call(call, buf);
         }
     }
     std::cerr << "Memcpy: no mapped buffer found for addess " << dest_addr << "\n";
-    return make_shared<TraceCallOnBoundObj>(call, nullptr);
+    return make_shared<TraceCall>(call);
 }
 
 BufferSubRange::BufferSubRange(uint64_t start, uint64_t end):

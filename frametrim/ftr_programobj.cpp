@@ -54,7 +54,8 @@ PTraceCall
 ProgramObject::attach_shader(const trace::Call& call, PGenObject shader)
 {   
 
-    auto c = make_shared<TraceCallOnBoundObj>(call, shader);
+    auto c = make_shared<TraceCall>(call);
+    c->add_dependend_object(shader);
     m_attach_calls.push_front(c);
     m_attached_shaders.insert(shader);
     return c;
@@ -121,7 +122,7 @@ ProgramObjectMap::bind_attr_location(trace::Call& call)
     auto program = by_id(call.arg(0).toUInt());
     assert(program);
     program->bind_attr_location(call.arg(1).toUInt());
-    return make_shared<TraceCallOnBoundObj>(call, program);
+    return create_call(call, program);
 }
 
 unsigned

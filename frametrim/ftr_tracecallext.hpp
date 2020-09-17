@@ -22,18 +22,6 @@ private:
     static std::string combined_name(const trace::Call& call, const char *basename);
 };
 
-
-class TraceCallOnBoundObj : public TraceCall {
-public:
-    using Pointer = std::shared_ptr<TraceCallOnBoundObj>;
-    TraceCallOnBoundObj(const trace::Call& call) __attribute__((deprecated));
-    TraceCallOnBoundObj(const trace::Call& call, PGenObject obj)__attribute__((deprecated));
-    TraceCallOnBoundObj(const trace::Call& call,
-                        PGenObject obj,
-                        PGenObject dep)__attribute__((deprecated));
-};
-using PTraceCallOnBoundObj = TraceCallOnBoundObj::Pointer;
-
 class BufferSubrangeCall : public TraceCall {
 public:
     BufferSubrangeCall(const trace::Call& call, uint64_t start, uint64_t end);

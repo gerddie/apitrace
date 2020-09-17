@@ -199,7 +199,8 @@ TraceMirrorImpl::bind_fbo(trace::Call &call)
             if (!m_current_draw_buffer ||
                 fbo->id() != m_current_draw_buffer->id()) {
                 m_current_draw_buffer = fbo;
-                auto cc = make_shared<TraceCallOnBoundObj>(call, fbo);
+                auto cc = make_shared<TraceCall>(call);
+                cc->add_dependend_object(fbo);
                 cc->add_object_set(m_global_state->currently_bound_objects_of_type(std::bitset<16>(0xffff)));
                 c = cc;
             }
@@ -283,18 +284,20 @@ PTraceCall TraceMirrorImpl::bind_vertex_array(trace::Call &call)
 
 PTraceCall TraceMirrorImpl::bind_tracecall(trace::Call &call, PGenObject obj)
 {
-    return obj ? make_shared<TraceCallOnBoundObj>(call, obj):
-                 make_shared<TraceCall>(call);
+    auto c = make_shared<TraceCall>(call);
+    if (obj)
+        c->add_dependend_object(obj);
+    return c;
 }
 
 PTraceCall
 TraceMirrorImpl::call_on_named_obj(trace::Call &call, BoundObjectMap& map)
 {
     auto bound_obj = map.by_id_untyped(call.arg(0).toUInt());
+    auto c = make_shared<TraceCall>(call);
     if (bound_obj)
-        return make_shared<TraceCallOnBoundObj>(call, bound_obj);
-    else
-        return make_shared<TraceCall>(call);
+        c->add_dependend_object(bound_obj);
+    return c;
 }
 
 PTraceCall
@@ -354,7 +357,7 @@ TraceMirrorImpl::resolve()
 
 PTraceCall TraceMirrorImpl::record_draw_with_buffer(trace::Call &call)
 {
-    auto c = make_shared<TraceCallOnBoundObj>(call);
+    auto c = make_shared<TraceCall>(call);
 
     std::bitset<16> typemask((1 << 16) - 1);
         typemask.flip(bt_framebuffer);
