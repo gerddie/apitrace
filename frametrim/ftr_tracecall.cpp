@@ -38,6 +38,8 @@ protected:
 
 namespace frametrim_reverse {
 
+unsigned TraceCall::m_current_draw_framebuffer = 0;
+
 TraceCall::TraceCall(const trace::Call &call, const std::string& name,
                      bool is_state_call):
     m_trace_call_no(call.no),
@@ -55,6 +57,7 @@ TraceCall::TraceCall(const trace::Call &call, const std::string& name,
     }
 
     m_name_with_params = s.str();
+    m_fbo_id = m_current_draw_framebuffer;
 }
 
 TraceCall::TraceCall(const trace::Call &call):
@@ -71,6 +74,15 @@ void TraceCall::add_dependend_object(PTraceObject obj)
 void TraceCall::depends_on_call(Pointer call)
 {
     m_depends_on.push_back(call);
+}
+
+void TraceCall::bind_fbo(unsigned id)
+{
+    m_current_draw_framebuffer = id;
+
+    // Override value set in contructor
+    m_fbo_id = m_current_draw_framebuffer;
+    set_flag(draw_framebuffer_bind);
 }
 
 void TraceCall::add_object_set(PObjectVector entry_dependencies)

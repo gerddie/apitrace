@@ -194,18 +194,17 @@ TraceMirrorImpl::bind_fbo(trace::Call &call)
     case GL_DRAW_FRAMEBUFFER:
         m_global_state->record_bind(bt_framebuffer, m_fbo.draw_buffer(), GL_DRAW_FRAMEBUFFER, 0, call.no);
         fbo = m_fbo.draw_buffer();
-        PTraceCall c;
+        PTraceCall c = make_shared<TraceCall>(call);
         if (fbo) {
             if (!m_current_draw_buffer ||
                 fbo->id() != m_current_draw_buffer->id()) {
                 m_current_draw_buffer = fbo;
-                auto cc = make_shared<TraceCall>(call);
-                cc->add_dependend_object(fbo);
-                cc->add_object_set(m_global_state->currently_bound_objects_of_type(std::bitset<16>(0xffff)));
-                c = cc;
+                c->add_dependend_object(fbo);
+                c->add_object_set(m_global_state->currently_bound_objects_of_type(std::bitset<16>(0xffff)));
+                c->bind_fbo(fbo->id());
             }
         } else {
-            c = make_shared<TraceCall>(call);
+            c->bind_fbo(0);
         }
         m_last_fbo_bind_call = c;
         return c;

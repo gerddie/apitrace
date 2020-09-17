@@ -48,6 +48,12 @@ public:
     unsigned get_required_calls_and_objects(CallSet& required_calls,
                                             ObjectSet& required_objects) const;
 
+    unsigned get_calls_and_objects_for_framebuffer(CallSet& required_calls,
+                                                   ObjectSet& required_objects,
+                                                   unsigned framebuffer_id,
+                                                   unsigned last_call) const;
+
+
     void get_repeatable_states_from_beginning(CallSet &required_calls,
                                               unsigned before) const;
 

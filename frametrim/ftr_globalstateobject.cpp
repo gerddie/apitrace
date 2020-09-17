@@ -97,6 +97,35 @@ GlobalStateObject::get_required_calls_and_objects(CallSet& required_calls,
     return first_required_call;
 }
 
+unsigned GlobalStateObject::get_calls_and_objects_for_framebuffer(CallSet& required_calls,
+                                                                  ObjectSet& required_objects,
+                                                                  unsigned framebuffer_id,
+                                                                  unsigned last_call) const
+{
+    unsigned first_call = std::numeric_limits<unsigned>::max();
+    /* record all frames from the target frame set */
+    bool had_full_redraw = false;
+    for(auto& i : m_trace) {
+        if (i->call_no() >= last_call)
+            continue;
+        if (i->draw_framebuffer_id() != framebuffer_id)
+            continue;
+
+        i->collect_dependent_objects_in_set(required_objects);
+        required_calls.insert(i);
+        if (!had_full_redraw)
+            had_full_redraw = i->test_flag(TraceCall::full_viewport_redraw);
+
+        /* we might check a full clear */
+        if (had_full_redraw && i->test_flag(TraceCall::draw_framebuffer_bind)) {
+            first_call = i->call_no();
+            break;
+        }
+    }
+    return first_call;
+}
+
+
 void
 GlobalStateObject::get_repeatable_states_from_beginning(CallSet &required_calls,
                                                         unsigned before) const

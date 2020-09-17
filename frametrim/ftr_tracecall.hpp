@@ -31,6 +31,7 @@ public:
         buffer_data_reset,
         buffer_map,
         buffer_unmap,
+        draw_framebuffer_bind,
         last_flag
     };
 
@@ -40,6 +41,8 @@ public:
 
     void set_flag(Flags f) {m_flags.set(f);}
     bool test_flag(Flags f) {return m_flags.test(f);}
+
+    void bind_fbo(unsigned id);
 
     unsigned call_no() const { return m_trace_call_no;};
     const std::string& name() const { return m_name;}
@@ -54,15 +57,20 @@ public:
 
     void depends_on_call(Pointer call);
 
+    unsigned draw_framebuffer_id() const {return m_fbo_id;}
+
 private:
 
     unsigned m_trace_call_no;
+    unsigned m_fbo_id;
     std::string m_name;
     std::string m_name_with_params;
     std::bitset<last_flag> m_flags;
     std::vector<Pointer> m_depends_on;
     std::vector<PTraceObject> m_dependencies;
     PObjectVector m_entry_dependencies;
+
+    static unsigned m_current_draw_framebuffer;
 };
 using PTraceCall = TraceCall::Pointer;
 
