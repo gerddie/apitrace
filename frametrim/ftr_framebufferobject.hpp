@@ -20,6 +20,8 @@ public:
     void draw(PTraceCall call);
     void bind(PTraceCall call);   
 
+    PTraceCall set_draw_buffers(const trace::Call& call);
+
     unsigned last_full_redraw_before(unsigned call_no) const;
     void accept(ObjectVisitor& visitor) override {visitor.visit(*this);};
 
@@ -33,6 +35,7 @@ private:
     ReverseCallList m_draw_calls;
     ReverseCallList m_state_calls;
     ReverseCallList m_bind_calls;
+    ReverseCallList m_drawbuffer_calls;
     std::list<unsigned> m_full_clears;
 
     unsigned m_viewport_x, m_viewport_y;
@@ -40,6 +43,10 @@ private:
 
     unsigned m_width, m_height;
     PGlobalStateObject m_global_state;
+
+    std::bitset<32> m_draw_buffers;
+    int  m_read_buffer;
+
 };
 using PFramebufferObject = FramebufferObject::Pointer;
 

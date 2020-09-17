@@ -29,7 +29,8 @@ FramebufferObject::FramebufferObject(unsigned gl_id, PTraceCall gen_call, PGloba
     m_viewport_height(0),
     m_width(0),
     m_height(0),
-    m_global_state(gs)
+    m_global_state(gs),
+    m_read_buffer(-1)
 {
 }
 
@@ -52,6 +53,27 @@ PTraceCall FramebufferObject::viewport(const trace::Call& call)
 
     auto c = make_shared<StateCall>(call, 0);
     m_state_calls.push_front(c);
+    return c;
+}
+
+PTraceCall FramebufferObject::set_draw_buffers(const trace::Call& call)
+{
+    auto c = make_shared<TraceCall>(call);
+    m_drawbuffer_calls.push_front(c);
+
+    m_draw_buffers.reset();
+
+    unsigned n = call.arg(0).toUInt();
+    auto buf_ids = call.arg(1).toArray();
+    for (auto&& a : buf_ids->values) {
+        unsigned id = a->toUInt();
+        if (id == GL_NONE)
+            continue;
+        assert(id >= GL_COLOR_ATTACHMENT0);
+        id -= GL_COLOR_ATTACHMENT0;
+        assert(id < 32);
+        m_draw_buffers.set(id);
+    }
     return c;
 }
 
@@ -154,7 +176,7 @@ void FramebufferObject::draw(PTraceCall call)
     m_draw_calls.push_front(call);
     for(auto&& attach: m_attachment_calls) {
         auto attach_timeline = m_attachments[attach.first];
-        auto obj = attach_timeline.active_at_call(call->call_no());
+        PAttachableObject obj = attach_timeline.active_at_call(call->call_no());
         if (obj)
             obj->set_draw_trigger(this, call->call_no());
     }

@@ -395,7 +395,7 @@ PTraceCall TraceMirrorImpl::record_draw_buffer(trace::Call &call)
         c->depends_on_call(m_last_fbo_bind_call);
 
     if (m_current_draw_buffer)
-        m_current_draw_buffer->draw(c);
+        m_current_draw_buffer->set_draw_buffers(call);
     return c;
 }
 
