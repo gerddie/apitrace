@@ -61,16 +61,52 @@ The following types of calls need to be considered:
 
 * first scan the trace and copy the basic call info
   - call number
-  - bound object the call will change the state of
+  - call name
+  - call name with parameter info
+  - which fbo was bound as draw buffer (if any)
+  - collect the state calls in the corresponding objects the state is applied
+    to
+  - collect setup and data allocation calls in the target object too
+
+### Algorithm to collect all relevant calls (todo)
+
+* initial scan
+  - collect all calls in the target frame
+  - collect all objects that were bound at the beginning of the target frame
+  - collect all global states that were set at the beginning of the target
+    frame
+  - collect state calls that are needed to set up the context by scanning from the
+    beginning and record calls that change parameters
+
+ * for all non-fbo objects thet were collected in the first step:
+   - for all non-fbo objects collect the calls to generate the objetcs, set the
+     states and the data (scan reverse to get the last buffer content etc.)
+   - for textures - if they were bound to an fbo and the fbo finished drawing
+     before new data was sent to the texture, then mark this fbo as required
+   - for renderbuffers do the same if they ever were bound to a read framebuffer
+
+ * for fbo's scan the last draw round before the target frame and use the same
+   algorithm like above to resolve all dependencies.
+
+ - possible problems
+   - the default framebuffer is as blit source, it will be quite difficult to
+     resolve what frames are not needed because there may be some ping-ponging
+     of data between the default framebuffer and some other framebuffer.
+
+
+
+
+
+
+
+
+
+
 * start from the target frame and search backwards all the objects and
   calls that set the related states.
 * collect the call numbers of these calls and go over the original trace
   again to trim the trace
 
-## known problems:
-
-* The tests shadowmap and render_to_texture pass on radeonsi but fail on
-  Intel
 
 
 
