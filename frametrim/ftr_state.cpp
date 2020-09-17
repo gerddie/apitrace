@@ -321,10 +321,13 @@ TraceMirrorImpl::record_enable_call(trace::Call &call, const char *basename)
 CallSet
 TraceMirrorImpl::resolve()
 {
+    ObjectSet required_objects;
     CallSet required_calls;
 
     /* Collect all calls that were marked "required" when the trace was scanned */
-    unsigned first_target_frame_call = m_global_state->get_required_calls(required_calls);
+    unsigned first_target_frame_call =
+            m_global_state->get_required_calls_and_objects(required_calls,
+                                                           required_objects);
 
     /* Now collect all calls from the beginning that refere to states that
      * can be changed repeatandly (glx and egl stuff) and where we must use
@@ -334,7 +337,6 @@ TraceMirrorImpl::resolve()
                                                          first_target_frame_call);
 
     /* Collect al object that were bound at the beginning of the target frame */
-    ObjectVector required_objects;
     m_global_state->collect_objects_of_type(required_objects,
                                             first_target_frame_call,
                                             std::bitset<16>(0xffff));

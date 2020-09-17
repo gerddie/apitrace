@@ -62,31 +62,45 @@ TraceCall::TraceCall(const trace::Call &call):
 {
 }
 
+void TraceCall::add_dependend_object(PTraceObject obj)
+{
+    if (obj)
+        m_dependencies.push_back(obj);
+}
+
 void TraceCall::depends_on_call(Pointer call)
 {
     m_depends_on.push_back(call);
 }
 
-void TraceCall::add_object_to_set(ObjectVector& out_set) const
+void TraceCall::add_object_set(PObjectVector entry_dependencies)
 {
-    add_dependend_objects(out_set);
+    m_entry_dependencies = entry_dependencies;
 }
 
-void TraceCall::add_dependend_objects(ObjectVector& out_set) const
+void TraceCall::collect_dependent_objects_in_set(ObjectSet& out_set) const
 {
-    (void)out_set;
+    for (auto&& o : m_dependencies)
+        out_set.insert(o);
+
+    if (m_entry_dependencies) {
+        for (auto&& o : *m_entry_dependencies)
+            out_set.insert(o);
+    }
 }
 
 void TraceCall::add_object_calls(CallSet& out_calls) const
 {
-    add_dependend_object_calls(out_calls);
     for(auto&& c : m_depends_on)
         out_calls.insert(c);
-}
 
-void TraceCall::add_dependend_object_calls(CallSet& out_calls) const
-{
-    (void)out_calls;
+    for (auto&& o : m_dependencies)
+        o->collect_calls(out_calls, call_no());
+
+    if (m_entry_dependencies) {
+        for (auto&& o : *m_entry_dependencies)
+            o->collect_calls(out_calls, call_no());
+    }
 }
 
 void CallSet::insert(PTraceCall call)

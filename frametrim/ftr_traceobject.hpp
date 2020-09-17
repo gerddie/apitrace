@@ -5,6 +5,7 @@
 #include <queue>
 #include <bitset>
 #include <list>
+#include <unordered_set>
 
 using TypeFlags = std::bitset<16>;
 
@@ -64,6 +65,7 @@ private:
 using PTraceObject = TraceObject::Pointer;
 using ObjectVector = TraceObject::Vector;
 using PObjectVector = std::shared_ptr<ObjectVector>;
+using ObjectSet = std::unordered_set<PTraceObject>;
 
 }
 

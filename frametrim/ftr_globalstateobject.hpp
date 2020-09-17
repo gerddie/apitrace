@@ -40,12 +40,13 @@ public:
 
     PObjectVector currently_bound_objects_of_type(std::bitset<16> typemask);
 
-    void collect_objects_of_type(ObjectVector& objects, unsigned call,
-                                 std::bitset<16> typemask) override;
+    void collect_objects_of_type(ObjectSet& objects, unsigned call,
+                                 std::bitset<16> typemask);
 
     void prepend_call(PTraceCall call);
 
-    unsigned get_required_calls(CallSet &required_calls) const;
+    unsigned get_required_calls_and_objects(CallSet& required_calls,
+                                            ObjectSet& required_objects) const;
 
     void get_repeatable_states_from_beginning(CallSet &required_calls,
                                               unsigned before) const;

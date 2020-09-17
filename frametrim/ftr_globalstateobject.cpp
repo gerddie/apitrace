@@ -64,14 +64,14 @@ GlobalStateObject::repeatable_state_call(const trace::Call& call,
     return c;
 }
 
-void GlobalStateObject::collect_objects_of_type(ObjectVector& objects, unsigned call,
+void GlobalStateObject::collect_objects_of_type(ObjectSet& objects, unsigned call,
                                                 std::bitset<16> typemask)
 {
    for(auto&& timeline : m_bind_timelines) {
       if (typemask.test(timeline.first / 128)) {
          auto obj = timeline.second.active_at_call(call);
          if (obj)
-            objects.push_back(obj);
+            objects.insert(obj);
       }
    }
 }
@@ -81,13 +81,15 @@ void GlobalStateObject::prepend_call(PTraceCall call)
     m_trace.push_front(call);
 }
 
-unsigned GlobalStateObject::get_required_calls(CallSet& required_calls) const
+unsigned
+GlobalStateObject::get_required_calls_and_objects(CallSet& required_calls,
+                                                  ObjectSet& required_objects) const
 {
     unsigned first_required_call = std::numeric_limits<unsigned>::max();
     /* record all frames from the target frame set */
     for(auto& i : m_trace) {
         if (i->test_flag(TraceCall::required)) {
-            i->add_object_calls(required_calls);
+            i->collect_dependent_objects_in_set(required_objects);
             required_calls.insert(i);
             first_required_call = i->call_no();
         }

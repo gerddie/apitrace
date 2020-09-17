@@ -26,19 +26,11 @@ private:
 class TraceCallOnBoundObj : public TraceCall {
 public:
     using Pointer = std::shared_ptr<TraceCallOnBoundObj>;
-    TraceCallOnBoundObj(const trace::Call& call);
-    TraceCallOnBoundObj(const trace::Call& call, PGenObject obj);
+    TraceCallOnBoundObj(const trace::Call& call) __attribute__((deprecated));
+    TraceCallOnBoundObj(const trace::Call& call, PGenObject obj)__attribute__((deprecated));
     TraceCallOnBoundObj(const trace::Call& call,
                         PGenObject obj,
-                        PGenObject dep);
-    void add_object(PTraceObject obj);
-    void add_object_set(PObjectVector entry_dependencies);
-private:
-    void add_dependend_objects(ObjectVector& out_set) const override;
-    void add_dependend_object_calls(CallSet& out_calls) const override;
-    std::vector<PTraceObject> m_dependencys;
-
-    PObjectVector m_entry_dependencies;
+                        PGenObject dep)__attribute__((deprecated));
 };
 using PTraceCallOnBoundObj = TraceCallOnBoundObj::Pointer;
 

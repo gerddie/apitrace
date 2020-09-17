@@ -45,21 +45,24 @@ public:
     const std::string& name() const { return m_name;}
     const std::string& name_with_params() const { return m_name_with_params;}
 
-    void add_object_to_set(ObjectVector& out_set) const;
+    void add_dependend_object(PTraceObject obj);
+    void add_object_set(PObjectVector entry_dependencies);
+
+    void collect_dependent_objects_in_set(ObjectSet& out_set) const;
+    void collect_dependent_object_calls_in_set(CallSet& out_set) const;
     void add_object_calls(CallSet& out_calls) const;
 
     void depends_on_call(Pointer call);
 
 private:
-    virtual void add_dependend_objects(ObjectVector& out_set) const;
-    virtual void add_dependend_object_calls(CallSet& out_calls) const;
 
     unsigned m_trace_call_no;
     std::string m_name;
     std::string m_name_with_params;
     std::bitset<last_flag> m_flags;
     std::vector<Pointer> m_depends_on;
-
+    std::vector<PTraceObject> m_dependencies;
+    PObjectVector m_entry_dependencies;
 };
 using PTraceCall = TraceCall::Pointer;
 
