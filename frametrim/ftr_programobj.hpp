@@ -15,6 +15,8 @@ public:
     using Pointer = std::shared_ptr<ShaderObject>;
     PTraceCall source(const trace::Call& call);
     PTraceCall compile(const trace::Call& call);
+
+    void accept(ObjectVisitor& visitor) override {visitor.visit(*this);};
 private:
     void collect_data_calls(CallSet& calls, unsigned call_before) override;
     PTraceCall m_source_call;
@@ -42,6 +44,8 @@ public:
     PTraceCall data_call(const trace::Call& call);
     PTraceCall link(const trace::Call& call);
     PTraceCall uniform(const trace::Call& call);
+
+    void accept(ObjectVisitor& visitor) override {visitor.visit(*this);};
 private:
     void collect_data_calls(CallSet& calls, unsigned before_call) override;
 

@@ -1,6 +1,8 @@
 #ifndef TRACEOBJECT_HPP
 #define TRACEOBJECT_HPP
 
+#include "ftr_objectvisitor.hpp"
+
 #include <memory>
 #include <queue>
 #include <bitset>
@@ -43,6 +45,8 @@ public:
 
     virtual void collect_objects_of_type(Vector& objects, unsigned call,
                                          TypeFlags typemask);
+
+    virtual void accept(ObjectVisitor& visitor) = 0;
 protected:
     unsigned collect_last_call_before(CallSet& calls,
                                       const ReverseCallList& call_list,

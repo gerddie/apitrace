@@ -43,6 +43,8 @@ public:
     using Pointer = std::shared_ptr<TexObject>;
     PTraceCall state(const trace::Call& call, unsigned nparam);
     PTraceCall sub_image(const trace::Call& call, PGenObject read_buffer);
+
+    void accept(ObjectVisitor& visitor) override {visitor.visit(*this);};
 private:
     unsigned evaluate_size(const trace::Call& call) override;
     void collect_state_calls(CallSet& calls, unsigned call_before) override;

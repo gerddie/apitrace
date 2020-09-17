@@ -16,7 +16,7 @@ public:
     void bind(PTraceCall call) {
         m_bind_calls.push_front(call);
     }
-
+    void accept(ObjectVisitor& visitor) override {visitor.visit(*this);};
 protected:
     void collect_bind_calls(CallSet& calls, unsigned call_before) override;
 

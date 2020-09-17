@@ -21,6 +21,8 @@ public:
     void bind(PTraceCall call);   
 
     unsigned last_full_redraw_before(unsigned call_no) const;
+    void accept(ObjectVisitor& visitor) override {visitor.visit(*this);};
+
 private:
     void collect_data_calls(CallSet& calls, unsigned call_before) override;
     void collect_bind_calls(CallSet& calls, unsigned call_before) override;
@@ -45,6 +47,7 @@ class RenderbufferObject : public AttachableObject {
 public:
     using AttachableObject::AttachableObject;
     using Pointer = std::shared_ptr<RenderbufferObject>;
+    void accept(ObjectVisitor& visitor) override {visitor.visit(*this);};
 private:
     unsigned evaluate_size(const trace::Call& call) override;
 };

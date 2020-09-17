@@ -22,6 +22,8 @@ public:
 
     bool address_in_mapped_range(uint64_t addr) const;
 
+    void accept(ObjectVisitor& visitor) override {visitor.visit(*this);};
+
 private:
     void collect_data_calls(CallSet& calls, unsigned call_before) override;
     uint64_t m_size;

@@ -16,6 +16,7 @@ public:
     void set_parent(Pointer parent);
 
     PTraceCall call(const trace::Call &call, TraceCall::Flags);
+    void accept(ObjectVisitor& visitor) override {visitor.visit(*this);};
 private:
     using MatrixCallList = std::vector<std::pair<unsigned, PTraceCall>>;
     void insert_last_select_from_before(MatrixCallList& calls, unsigned callno);

@@ -14,7 +14,7 @@ public:
     void enable(PTraceCall call);
     PTraceCall enable_call(unsigned call_no) const;
     void pointer(unsigned  callno, PBufObject obj);
-
+    void accept(ObjectVisitor& visitor) override {visitor.visit(*this);};
 private:
     std::list<PTraceCall> m_enabled_timeline;
     BindTimeline<PBufObject> m_buffer_timeline;

@@ -65,6 +65,7 @@ public:
     PTraceCall state_call(const trace::Call& call, unsigned num_param_selectors);
     PTraceCall repeatable_state_call(const trace::Call& call, unsigned num_param_selectors);
 
+    void accept(ObjectVisitor& visitor) override {visitor.visit(*this);};
 private:
     using ParamMap = std::unordered_map<std::string, std::string>;
 
