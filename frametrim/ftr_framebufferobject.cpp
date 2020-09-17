@@ -139,6 +139,15 @@ PTraceCall FramebufferObject::clear(const trace::Call& call)
     return c;
 }
 
+void FramebufferObject::last_full_redraw_before(unsigned call_no) const
+{
+    for(auto c : m_full_clears) {
+        if (c < call_no)
+            return c;
+    }
+    return 0;
+}
+
 void FramebufferObject::draw(PTraceCall call)
 {
     m_draw_calls.push_front(call);

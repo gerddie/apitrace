@@ -20,6 +20,7 @@ public:
     void draw(PTraceCall call);
     void bind(PTraceCall call);   
 
+    unsigned last_full_redraw_before(unsigned call_no) const;
 private:
     void collect_data_calls(CallSet& calls, unsigned call_before) override;
     void collect_bind_calls(CallSet& calls, unsigned call_before) override;
