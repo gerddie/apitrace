@@ -21,6 +21,10 @@ ${apitrace} replay --headless trim-${trace} --snapshot=frame --snapshot-prefix=$
 orig=$(printf "${trace}orig%010d.png" ${orig_img})
 trim=$(ls ${trace}0*.png)
 
+if [ "x$trim" = "x" ]; then
+  exit 1
+fi
+
 md5sum ${orig} | sed -s "s/ .*//" >${trace}.orig.md5
 md5sum ${trim} | sed -s "s/ .*//" >${trace}.trim.md5
 
