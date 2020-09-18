@@ -20,7 +20,7 @@ public:
     using const_iterator = std::list<PTraceCall>::const_iterator;
     using iterator = std::list<PTraceCall>::iterator;
 
-    void push_front(PTraceCall call);
+    void push(PTraceCall call);
     PTraceCall last_before(unsigned call_no) const;
     PTraceCall last() const;
     const_iterator begin() const {return m_calls.begin();}

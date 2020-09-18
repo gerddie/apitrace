@@ -13,7 +13,6 @@ public:
 
     void bind(PCall call);
     void unbind(PCall call);
-
     bool bound() const;
 
 protected:

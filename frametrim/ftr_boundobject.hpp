@@ -14,7 +14,7 @@ public:
     using Pointer=std::shared_ptr<BoundObject>;
 
     void bind(PTraceCall call) {
-        m_bind_calls.push_front(call);
+        m_bind_calls.push(call);
     }
 
 protected:

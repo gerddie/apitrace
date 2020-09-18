@@ -12,8 +12,6 @@
 
 namespace frametrim_reverse {
 
-using PCall=std::shared_ptr<trace::Call>;
-
 class TraceCall {
 public:
     using Pointer = std::shared_ptr<TraceCall>;

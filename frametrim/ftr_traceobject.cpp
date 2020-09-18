@@ -3,7 +3,7 @@
 
 namespace frametrim_reverse {
 
-void ReverseCallList::push_front(PTraceCall call)
+void ReverseCallList::push(PTraceCall call)
 {
     m_calls.push_front(call);
 }

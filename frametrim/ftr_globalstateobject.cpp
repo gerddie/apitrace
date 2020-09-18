@@ -42,7 +42,7 @@ PTraceCall
 GlobalStateObject::enable_disable(const trace::Call& call)
 {
    auto c = make_shared<TraceCall>(call);
-   m_enable_calls[call.arg(0).toUInt()].push_front(c);
+   m_enable_calls[call.arg(0).toUInt()].push(c);
    return c;
 }
 
@@ -51,7 +51,7 @@ GlobalStateObject::state_call(const trace::Call& call,
                                    unsigned num_param_selectors)
 {
     auto c = make_shared<StateCall>(call, num_param_selectors);
-    m_state_calls[c->name()].push_front(c);
+    m_state_calls[c->name()].push(c);
     return c;
 }
 

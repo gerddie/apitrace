@@ -35,12 +35,12 @@ FramebufferObject::FramebufferObject(unsigned gl_id, PTraceCall gen_call, PGloba
 
 void FramebufferObject::set_state(PTraceCall call)
 {
-    m_state_calls.push_front(call);
+    m_state_calls.push(call);
 }
 
 void FramebufferObject::bind(PTraceCall call)
 {
-    m_bind_calls.push_front(call);
+    m_bind_calls.push(call);
 }
 
 PTraceCall FramebufferObject::viewport(const trace::Call& call)
@@ -51,7 +51,7 @@ PTraceCall FramebufferObject::viewport(const trace::Call& call)
     m_viewport_height = call.arg(3).toUInt();
 
     auto c = make_shared<StateCall>(call, 0);
-    m_state_calls.push_front(c);
+    m_state_calls.push(c);
     return c;
 }
 
@@ -135,7 +135,7 @@ PTraceCall FramebufferObject::clear(const trace::Call& call)
         c->set_flag(TraceCall::full_viewport_redraw);
         m_full_clears.push_front(call.no);
     }
-    m_draw_calls.push_front(c);
+    m_draw_calls.push(c);
     return c;
 }
 
@@ -151,7 +151,7 @@ FramebufferObject::last_full_redraw_before(unsigned call_no) const
 
 void FramebufferObject::draw(PTraceCall call)
 {
-    m_draw_calls.push_front(call);
+    m_draw_calls.push(call);
     for(auto&& attach: m_attachment_calls) {
         auto attach_timeline = m_attachments[attach.first];
         auto obj = attach_timeline.active_at_call(call->call_no());
@@ -187,7 +187,7 @@ FramebufferObject::attach(unsigned attach_point, PAttachableObject obj,
         AttachableObject& o = static_cast<AttachableObject&>(*old_obj);
         o.detach_from(id(),attach_point, call->call_no());
     }
-    m_attachment_calls[idx].push_front(call);
+    m_attachment_calls[idx].push(call);
 }
 
 PTraceCall

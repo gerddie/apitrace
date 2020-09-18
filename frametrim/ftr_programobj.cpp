@@ -56,7 +56,7 @@ ProgramObject::attach_shader(const trace::Call& call, PGenObject shader)
 
     auto c = make_shared<TraceCall>(call);
     c->add_dependend_object(shader);
-    m_attach_calls.push_front(c);
+    m_attach_calls.push(c);
     m_attached_shaders.insert(shader);
     return c;
 }
@@ -95,7 +95,7 @@ PTraceCall
 ProgramObject::data_call(const trace::Call& call)
 {
     auto c = make_shared<TraceCall>(call);
-    m_data_calls.push_front(c);
+    m_data_calls.push(c);
     return c;
 }
 
@@ -103,7 +103,7 @@ PTraceCall
 ProgramObject::uniform(const trace::Call& call)
 {
     auto c = make_shared<TraceCall>(call);
-    m_uniforms_calls[call.arg(0).toUInt()].push_front(c);
+    m_uniforms_calls[call.arg(0).toUInt()].push(c);
     return c;
 }
 

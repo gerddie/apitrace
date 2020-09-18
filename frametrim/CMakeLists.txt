@@ -26,6 +26,7 @@ add_executable(glxtrim
    ft_state.cpp
    ft_samplerstate.cpp
    ft_texturestate.cpp
+   ft_tracecall.cpp
    )
 
 add_executable(glxtrimreverse
