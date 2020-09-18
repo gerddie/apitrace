@@ -22,8 +22,8 @@ void TextureState::bind_unit(PCall unit)
     if (m_last_unit_call && unit)
         m_last_unit_call_dirty = true;
 
-    m_last_unit_call = trace2call(*unit);
-
+    if (unit)
+        m_last_unit_call = trace2call(*unit);
 }
 
 void TextureState::post_bind(PCall call)
