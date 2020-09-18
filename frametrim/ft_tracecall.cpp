@@ -61,7 +61,7 @@ TraceCall::TraceCall(const trace::Call& call):
 
 bool TraceCall::is_recorded_at(unsigned reference_call) const
 {
-    return m_recorded_at >= reference_call;
+    return false && m_recorded_at <= reference_call;
 }
 
 void TraceCall::record_at(unsigned reference_call)
@@ -113,13 +113,13 @@ bool CallSet::empty() const
     return m_calls.empty();
 }
 
-std::unordered_set<PTraceCall>::const_iterator
+CallSet::const_iterator
 CallSet::begin() const
 {
     return m_calls.begin();
 }
 
-std::unordered_set<PTraceCall>::const_iterator
+CallSet::const_iterator
 CallSet::end() const
 {
     return m_calls.end();

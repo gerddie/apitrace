@@ -119,7 +119,7 @@ static int trim_to_frame(const char *filename,
         * then require it (and all dependencies) in the trimmed
         * output. */
         if (options.frames.contains(frame, call->flags))
-            appstate.target_frame_started();
+            appstate.target_frame_started(call->no);
 
         appstate.call(call);
 
@@ -150,7 +150,10 @@ static int trim_to_frame(const char *filename,
 
     auto callid_itr = call_ids.begin();
 
+    std::cerr << "Copying " << call_ids.size() << " calls\n";
+
     while (call && callid_itr != call_ids.end()) {
+        std::cerr << "Copy call " << *callid_itr << "\n";
         while (call->no != *callid_itr)
             call.reset(p.parse_call());
         writer.writeCall(call.get());

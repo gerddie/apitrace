@@ -6,6 +6,7 @@
 #include <memory>
 #include <unordered_map>
 #include <unordered_set>
+#include <iostream>
 
 namespace frametrim {
 
@@ -39,8 +40,16 @@ inline PTraceCall trace2call(const trace::Call& call) {
     return std::make_shared<TraceCall>(call);
 }
 
+struct CallHash {
+    std::size_t operator () (const PTraceCall& call) const {
+        return std::hash<unsigned>{}(call->call_no());
+    }
+};
+
 class CallSet {
 public:
+    using const_iterator = std::unordered_set<PTraceCall, CallHash>::const_iterator;
+
     CallSet();
     void set_reference_call_no(unsigned callno);
     void insert(PTraceCall call);
@@ -49,11 +58,11 @@ public:
     void clear();
     bool empty() const;
     size_t size() const {return m_calls.size(); }
-    std::unordered_set<PTraceCall>::const_iterator begin() const;
-    std::unordered_set<PTraceCall>::const_iterator end() const;
+    const_iterator begin() const;
+    const_iterator end() const;
 
 private:
-    std::unordered_set<PTraceCall> m_calls;
+    std::unordered_set<PTraceCall, CallHash> m_calls;
     unsigned m_reference_call_no;
 };
 

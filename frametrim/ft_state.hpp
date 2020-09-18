@@ -20,7 +20,7 @@ public:
     State();
     ~State();
 
-    void target_frame_started();
+    void target_frame_started(unsigned callno);
 
     void call(PCall call);
 

@@ -68,7 +68,7 @@ struct StateImpl {
     void record_state_call_ex2(PCall call);
     void record_required_call(PCall call);
 
-    void start_target_farme();
+    void start_target_farme(unsigned callno);
 
     void collect_state_calls(CallSet& lisr) const;
 
@@ -183,13 +183,13 @@ std::vector<unsigned> State::get_sorted_call_ids() const
     return impl->get_sorted_call_ids();
 }
 
-void State::target_frame_started()
+void State::target_frame_started(unsigned callno)
 {
     if (impl->m_in_target_frame)
         return;
 
     impl->m_in_target_frame = true;
-    impl->start_target_farme();
+    impl->start_target_farme(callno);
 }
 
 void StateImpl::collect_state_calls(CallSet& list) const
@@ -221,8 +221,9 @@ void StateImpl::collect_state_calls(CallSet& list) const
 
 }
 
-void StateImpl::start_target_farme()
+void StateImpl::start_target_farme(unsigned callno)
 {
+    m_required_calls.set_reference_call_no(callno);
     collect_state_calls(m_required_calls);
     for(auto& c: m_default_fb_state_calls) {
         if (c.second)
@@ -510,10 +511,14 @@ void StateImpl::todo(PCall call)
 
 std::vector<unsigned> StateImpl::get_sorted_call_ids() const
 {
-    std::vector<unsigned> sorted_calls(m_required_calls.size());
-    std::transform(m_required_calls.begin(),
-                   m_required_calls.end(), sorted_calls.begin(),
-                   [](PTraceCall call){ return call->call_no();});
+    std::unordered_set<unsigned> make_sure_its_singular;
+
+    for(auto&& c: m_required_calls)
+        make_sure_its_singular.insert(c->call_no());
+
+    std::vector<unsigned> sorted_calls(
+                make_sure_its_singular.begin(),
+                make_sure_its_singular.end());
     std::sort(sorted_calls.begin(), sorted_calls.end());
     return sorted_calls;
 }
