@@ -23,7 +23,7 @@ public:
 
     void clear(PCall call);
 
-    CallSet& state_calls();
+    CallSetWithCycleCounter& state_calls();
 
     void depends(PGenObjectState read_buffer);
 protected:
@@ -44,7 +44,7 @@ private:
 
     PCall m_viewport_call;
 
-    CallSet m_draw_prepare;
+    CallSetWithCycleCounter m_draw_prepare;
 
     unsigned m_width, m_height;
     bool m_viewport_full_size;

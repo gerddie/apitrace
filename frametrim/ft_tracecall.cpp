@@ -41,6 +41,7 @@ namespace frametrim {
 
 TraceCall::TraceCall(const trace::Call &call, const std::string& name):
     m_trace_call_no(call.no),
+    m_recorded_at(0),
     m_name(name)
 {
     std::stringstream s;
@@ -61,7 +62,7 @@ TraceCall::TraceCall(const trace::Call& call):
 
 bool TraceCall::is_recorded_at(unsigned reference_call) const
 {
-    return false && m_recorded_at <= reference_call;
+    return m_recorded_at >= reference_call;
 }
 
 void TraceCall::record_at(unsigned reference_call)
@@ -69,26 +70,11 @@ void TraceCall::record_at(unsigned reference_call)
     m_recorded_at = reference_call;
 }
 
-CallSet::CallSet():
-    m_reference_call_no(0)
-{
-
-}
-
-void CallSet::set_reference_call_no(unsigned callno)
-{
-    m_reference_call_no = callno;
-}
-
 void CallSet::insert(PTraceCall call)
 {
     if (!call)
         return;
-
-    if (!call->is_recorded_at(m_reference_call_no)) {
-        m_calls.insert(call);
-        call->record_at(m_reference_call_no);
-    }
+    do_insert(call);
 }
 
 void CallSet::insert(const CallSet& set)
@@ -101,6 +87,11 @@ void CallSet::insert(const StateCallMap& map)
 {
     for(auto&& c : map)
         insert(c.second);
+}
+
+void CallSet::do_insert(PTraceCall call)
+{
+    insert_into_set(call);
 }
 
 void CallSet::clear()
@@ -124,5 +115,25 @@ CallSet::end() const
 {
     return m_calls.end();
 }
+
+CallSetWithCycleCounter::CallSetWithCycleCounter():
+    m_store_cycle(0)
+{
+
+}
+
+void CallSetWithCycleCounter::set_cycle(unsigned cycle)
+{
+    m_store_cycle = cycle;
+}
+
+void CallSetWithCycleCounter::do_insert(PTraceCall call)
+{
+    if (!call->is_recorded_at(m_store_cycle)) {
+        insert_into_set(call);
+        call->record_at(m_store_cycle);
+    }
+}
+
 
 }

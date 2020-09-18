@@ -35,7 +35,7 @@ void FramebufferStateBase::draw(PCall call)
     append_call(trace2call(*call));
 }
 
-CallSet& FramebufferStateBase::state_calls()
+CallSetWithCycleCounter& FramebufferStateBase::state_calls()
 {
     return m_draw_prepare;
 }
@@ -259,6 +259,7 @@ void FramebufferMap::bind(PCall call)
 
             auto& calls = m_draw_framebuffer->state_calls();
             calls.clear();
+            calls.set_cycle(call->no);
 
             gs.collect_state_calls(calls);
 

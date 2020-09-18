@@ -223,7 +223,8 @@ void StateImpl::collect_state_calls(CallSet& list) const
 
 void StateImpl::start_target_farme(unsigned callno)
 {
-    m_required_calls.set_reference_call_no(callno);
+    std::cerr << "m_required_calls.set_reference_call_no(" << callno << ");\n";
+
     collect_state_calls(m_required_calls);
     for(auto& c: m_default_fb_state_calls) {
         if (c.second)

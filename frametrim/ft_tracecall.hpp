@@ -26,9 +26,8 @@ public:
     void record_at(unsigned reference_call);
 
 private:
-    unsigned m_recorded_at;
-
     unsigned m_trace_call_no;
+    unsigned m_recorded_at;
     std::string m_name;
     std::string m_name_with_params;
 };
@@ -50,8 +49,6 @@ class CallSet {
 public:
     using const_iterator = std::unordered_set<PTraceCall, CallHash>::const_iterator;
 
-    CallSet();
-    void set_reference_call_no(unsigned callno);
     void insert(PTraceCall call);
     void insert(const CallSet& set);
     void insert(const StateCallMap& map);
@@ -60,11 +57,23 @@ public:
     size_t size() const {return m_calls.size(); }
     const_iterator begin() const;
     const_iterator end() const;
-
+protected:
+    void insert_into_set(PTraceCall call) {m_calls.insert(call);}
 private:
+    virtual void do_insert(PTraceCall call);
+
     std::unordered_set<PTraceCall, CallHash> m_calls;
-    unsigned m_reference_call_no;
 };
+
+class CallSetWithCycleCounter : public CallSet {
+public:
+    CallSetWithCycleCounter();
+    void set_cycle(unsigned cycle);
+private:
+    virtual void do_insert(PTraceCall call);
+    unsigned m_store_cycle;
+};
+
 
 }
 
