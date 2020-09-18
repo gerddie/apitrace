@@ -10,7 +10,7 @@ ObjectState::ObjectState(GLint glID, PCall call):
     m_emitting(false)
 {
     if (call)
-        m_gen_calls.insert(call);
+        m_gen_calls.insert(trace2call(*call));
 }
 
 ObjectState::ObjectState(GLint glID):
@@ -54,7 +54,7 @@ void ObjectState::emit_calls_to_list(CallSet& list) const
     m_gen_calls.insert(call);
 }*/
 
-void ObjectState::append_call(PCall call)
+void ObjectState::append_call(PTraceCall call)
 {
     m_calls.insert(call);
 }
@@ -76,7 +76,7 @@ void ObjectState::set_state_call(PCall call, unsigned nstate_id_params)
     for(unsigned i = 0; i < nstate_id_params; ++i)
         state_call_name << "_" << call->arg(i).toUInt();
 
-    m_state_calls[state_call_name.str()] = call;
+    m_state_calls[state_call_name.str()] = std::make_shared<TraceCall>(*call);
 }
 
 bool ObjectState::is_active() const

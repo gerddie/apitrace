@@ -28,7 +28,7 @@ private:
     void do_emit_calls_to_list(CallSet& list) const override;
 
     bool  m_last_unit_call_dirty;
-    PCall m_last_unit_call;
+    PTraceCall m_last_unit_call;
     bool  m_last_bind_call_dirty;
     CallSet m_data_upload_set[16];
     CallSet m_data_use_set;

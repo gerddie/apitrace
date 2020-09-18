@@ -10,7 +10,7 @@ ObjectWithBindState::ObjectWithBindState(GLint glID, PCall call):
 
 void ObjectWithBindState::bind(PCall call)
 {
-    m_bind_call = call;
+    m_bind_call = trace2call(*call);
     m_bound = true;
 
     post_bind(call);
@@ -18,7 +18,7 @@ void ObjectWithBindState::bind(PCall call)
 
 void ObjectWithBindState::unbind(PCall call)
 {
-    m_bind_call = call;
+    m_bind_call = trace2call(*call);
     m_bound = false;
     post_unbind(call);
 }

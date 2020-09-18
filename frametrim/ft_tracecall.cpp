@@ -54,6 +54,11 @@ TraceCall::TraceCall(const trace::Call &call, const std::string& name):
     m_name_with_params = s.str();
 }
 
+TraceCall::TraceCall(const trace::Call& call):
+    TraceCall(call, call.name())
+{
+}
+
 bool TraceCall::is_recorded_at(unsigned reference_call) const
 {
     return m_recorded_at >= reference_call;
@@ -86,9 +91,26 @@ void CallSet::insert(PTraceCall call)
     }
 }
 
-void CallSet::merge(const CallSet& set)
+void CallSet::insert(const CallSet& set)
 {
-    m_calls.insert(set.begin(), set.end());
+    for(auto&& c : set)
+        insert(c);
+}
+
+void CallSet::insert(const StateCallMap& map)
+{
+    for(auto&& c : map)
+        insert(c.second);
+}
+
+void CallSet::clear()
+{
+    m_calls.clear();
+}
+
+bool CallSet::empty() const
+{
+    return m_calls.empty();
 }
 
 std::unordered_set<PTraceCall>::const_iterator

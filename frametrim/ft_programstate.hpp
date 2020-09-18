@@ -62,10 +62,10 @@ private:
 
     std::unordered_map<unsigned, PShaderState> m_shaders;
 
-    std::unordered_map<unsigned, PCall> m_uniforms;
+    std::unordered_map<unsigned, PTraceCall> m_uniforms;
     std::unordered_map<unsigned, PObjectState> m_va;
 
-    PCall m_last_bind;
+    PTraceCall m_last_bind;
 
 };
 

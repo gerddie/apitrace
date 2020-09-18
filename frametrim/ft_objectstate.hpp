@@ -2,6 +2,7 @@
 #define OBJECTSTATE_H
 
 #include "ft_common.hpp"
+#include "ft_tracecall.hpp"
 
 #include <GL/gl.h>
 #include <vector>
@@ -15,10 +16,6 @@ namespace frametrim {
 
 class GlobalState;
 
-
-using StateCallMap=std::unordered_map<std::string, PCall>;
-
-
 struct pcall_less {
     bool operator () (PCall lhs, PCall rhs)
     {
@@ -31,71 +28,6 @@ struct call_hash {
         return std::hash<unsigned>{}(call->no);
     }
 };
-
-class CallSet {
-
-public:
-
-    CallSet(bool debug=false):m_debug(debug) {}
-
-    bool m_debug;
-
-    using Container = std::unordered_set<unsigned>;
-    using iterator = Container::iterator;
-    using const_iterator = Container::const_iterator;
-
-    void insert(PCall call) {
-        if (m_debug)
-            std::cerr << "Insert: " << call->no << " " << call->name() << "\n";
-        m_calls.insert(call->no);
-    }
-
-    void insert(const CallSet& calls) {
-        m_calls.insert(calls.begin(), calls.end());
-    }
-
-    void insert(const StateCallMap& calls) {
-        if (m_debug) {
-            for (auto& c: calls)
-                std::cerr << "Insert: " << c.second->no
-                          << " " << c.second->name() << "\n";
-        }
-        for (auto& c: calls)
-            m_calls.insert(c.second->no);
-    }
-
-    iterator begin() {
-        return m_calls.begin();
-    }
-
-    const_iterator begin() const {
-        return m_calls.begin();
-    }
-
-    iterator end() {
-        return m_calls.end();
-    }
-
-    const_iterator end() const {
-        return m_calls.end();
-    }
-
-    void clear() {
-        m_calls.clear();
-    }
-
-    bool empty() const {
-        return m_calls.empty();
-    }
-
-    size_t size() const {
-        return m_calls.size();
-    }
-
-private:
-    Container m_calls;
-};
-
 
 class ObjectState
 {
@@ -112,7 +44,7 @@ public:
 
     void emit_calls_to_list(CallSet& list) const;
 
-    void append_call(PCall call);
+    void append_call(PTraceCall call);
 
     void set_state_call(PCall call, unsigned state_id_params);
 

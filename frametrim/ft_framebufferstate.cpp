@@ -32,7 +32,7 @@ void FramebufferStateBase::set_attachment_types(unsigned buffer_types)
 
 void FramebufferStateBase::draw(PCall call)
 {
-    append_call(call);
+    append_call(trace2call(*call));
 }
 
 CallSet& FramebufferStateBase::state_calls()
@@ -65,7 +65,7 @@ void FramebufferStateBase::clear(PCall call)
         reset_callset();
     }
 
-    append_call(call);
+    append_call(trace2call(*call));
 }
 
 void FramebufferStateBase::first_time_viewport(PCall call)
@@ -121,12 +121,12 @@ FBOState::FBOState(GLint glID, PCall gen_call):
 
 void FBOState::bind_read(PCall call)
 {
-    m_bind_read_call = call;
+    m_bind_read_call = trace2call(*call);
 }
 
 void FBOState::bind_draw(PCall call)
 {
-    m_bind_draw_call = call;
+    m_bind_draw_call = trace2call(*call);
 }
 
 void FBOState::emit_buffer_calls_to_list(CallSet& list) const
@@ -166,7 +166,7 @@ bool FBOState::attach(unsigned attachment, PCall call,
         if (m_bind_draw_call)
             m_attach_calls[attachment].insert(m_bind_draw_call);
 
-        m_attach_calls[attachment].insert(call);
+        m_attach_calls[attachment].insert(trace2call(*call));
         att->attach();
     }
 
@@ -283,13 +283,13 @@ void FramebufferMap::bind(PCall call)
         if (target == GL_DRAW_FRAMEBUFFER ||
                 target == GL_FRAMEBUFFER) {
             m_draw_framebuffer = nullptr;
-            m_last_unbind_draw_fbo  = call;
+            m_last_unbind_draw_fbo  = trace2call(*call);
         }
 
         if (target == GL_READ_FRAMEBUFFER ||
                 target == GL_FRAMEBUFFER) {
             m_read_framebuffer = nullptr;
-            m_last_unbind_read_fbo  = call;
+            m_last_unbind_read_fbo  = trace2call(*call);
         }
     }
 }
@@ -301,7 +301,7 @@ void FramebufferMap::blit(PCall call)
 
     if (m_draw_framebuffer) {
         m_draw_framebuffer->depends(m_read_framebuffer);
-        m_draw_framebuffer->append_call(call);
+        m_draw_framebuffer->append_call(trace2call(*call));
     }
 }
 
@@ -467,7 +467,7 @@ void RenderbufferState::set_used_as_blit_source()
 
 void RenderbufferState::set_storage(PCall call)
 {
-    m_set_storage_call = call;
+    m_set_storage_call = trace2call(*call);
     unsigned w = call->arg(2).toUInt();
     unsigned h = call->arg(2).toUInt();
     set_size(0, w, h);

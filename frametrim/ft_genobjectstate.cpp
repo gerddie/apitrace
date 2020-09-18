@@ -6,7 +6,7 @@ namespace frametrim {
 
 GenObjectState::GenObjectState(GLint glID, PCall gen_call):
     ObjectWithBindState(glID, gen_call),
-    m_gen_call(gen_call)
+    m_gen_call(trace2call(*gen_call))
 {
     assert(m_gen_call);
 }

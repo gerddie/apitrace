@@ -18,8 +18,7 @@ protected:
     void emit_gen_call(CallSet& list) const;
 
 private:
-    PCall m_gen_call;
-
+    PTraceCall m_gen_call;
 };
 
 using PGenObjectState = GenObjectState::Pointer;
@@ -46,7 +45,7 @@ public:
             /* We erase the state here, but it might be referenced
              * elsewhere, so we have to record the call with the state */
             if (state)
-                state->append_call(call);
+                state->append_call(trace2call(*call));
             this->clear(v->toUInt());
         }
     }

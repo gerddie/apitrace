@@ -23,7 +23,7 @@ private:
 
     Pointer m_parent;
 
-    PCall m_type_select_call;
+    PTraceCall m_type_select_call;
 
 };
 

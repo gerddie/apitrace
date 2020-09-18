@@ -75,8 +75,8 @@ private:
 
     unsigned m_attached_color_buffer_mask;
 
-    PCall m_bind_read_call;
-    PCall m_bind_draw_call;
+    PTraceCall m_bind_read_call;
+    PTraceCall m_bind_draw_call;
 
     std::unordered_map<unsigned, CallSet> m_attach_calls;
     std::unordered_map<unsigned, PSizedObjectState> m_attachments;
@@ -128,8 +128,8 @@ private:
 
     PDefaultFramebufferState m_default_framebuffer;
 
-    PCall m_last_unbind_draw_fbo;
-    PCall m_last_unbind_read_fbo;
+    PTraceCall m_last_unbind_draw_fbo;
+    PTraceCall m_last_unbind_read_fbo;
 };
 
 
@@ -156,7 +156,7 @@ private:
 
     void do_emit_calls_to_list(CallSet& list) const override;
 
-    PCall m_set_storage_call;
+    PTraceCall m_set_storage_call;
 
     /* If the renderbuffer is used in a draw framebuffer and later in
     * a read framebuffer for doing a blit, we have to keep the creation

@@ -15,7 +15,7 @@ MatrixState::MatrixState(MatrixState::Pointer parent):
 
 void MatrixState::select_matrixtype(PCall call)
 {
-    m_type_select_call = call;
+    m_type_select_call = trace2call(*call);
 }
 
 void MatrixState::set_matrix(PCall call)
@@ -35,7 +35,7 @@ void MatrixState::set_matrix(PCall call)
     reset_callset();
     if (m_type_select_call)
         append_call(m_type_select_call);
-    append_call(call);
+    append_call(trace2call(*call));
 }
 
 void MatrixState::do_emit_calls_to_list(CallSet& list) const
@@ -104,7 +104,7 @@ void AllMatrisStates::MatrixMode(PCall call)
 
 void AllMatrisStates::PopMatrix(PCall call)
 {
-    m_current_matrix->append_call(call);
+    m_current_matrix->append_call(trace2call(*call));
     m_current_matrix_stack->pop();
     assert(!m_current_matrix_stack->empty());
     m_current_matrix = m_current_matrix_stack->top();
@@ -114,12 +114,12 @@ void AllMatrisStates::PushMatrix(PCall call)
 {
     m_current_matrix = make_shared<MatrixState>(m_current_matrix);
     m_current_matrix_stack->push(m_current_matrix);
-    m_current_matrix->append_call(call);
+    m_current_matrix->append_call(trace2call(*call));
 }
 
 void AllMatrisStates::matrix_op(PCall call)
 {
-    m_current_matrix->append_call(call);
+    m_current_matrix->append_call(trace2call(*call));
 }
 
 }

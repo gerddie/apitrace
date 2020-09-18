@@ -4,6 +4,7 @@
 #include "trace_model.hpp"
 
 #include <memory>
+#include <unordered_map>
 #include <unordered_set>
 
 namespace frametrim {
@@ -32,13 +33,21 @@ private:
 };
 using PTraceCall = TraceCall::Pointer;
 
+using StateCallMap=std::unordered_map<std::string, PTraceCall>;
+
+inline PTraceCall trace2call(const trace::Call& call) {
+    return std::make_shared<TraceCall>(call);
+}
 
 class CallSet {
 public:
     CallSet();
     void set_reference_call_no(unsigned callno);
     void insert(PTraceCall call);
-    void merge(const CallSet& set);
+    void insert(const CallSet& set);
+    void insert(const StateCallMap& map);
+    void clear();
+    bool empty() const;
     size_t size() const {return m_calls.size(); }
     std::unordered_set<PTraceCall>::const_iterator begin() const;
     std::unordered_set<PTraceCall>::const_iterator end() const;

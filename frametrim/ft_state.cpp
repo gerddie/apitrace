@@ -122,10 +122,10 @@ struct StateImpl {
     FramebufferMap m_framebuffers;
     RenderbufferMap m_renderbuffers;
 
-    std::unordered_map<std::string, PCall> m_state_calls;
+    std::unordered_map<std::string, PTraceCall> m_state_calls;
     // These state calls make no sense with fbos, and must not be emitted
     // to the draw_fbo
-    std::unordered_map<std::string, PCall> m_default_fb_state_calls;
+    std::unordered_map<std::string, PTraceCall> m_default_fb_state_calls;
 
     std::set<std::string> m_unhandled_calls;
 };
@@ -198,7 +198,7 @@ void StateImpl::collect_state_calls(CallSet& list) const
         list.insert(a.second);
 
     for(auto& cap: m_enables)
-        list.insert(cap.second);
+        list.insert(trace2call(*cap.second));
 
     m_matrix_states.emit_state_to_lists(list);
 
@@ -208,7 +208,7 @@ void StateImpl::collect_state_calls(CallSet& list) const
         if (vae != m_va_enables.end() &&
                 !strcmp(vae->second->name(), "glEnableVertexAttribArray")) {
             va.second->emit_calls_to_list(list);
-            list.insert(vae->second);
+            list.insert(trace2call(*vae->second));
         }
     }
 
@@ -237,7 +237,6 @@ void StateImpl::start_target_farme()
 
 StateImpl::StateImpl(GlobalState *gs):
     m_in_target_frame(false),
-    m_required_calls(false),
     m_shaders(gs),
     m_programs(gs),
     m_legacy_programs(gs),
@@ -284,7 +283,7 @@ void StateImpl::call(PCall call)
     }
 
     if (m_in_target_frame)
-        m_required_calls.insert(call);
+        m_required_calls.insert(trace2call(*call));
     else if (m_framebuffers.draw_fb())
         m_framebuffers.draw_fb()->draw(call);
     else if (m_framebuffers.default_fb())
@@ -294,7 +293,7 @@ void StateImpl::call(PCall call)
 void StateImpl::Begin(PCall call)
 {
     if (m_active_display_list)
-        m_active_display_list->append_call(call);
+        m_active_display_list->append_call(trace2call(*call));
 }
 
 void StateImpl::CallList(PCall call)
@@ -359,13 +358,13 @@ void StateImpl::record_enable(PCall call)
 void StateImpl::End(PCall call)
 {
     if (m_active_display_list)
-        m_active_display_list->append_call(call);
+        m_active_display_list->append_call(trace2call(*call));
 }
 
 void StateImpl::EndList(PCall call)
 {
     if (!m_in_target_frame)
-        m_active_display_list->append_call(call);
+        m_active_display_list->append_call(trace2call(*call));
 
     m_active_display_list = nullptr;
 }
@@ -378,7 +377,7 @@ void StateImpl::GenLists(PCall call)
         m_display_lists[i + origResult] = PObjectState(new ObjectState(i + origResult));
 
     if (!m_in_target_frame)
-        m_display_lists[origResult]->append_call(call);
+        m_display_lists[origResult]->append_call(trace2call(*call));
 }
 
 void StateImpl::NewList(PCall call)
@@ -389,7 +388,7 @@ void StateImpl::NewList(PCall call)
     m_active_display_list = list->second;
 
     if (!m_in_target_frame)
-        m_active_display_list->append_call(call);
+        m_active_display_list->append_call(trace2call(*call));
 }
 
 void StateImpl::ReadBuffer(PCall call)
@@ -413,13 +412,13 @@ void StateImpl::DrawBuffers(PCall call)
 void StateImpl::ShadeModel(PCall call)
 {
     if (m_active_display_list)
-        m_active_display_list->append_call(call);
+        m_active_display_list->append_call(trace2call(*call));
 }
 
 void StateImpl::Vertex(PCall call)
 {
     if (m_active_display_list)
-        m_active_display_list->append_call(call);
+        m_active_display_list->append_call(trace2call(*call));
 }
 
 void StateImpl::VertexAttribPointer(PCall call)
@@ -457,16 +456,16 @@ void StateImpl::Viewport(PCall call)
 
 void StateImpl::record_state_call(PCall call)
 {
-    m_state_calls[call->name()] = call;
+    m_state_calls[call->name()] = trace2call(*call);
     if (m_active_display_list)
-        m_active_display_list->append_call(call);
+        m_active_display_list->append_call(trace2call(*call));
 }
 
 void StateImpl::record_default_fb_state_call(PCall call)
 {
-    m_default_fb_state_calls[call->name()] = call;
+    m_default_fb_state_calls[call->name()] = trace2call(*call);
     if (m_active_display_list)
-        m_active_display_list->append_call(call);
+        m_active_display_list->append_call(trace2call(*call));
 }
 
 
@@ -474,9 +473,9 @@ void StateImpl::record_state_call_ex(PCall call)
 {
     std::stringstream s;
     s << call->name() << "_" << call->arg(0).toUInt();
-    m_state_calls[s.str()] = call;
+    m_state_calls[s.str()] = trace2call(*call);
     if (m_active_display_list)
-        m_active_display_list->append_call(call);
+        m_active_display_list->append_call(trace2call(*call));
 }
 
 void StateImpl::record_state_call_ex2(PCall call)
@@ -486,17 +485,17 @@ void StateImpl::record_state_call_ex2(PCall call)
       << call->arg(0).toUInt()
       << "_" << call->arg(1).toUInt();
 
-    m_state_calls[s.str()] = call;
+    m_state_calls[s.str()] = trace2call(*call);
 
     if (m_active_display_list)
-        m_active_display_list->append_call(call);
+        m_active_display_list->append_call(trace2call(*call));
 
 }
 
 void StateImpl::record_required_call(PCall call)
 {
     if (call)
-        m_required_calls.insert(call);
+        m_required_calls.insert(trace2call(*call));
 }
 
 void StateImpl::ignore_history(PCall call)
@@ -511,8 +510,10 @@ void StateImpl::todo(PCall call)
 
 std::vector<unsigned> StateImpl::get_sorted_call_ids() const
 {
-    std::vector<unsigned> sorted_calls(m_required_calls.begin(),
-                                    m_required_calls.end());
+    std::vector<unsigned> sorted_calls(m_required_calls.size());
+    std::transform(m_required_calls.begin(),
+                   m_required_calls.end(), sorted_calls.begin(),
+                   [](PTraceCall call){ return call->call_no();});
     std::sort(sorted_calls.begin(), sorted_calls.end());
     return sorted_calls;
 }

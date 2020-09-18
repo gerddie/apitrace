@@ -134,7 +134,7 @@ void BufferStateImpl::data(PCall call)
     m_owner->emit_bind(m_data_upload_set);
 
     m_last_bind_call_dirty = false;
-    m_data_upload_set.insert(call);
+    m_data_upload_set.insert(trace2call(*call));
     m_sub_buffers.clear();
 
     m_buffer_size = call->arg(1).toUInt();
@@ -180,8 +180,8 @@ void BufferStateImpl::use(PCall call)
 {
     m_data_use_set.clear();
     m_owner->emit_bind(m_data_use_set);
-        if (call)
-        m_data_use_set.insert(call);
+    if (call)
+        m_data_use_set.insert(trace2call(*call));
 }
 
 void BufferStateImpl::emit_calls_to_list(CallSet& list) const
@@ -206,9 +206,9 @@ CallSet BufferStateImpl::clean_bind_calls() const
 
     unsigned first_needed_bind_call_no = 0;
     for(auto& b : m_sub_data_bind_calls) {
-        if (b < oldest_sub_buffer_call &&
-                b> first_needed_bind_call_no)
-            first_needed_bind_call_no = b;
+        if (b->call_no() < oldest_sub_buffer_call &&
+            b->call_no() > first_needed_bind_call_no)
+            first_needed_bind_call_no = b->call_no();
     }
 
     unsigned first_needed_map_call_no = 0;
@@ -220,18 +220,18 @@ CallSet BufferStateImpl::clean_bind_calls() const
 
     CallSet retval;
     for (auto b: m_sub_data_bind_calls) {
-        if (b > first_needed_bind_call_no)
+        if (b->call_no() > first_needed_bind_call_no)
             retval.insert(b);
     }
 
     for(auto& b : m_map_calls) {
         if (b->no > first_needed_map_call_no)
-            retval.insert(b);
+            retval.insert(trace2call(*b));
     }
 
     for(auto& b : m_unmap_calls) {
         if (b->no > first_needed_map_call_no)
-            retval.insert(b);
+            retval.insert(trace2call(*b));
     }
 
     return retval;

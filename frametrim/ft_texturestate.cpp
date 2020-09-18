@@ -22,7 +22,7 @@ void TextureState::bind_unit(PCall unit)
     if (m_last_unit_call && unit)
         m_last_unit_call_dirty = true;
 
-    m_last_unit_call = unit;
+    m_last_unit_call = trace2call(*unit);
 
 }
 
@@ -54,7 +54,7 @@ void TextureState::data(PCall call)
         m_last_bind_call_dirty = false;
     }
 
-    m_data_upload_set[level].insert(call);
+    m_data_upload_set[level].insert(trace2call(*call));
 
     if (!strcmp(call->name(), "glTexImage2D") ||
             !strcmp(call->name(), "glTexImage3D")) {
@@ -82,13 +82,13 @@ void TextureState::sub_data(PCall call)
         emit_bind(m_data_upload_set[level]);
         m_last_bind_call_dirty = false;
     }
-    m_data_upload_set[level].insert(call);
+    m_data_upload_set[level].insert(trace2call(*call));
 }
 
 void TextureState::copy_sub_data(PCall call, PFramebufferState read_buffer)
 {
     auto level = call->arg(1).toUInt();
-    m_data_upload_set[level].insert(call);
+    m_data_upload_set[level].insert(trace2call(*call));
     m_fbo[level] = read_buffer;
 }
 
@@ -212,7 +212,7 @@ void TextureStateMap::gen_mipmap(PCall call)
                   << " U:" << m_active_texture_unit;
         assert(0);
     }
-    texture->append_call(call);
+    texture->append_call(trace2call(*call));
 }
 
 unsigned TextureStateMap::composed_target_id(unsigned target) const

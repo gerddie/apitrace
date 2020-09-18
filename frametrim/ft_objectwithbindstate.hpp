@@ -24,7 +24,7 @@ private:
     virtual void post_unbind(PCall call);
 
     bool m_bound;
-    PCall m_bind_call;
+    PTraceCall m_bind_call;
 };
 
 template <typename T>
