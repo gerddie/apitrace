@@ -2,23 +2,26 @@
 
 namespace frametrim {
 
-ObjectWithBindState::ObjectWithBindState(GLint glID, PCall call):
+ObjectWithBindState::ObjectWithBindState(GLint glID,
+                                         PTraceCall call):
     ObjectState(glID, call),
-    m_bound(false)
+    m_bound(false),
+    m_bound_dirty(false)
 {
 }
 
-void ObjectWithBindState::bind(PCall call)
+void ObjectWithBindState::bind(const trace::Call& call)
 {
-    m_bind_call = trace2call(*call);
+    m_bind_call = trace2call(call);
     m_bound = true;
+    m_bound_dirty = true;
 
     post_bind(call);
 }
 
-void ObjectWithBindState::unbind(PCall call)
+void ObjectWithBindState::unbind(const trace::Call& call)
 {
-    m_bind_call = trace2call(*call);
+    m_bind_call = trace2call(call);
     m_bound = false;
     post_unbind(call);
 }
@@ -42,13 +45,13 @@ bool ObjectWithBindState::is_active() const
     return bound();
 }
 
-void ObjectWithBindState::post_bind(PCall call)
+void ObjectWithBindState::post_bind(const trace::Call& call)
 {
     (void)call;
     // pseudoabstract method
 }
 
-void ObjectWithBindState::post_unbind(PCall call)
+void ObjectWithBindState::post_unbind(const trace::Call& call)
 {
     (void)call;
     // pseudoabstract method

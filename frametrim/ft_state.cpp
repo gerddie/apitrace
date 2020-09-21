@@ -329,7 +329,6 @@ void StateImpl::DeleteLists(PCall call)
     }
 }
 
-
 void StateImpl::DrawElements(PCall call)
 {
     (void)call;

@@ -9,10 +9,10 @@ namespace frametrim {
 class ObjectWithBindState : public ObjectState
 {
 public:
-    ObjectWithBindState(GLint glID, PCall call);
+    ObjectWithBindState(GLint glID, PTraceCall call);
 
-    void bind(PCall call);
-    void unbind(PCall call);
+    void bind(const trace::Call& call);
+    void unbind(const trace::Call& call);
     bool bound() const;
 
 protected:
@@ -20,11 +20,12 @@ protected:
 
 private:
     bool is_active() const override;
-    virtual void post_bind(PCall call);
-    virtual void post_unbind(PCall call);
+    virtual void post_bind(const trace::Call& call);
+    virtual void post_unbind(const trace::Call& call);
 
     bool m_bound;
     PTraceCall m_bind_call;
+    bool m_bound_dirty;
 };
 
 template <typename T>
@@ -32,7 +33,7 @@ class TObjectWithBindStateMap: public TObjStateMap<T>  {
 public:
     using TObjStateMap<T>::TObjStateMap;
 
-    void bind_target(unsigned target, unsigned id, PCall call) {
+    void bind_target(unsigned target, unsigned id, const trace::Call& call) {
         if (id > 0) {
             if (!m_bound_objects[target] ||
                     m_bound_objects[target]->id() != id) {
@@ -69,9 +70,9 @@ public:
         }
     }
 
-    void bind(PCall call) {
+    void bind(const trace::Call& call) {
         auto target = target_id_from_call(call);
-        auto id = call->arg(1).toUInt();
+        auto id = call.arg(1).toUInt();
         bind_target(target, id, call);
     }
 
@@ -80,28 +81,28 @@ public:
         return m_bound_objects[target];
     }
 
-    typename T::Pointer bound_in_call(const PCall& call) {
+    typename T::Pointer bound_in_call(const trace::Call& call) {
         unsigned target = target_id_from_call(call);
         return m_bound_objects[target];
     }
 
-    void set_state(PCall call, unsigned addr_params) {
+    void set_state(const trace::Call& call, unsigned addr_params) {
         auto obj = bound_in_call(call);
         if (!obj) {
-            std::cerr << "No obj found in call " << call->no
-                      << " target:" << call->arg(0).toUInt();
+            std::cerr << "No obj found in call " << call.no
+                      << " target:" << call.arg(0).toUInt();
             assert(0);
         }
         obj->set_state_call(call, addr_params);
     }
 
 private:
-    virtual void post_bind(PCall call, typename T::Pointer obj) {
+    virtual void post_bind(const trace::Call& call, typename T::Pointer obj) {
         (void)call;
         (void)obj;
     }
 
-    virtual void post_unbind(PCall call, typename T::Pointer obj){
+    virtual void post_unbind(const trace::Call& call, typename T::Pointer obj){
         (void)call;
         (void)obj;
     }
@@ -113,8 +114,8 @@ private:
         }
     }
 
-    virtual unsigned target_id_from_call(const PCall& call) const {
-        return composed_target_id(call->arg(0).toUInt());
+    virtual unsigned target_id_from_call(const trace::Call& call) const {
+        return composed_target_id(call.arg(0).toUInt());
     }
 
     virtual unsigned composed_target_id(unsigned id) const {

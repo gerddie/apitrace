@@ -1,6 +1,7 @@
 #include "ft_frametrimmer.hpp"
 #include "ft_tracecall.hpp"
 #include "ft_framebuffer.hpp"
+#include "ft_objectstate.hpp"
 
 #include <unordered_set>
 #include <algorithm>
@@ -35,9 +36,21 @@ struct FrameTrimmeImpl {
     void record_state_call(const trace::Call& call, unsigned no_param_sel);
 
     void register_state_calls();
+    void register_legacy_calls();
+
     void record_enable(const trace::Call& call);
+
     void update_call_table(const std::vector<const char*>& names,
                            ft_callback cb);
+
+    void Begin(const trace::Call& call);
+    void End(const trace::Call& call);
+    void Vertex(const trace::Call& call);
+    void EndList(const trace::Call& call);
+    void GenLists(const trace::Call& call);
+    void NewList(const trace::Call& call);
+    void CallList(const trace::Call& call);
+    void DeleteLists(const trace::Call& call);
 
 
     Framebuffer::Pointer m_current_draw_buffer;
@@ -48,8 +61,13 @@ struct FrameTrimmeImpl {
     CallSet m_required_calls;
     std::set<std::string> m_unhandled_calls;
 
+    std::unordered_map<unsigned, ObjectState::Pointer> m_display_lists;
+    ObjectState::Pointer m_active_display_list;
+
     std::map<std::string, PTraceCall> m_state_calls;
     std::map<unsigned, PTraceCall> m_enables;
+
+    bool m_in_target_frame;
 };
 
 FrameTrimmer::FrameTrimmer()
@@ -183,6 +201,60 @@ FrameTrimmeImpl::record_enable(const trace::Call& call)
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, std::ref(data))))
 
 
+void FrameTrimmeImpl::register_legacy_calls()
+{
+    // draw calls
+    MAP(glBegin, Begin);
+    MAP(glColor2, Vertex);
+    MAP(glColor3, Vertex);
+    MAP(glColor4, Vertex);
+    MAP(glEnd, End);
+    MAP(glNormal, Vertex);
+    MAP(glRect, Vertex);
+    MAP(glTexCoord2, Vertex);
+    MAP(glTexCoord3, Vertex);
+    MAP(glTexCoord4, Vertex);
+    MAP(glVertex3, Vertex);
+    MAP(glVertex4, Vertex);
+    MAP(glVertex2, Vertex);
+    MAP(glVertex3, Vertex);
+    MAP(glVertex4, Vertex);
+
+    // display lists
+    MAP(glCallList, CallList);
+    MAP(glDeleteLists, DeleteLists);
+    MAP(glEndList, EndList);
+    MAP(glGenLists, GenLists);
+    MAP(glNewList, NewList);
+
+    MAP(glPushClientAttr, todo);
+    MAP(glPopClientAttr, todo);
+
+
+    // shader calls
+    MAP_GENOBJ(glGenPrograms, m_legacy_programs,
+               LegacyProgramStateMap::generate);
+    MAP_GENOBJ(glDeletePrograms, m_legacy_programs,
+               LegacyProgramStateMap::destroy);
+    MAP_GENOBJ(glBindProgram, m_legacy_programs,
+               LegacyProgramStateMap::bind);
+    MAP_GENOBJ(glProgramString, m_legacy_programs,
+               LegacyProgramStateMap::program_string);
+
+    // Matrix manipulation
+    MAP_GENOBJ(glLoadIdentity, m_matrix_states, AllMatrisStates::LoadIdentity);
+    MAP_GENOBJ(glLoadMatrix, m_matrix_states, AllMatrisStates::LoadMatrix);
+    MAP_GENOBJ(glMatrixMode, m_matrix_states, AllMatrisStates::MatrixMode);
+    MAP_GENOBJ(glMultMatrix, m_matrix_states, AllMatrisStates::matrix_op);
+    MAP_GENOBJ(glOrtho, m_matrix_states, AllMatrisStates::matrix_op);
+    MAP_GENOBJ(glRotate, m_matrix_states, AllMatrisStates::matrix_op);
+    MAP_GENOBJ(glScale, m_matrix_states, AllMatrisStates::matrix_op);
+    MAP_GENOBJ(glTranslate, m_matrix_states, AllMatrisStates::matrix_op);
+    MAP_GENOBJ(glPopMatrix, m_matrix_states, AllMatrisStates::PopMatrix);
+    MAP_GENOBJ(glPushMatrix, m_matrix_states, AllMatrisStates::PushMatrix);
+}
+
+
 void
 FrameTrimmeImpl::register_state_calls()
 {
@@ -260,6 +332,82 @@ void FrameTrimmeImpl::update_call_table(const std::vector<const char*>& names,
     for (auto& i : names)
         m_call_table.insert(std::make_pair(i, cb));
 }
+
+void FrameTrimmeImpl::Begin(const trace::Call& call)
+{
+    if (m_active_display_list)
+        m_active_display_list->append_call(trace2call(call));
+}
+
+void FrameTrimmeImpl::End(const trace::Call& call)
+{
+    if (m_active_display_list)
+        m_active_display_list->append_call(trace2call(call));
+}
+
+
+void FrameTrimmeImpl::Vertex(const trace::Call& call)
+{
+    if (m_active_display_list)
+        m_active_display_list->append_call(trace2call(call));
+}
+
+void FrameTrimmeImpl::EndList(const trace::Call& call)
+{
+    if (!m_in_target_frame)
+        m_active_display_list->append_call(trace2call(call));
+
+    m_active_display_list = nullptr;
+}
+
+void FrameTrimmeImpl::GenLists(const trace::Call& call)
+{
+    unsigned nlists = call.arg(0).toUInt();
+    GLuint origResult = (*call.ret).toUInt();
+    for (unsigned i = 0; i < nlists; ++i)
+        m_display_lists[i + origResult] = std::make_shared<ObjectState>(i + origResult);
+
+    if (!m_in_target_frame)
+        m_display_lists[origResult]->append_call(trace2call(call));
+}
+
+void FrameTrimmeImpl::NewList(const trace::Call& call)
+{
+    assert(!m_active_display_list);
+    auto list  = m_display_lists.find(call.arg(0).toUInt());
+    assert(list != m_display_lists.end());
+    m_active_display_list = list->second;
+
+    if (!m_in_target_frame)
+        m_active_display_list->append_call(trace2call(call));
+}
+
+void FrameTrimmeImpl::CallList(const trace::Call& call)
+{
+    auto list  = m_display_lists.find(call.arg(0).toUInt());
+    assert(list != m_display_lists.end());
+
+    if (m_in_target_frame)
+        list->second->emit_calls_to_list(m_required_calls);
+
+    /*
+    auto draw_fbo = m_framebuffers.draw_fb();
+    if (draw_fbo)
+        list->second->emit_calls_to_list(draw_fbo->state_calls()); */
+}
+
+void FrameTrimmeImpl::DeleteLists(const trace::Call& call)
+{
+    GLint value = call.arg(0).toUInt();
+    GLint value_end = call.arg(1).toUInt() + value;
+    for(int i = value; i < value_end; ++i) {
+        auto list  = m_display_lists.find(call.arg(0).toUInt());
+        assert(list != m_display_lists.end());
+        m_display_lists.erase(list);
+    }
+}
+
+
 
 
 }
