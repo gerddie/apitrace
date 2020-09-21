@@ -7,12 +7,12 @@
 
 namespace frametrim {
 
-class Framebuffer
+class FramebufferState
 {
 public:
-    using Pointer = std::shared_ptr<Framebuffer>;
+    using Pointer = std::shared_ptr<FramebufferState>;
 
-    Framebuffer();
+    FramebufferState();
 
 };
 

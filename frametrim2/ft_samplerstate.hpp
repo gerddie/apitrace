@@ -24,7 +24,7 @@ class SamplerStateMap : public TGenObjStateMap<SamplerState>
 public:
     using TGenObjStateMap<SamplerState>::TGenObjStateMap;
 
-    void set_state(PCall call, unsigned addr_params);
+    void set_state(const trace::Call& call, unsigned addr_params);
 private:
 
     void do_emit_calls_to_list(CallSet& list) const override;

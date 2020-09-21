@@ -1,5 +1,4 @@
 #include "ft_texturestate.hpp"
-#include "ft_globalstate.hpp"
 #include <cstring>
 #include <sstream>
 
@@ -9,7 +8,7 @@ namespace frametrim {
 
 using std::stringstream;
 
-TextureState::TextureState(GLint glID, PCall gen_call):
+TextureState::TextureState(GLint glID, const trace::Call& gen_call):
     SizedObjectState(glID, gen_call, texture),
     m_last_bind_call_dirty(true),
     m_attach_count(0)
@@ -17,30 +16,30 @@ TextureState::TextureState(GLint glID, PCall gen_call):
 
 }
 
-void TextureState::bind_unit(PCall unit)
+void TextureState::bind_unit(PTraceCall unit)
 {
     if (m_last_unit_call && unit)
         m_last_unit_call_dirty = true;
 
     if (unit)
-        m_last_unit_call = trace2call(*unit);
+        m_last_unit_call = unit;
 }
 
-void TextureState::post_bind(PCall call)
+void TextureState::post_bind(const trace::Call& call)
 {
     (void)call;
     m_last_bind_call_dirty = true;
 }
 
-void TextureState::post_unbind(PCall call)
+void TextureState::post_unbind(const trace::Call& call)
 {
     (void)call;
     m_last_bind_call_dirty = true;
 }
 
-void TextureState::data(PCall call)
+void TextureState::data(const trace::Call& call)
 {
-    unsigned level = call->arg(1).toUInt();
+    unsigned level = call.arg(1).toUInt();
     assert(level < 16);
 
     m_data_upload_set[level].clear();
@@ -54,22 +53,22 @@ void TextureState::data(PCall call)
         m_last_bind_call_dirty = false;
     }
 
-    m_data_upload_set[level].insert(trace2call(*call));
+    m_data_upload_set[level].insert(trace2call(call));
 
-    if (!strcmp(call->name(), "glTexImage2D") ||
-            !strcmp(call->name(), "glTexImage3D")) {
-        auto w = call->arg(3).toUInt();
-        auto h = call->arg(4).toUInt();
+    if (!strcmp(call.name(), "glTexImage2D") ||
+            !strcmp(call.name(), "glTexImage3D")) {
+        auto w = call.arg(3).toUInt();
+        auto h = call.arg(4).toUInt();
         set_size(level, w, h);
-    } else if (!strcmp(call->name(), "glTexImage1D")) {
-        auto w = call->arg(3).toUInt();
+    } else if (!strcmp(call.name(), "glTexImage1D")) {
+        auto w = call.arg(3).toUInt();
         set_size(level, w, 1);
     }
 }
 
-void TextureState::sub_data(PCall call)
+void TextureState::sub_data(const trace::Call& call)
 {
-    unsigned level = call->arg(1).toUInt();
+    unsigned level = call.arg(1).toUInt();
     assert(level < 16);
     /* We should check like with buffers and remove old
      * sub data calls */
@@ -82,17 +81,19 @@ void TextureState::sub_data(PCall call)
         emit_bind(m_data_upload_set[level]);
         m_last_bind_call_dirty = false;
     }
-    m_data_upload_set[level].insert(trace2call(*call));
+    m_data_upload_set[level].insert(trace2call(call));
 }
 
-void TextureState::copy_sub_data(PCall call, PFramebufferState read_buffer)
+void TextureState::copy_sub_data(const trace::Call& call,
+                                 FramebufferState::Pointer read_buffer)
 {
-    auto level = call->arg(1).toUInt();
-    m_data_upload_set[level].insert(trace2call(*call));
+    auto level = call.arg(1).toUInt();
+    m_data_upload_set[level].insert(trace2call(call));
     m_fbo[level] = read_buffer;
 }
 
-void TextureState::rendertarget_of(unsigned layer, PFramebufferState fbo)
+void TextureState::rendertarget_of(unsigned layer,
+                                   FramebufferState::Pointer fbo)
 {
     m_fbo[layer] = fbo;
 }
@@ -108,10 +109,7 @@ void TextureState::do_emit_calls_to_list(CallSet& list) const
     /* This is a somewhat lazy approach, but we assume that if the texture
      * was attached to a draw FBO then this was done to create the contents
      * of the texture, so we need to record all calls used in the fbo */
-    for (auto& f : m_fbo)
-        if (f.second)
-            f.second->emit_calls_to_list(list);
-
+    /* TODO: if the texture was drawn to emit the draw calls */
 }
 
 bool TextureState::is_active() const
@@ -119,100 +117,94 @@ bool TextureState::is_active() const
     return bound() || is_attached();
 }
 
-TextureStateMap::TextureStateMap():TextureStateMap(nullptr)
+TextureStateMap::TextureStateMap()
 {
 }
 
-TextureStateMap::TextureStateMap(GlobalState *gs):
-    TGenObjStateMap<TextureState>(gs),
-    m_active_texture_unit(0)
+void TextureStateMap::active_texture(const trace::Call& call)
 {
+    m_active_texture_unit = call.arg(0).toUInt() - GL_TEXTURE0;
+    m_active_texture_unit_call = trace2call(call);
 }
 
-void TextureStateMap::active_texture(PCall call)
+void TextureStateMap::bind_multitex(const trace::Call& call)
 {
-    m_active_texture_unit = call->arg(0).toUInt() - GL_TEXTURE0;
-    m_active_texture_unit_call = call;
-}
-
-void TextureStateMap::bind_multitex(PCall call)
-{
-    auto unit = call->arg(0).toUInt() - GL_TEXTURE0;
-    auto target =  call->arg(1).toUInt();
-    auto id = call->arg(2).toUInt();
+    auto unit = call.arg(0).toUInt() - GL_TEXTURE0;
+    auto target =  call.arg(1).toUInt();
+    auto id = call.arg(2).toUInt();
 
     auto target_id = compose_target_id_with_unit(target, unit);
 
     bind_target(target_id, id, call);
 }
 
-void TextureStateMap::post_bind(PCall call, PTextureState obj)
+void TextureStateMap::post_bind(const trace::Call& call, PTextureState obj)
 {
     (void)call;
     obj->bind_unit(m_active_texture_unit_call);
 }
 
-void TextureStateMap::post_unbind(PCall call, PTextureState obj)
+void TextureStateMap::post_unbind(const trace::Call& call, PTextureState obj)
 {
     (void)call;
     obj->bind_unit(m_active_texture_unit_call);
 }
 
-void TextureStateMap::set_data(PCall call)
+void TextureStateMap::set_data(const trace::Call& call)
 {
     auto texture = bound_in_call(call);
 
     if (!texture) {
-        std::cerr << "No texture found in call " << call->no
-                  << " target:" << call->arg(0).toUInt()
+        std::cerr << "No texture found in call " << call.no
+                  << " target:" << call.arg(0).toUInt()
                   << " U:" << m_active_texture_unit;
         assert(0);
     }
     texture->data(call);
 }
 
-void TextureStateMap::set_sub_data(PCall call)
+void TextureStateMap::set_sub_data(const trace::Call& call)
 {
     /* This will need some better handling */
     auto texture = bound_in_call(call);
 
     if (!texture) {
-        std::cerr << "No texture found in call " << call->no
-                  << " target:" << call->arg(0).toUInt()
+        std::cerr << "No texture found in call " << call.no
+                  << " target:" << call.arg(0).toUInt()
                   << " U:" << m_active_texture_unit;
         assert(0);
     }
     texture->sub_data(call);
 }
 
-void TextureStateMap::copy_sub_data(PCall call)
+void TextureStateMap::copy_sub_data(const trace::Call& call,
+                                    FramebufferState::Pointer read_fb)
 {
     auto texture = bound_in_call(call);
     if (!texture) {
-        std::cerr << "No texture found in call " << call->no
-                  << " target:" << call->arg(0).toUInt()
+        std::cerr << "No texture found in call " << call.no
+                  << " target:" << call.arg(0).toUInt()
                   << " U:" << m_active_texture_unit;
         assert(0);
     }
-    auto read_buffer = global_state().read_framebuffer();
-    if (!read_buffer) {
+    if (!read_fb) {
         std::cerr << "TODO: Handle if the read buffer "
                      "is the default framebuffer\n";
     }
-    texture->copy_sub_data(call, read_buffer);
+    texture->copy_sub_data(call, read_fb);
 }
 
-void TextureStateMap::gen_mipmap(PCall call)
+void TextureStateMap::gen_mipmap(const trace::Call& call)
 {
     auto texture = bound_in_call(call);
 
     if (!texture) {
-        std::cerr << "No texture found in call " << call->no
-                  << " target:" << call->arg(0).toUInt()
+        std::cerr << "No texture found in call " << call.no
+                  << " target:" << call.arg(0).toUInt()
                   << " U:" << m_active_texture_unit;
         assert(0);
     }
-    texture->append_call(trace2call(*call));
+    texture->append_call(trace2call(call));
 }
 
 unsigned TextureStateMap::composed_target_id(unsigned target) const

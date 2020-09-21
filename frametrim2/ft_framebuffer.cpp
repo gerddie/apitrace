@@ -2,7 +2,7 @@
 
 namespace frametrim {
 
-Framebuffer::Framebuffer()
+FramebufferState::FramebufferState()
 {
 
 }

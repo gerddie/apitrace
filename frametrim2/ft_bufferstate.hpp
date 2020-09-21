@@ -11,23 +11,23 @@ public:
 
     using Pointer = std::shared_ptr<BufferState>;
 
-    BufferState(GLint glID, PCall gen_call);
+    BufferState(GLint glID, const trace::Call& gen_call);
     ~BufferState();
 
-    void data(PCall call);
-    void append_data(PCall call);
+    void data(const trace::Call& call);
+    void append_data(const trace::Call& call);
 
-    void map(PCall call);
-    void map_range(PCall call);
-    void memcopy(PCall call);
-    void unmap(PCall call);
+    void map(const trace::Call& call);
+    void map_range(const trace::Call& call);
+    void memcopy(const trace::Call& call);
+    void unmap(const trace::Call& call);
     bool in_mapped_range(uint64_t address) const;
 
-    void use(PCall call = nullptr);
+    void use(const trace::Call& call);
 
 private:
-    void post_bind(PCall call) override;
-    void post_unbind(PCall call) override;
+    void post_bind(const trace::Call& call) override;
+    void post_unbind(const trace::Call& call) override;
     void do_emit_calls_to_list(CallSet& list) const override;
 
     friend struct BufferStateImpl;
@@ -40,13 +40,13 @@ class BufferStateMap : public TGenObjStateMap<BufferState> {
   public:
     using TGenObjStateMap<BufferState>::TGenObjStateMap;
 
-    void data(PCall call);
-    void sub_data(PCall call);
+    void data(const trace::Call& call);
+    void sub_data(const trace::Call& call);
 
-    void map(PCall call);
-    void map_range(PCall call);
-    void memcpy(PCall call);
-    void unmap(PCall call);
+    void map(const trace::Call& call);
+    void map_range(const trace::Call& call);
+    void memcpy(const trace::Call& call);
+    void unmap(const trace::Call& call);
 
 private:
     using BufferMap = std::unordered_map<GLint, PBufferState>;
