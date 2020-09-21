@@ -1,7 +1,7 @@
 #ifndef PROGRAMSTATE_HPP
 #define PROGRAMSTATE_HPP
 
-#include "ft_bufferstate.hpp"
+#include "ft_objectwithbindstate.hpp"
 
 #include <unordered_map>
 
@@ -12,7 +12,7 @@ public:
     using Pointer = std::shared_ptr<ShaderState>;
 
     ShaderState(unsigned id, unsigned stage);
-    ShaderState(unsigned id, PCall call);
+    ShaderState(unsigned id, const trace::Call& call);
 
     /* For legacy shaders */
     void set_stage(unsigned stage);
@@ -36,8 +36,8 @@ class ShaderStateMap : public TObjStateMap<ShaderState>
 public:
     using TObjStateMap<ShaderState>::TObjStateMap;
 
-    void create(PCall call);
-    void data(PCall call);
+    void create(const trace::Call& call);
+    void data(const trace::Call& call);
 private:
     void do_emit_calls_to_list(CallSet& list) const override;
 };
@@ -50,10 +50,10 @@ public:
     ProgramState(unsigned id);
 
     void attach_shader(PShaderState shader);
-    void set_uniform(PCall call);
+    void set_uniform(const trace::Call& call);
 
-    void bind(PCall call);
-    void unbind(PCall call);
+    void bind(const trace::Call& call);
+    void unbind(const trace::Call& call);
 
 private:
 
@@ -73,15 +73,14 @@ class ProgramStateMap : public TObjStateMap<ProgramState>
 public:
     using TObjStateMap<ProgramState>::TObjStateMap;
 
-    void create(PCall call);
-    void destroy(PCall call);
-    void use(PCall call);
-    void attach_shader(PCall call, ShaderStateMap &shaders);
-    void bind_attr_location(PCall call);
-    void data(PCall call);
-    void uniform(PCall call);
-    void set_va(unsigned attrid, PBufferState buf);
-    void set_state(PCall call, unsigned addr_params);
+    void create(const trace::Call& call);
+    void destroy(const trace::Call& call);
+    void use(const trace::Call& call);
+    void attach_shader(const trace::Call& call, ShaderStateMap &shaders);
+    void bind_attr_location(const trace::Call& call);
+    void data(const trace::Call& call);
+    void uniform(const trace::Call& call);
+    void set_state(const trace::Call& call, unsigned addr_params);
 
 private:
     void do_emit_calls_to_list(CallSet& list) const override;
@@ -94,7 +93,7 @@ class LegacyProgramStateMap : public TGenObjStateMap<ShaderState>
 public:
     using TGenObjStateMap<ShaderState>::TGenObjStateMap;
 
-    void program_string(PCall call);
+    void program_string(const trace::Call& call);
 
 private:
     void do_emit_calls_to_list(CallSet& list) const override;

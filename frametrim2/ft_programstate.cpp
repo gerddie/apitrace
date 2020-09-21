@@ -14,7 +14,7 @@ ShaderState::ShaderState(unsigned id, unsigned stage):
 {
 }
 
-ShaderState::ShaderState(unsigned id, PCall call):
+ShaderState::ShaderState(unsigned id, const trace::Call& call):
     ObjectWithBindState(id, call),
     m_stage(0),
     m_attach_count(0)
@@ -56,7 +56,7 @@ bool ShaderState::is_active() const
     return bound() || is_attached();
 }
 
-void ShaderStateMap::create(PCall call)
+void ShaderStateMap::create(const trace::Call& call)
 {
     GLint shader_id = call->ret->toUInt();
     GLint stage = call->arg(0).toUInt();
@@ -66,7 +66,7 @@ void ShaderStateMap::create(PCall call)
 }
 
 
-void ShaderStateMap::data(PCall call)
+void ShaderStateMap::data(const trace::Call& call)
 {
     auto shader = get_by_id(call->arg(0).toUInt());
     shader->append_call(trace2call(*call));
@@ -88,12 +88,12 @@ void ProgramState::attach_shader(PShaderState shader)
     m_shaders[shader->stage()] = shader;
 }
 
-void ProgramState::set_uniform(PCall call)
+void ProgramState::set_uniform(const trace::Call& call)
 {
     m_uniforms[call->arg(0).toUInt()] = trace2call(*call);
 }
 
-void ProgramState::bind(PCall call)
+void ProgramState::bind(const trace::Call& call)
 {
     m_last_bind = trace2call(*call);
     m_uniforms.clear();
@@ -113,7 +113,7 @@ void ProgramState::do_emit_calls_to_list(CallSet& list) const
 }
 
 
-void ProgramStateMap::create(PCall call)
+void ProgramStateMap::create(const trace::Call& call)
 {
     uint64_t id = call->ret->toUInt();
     auto program = make_shared<ProgramState>(id);
@@ -121,12 +121,12 @@ void ProgramStateMap::create(PCall call)
     program->append_call(trace2call(*call));
 }
 
-void ProgramStateMap::destroy(PCall call)
+void ProgramStateMap::destroy(const trace::Call& call)
 {
     this->clear(call->ret->toUInt());
 }
 
-void ProgramStateMap::use(PCall call)
+void ProgramStateMap::use(const trace::Call& call)
 {
     unsigned progid = call->arg(0).toUInt();
     bool new_program = false;
@@ -151,7 +151,7 @@ void ProgramStateMap::use(PCall call)
     }
 }
 
-void ProgramStateMap::set_state(PCall call, unsigned addr_params)
+void ProgramStateMap::set_state(const trace::Call& call, unsigned addr_params)
 {
     auto program = get_by_id(call->arg(0).toUInt());
     if (!program) {
@@ -162,7 +162,7 @@ void ProgramStateMap::set_state(PCall call, unsigned addr_params)
     program->set_state_call(call, addr_params);
 }
 
-void ProgramStateMap::attach_shader(PCall call, ShaderStateMap& shaders)
+void ProgramStateMap::attach_shader(const trace::Call& call, ShaderStateMap& shaders)
 {
     auto program = get_by_id(call->arg(0).toUInt());
     assert(program);
@@ -175,21 +175,21 @@ void ProgramStateMap::attach_shader(PCall call, ShaderStateMap& shaders)
     program->append_call(trace2call(*call));
 }
 
-void ProgramStateMap::bind_attr_location(PCall call)
+void ProgramStateMap::bind_attr_location(const trace::Call& call)
 {
     GLint program_id = call->arg(0).toSInt();
     auto prog = get_by_id(program_id);
     prog->append_call(trace2call(*call));
 }
 
-void ProgramStateMap::data(PCall call)
+void ProgramStateMap::data(const trace::Call& call)
 {
     auto prog = get_by_id(call->arg(0).toUInt());
     assert(prog);
     prog->append_call(trace2call(*call));
 }
 
-void ProgramStateMap::uniform(PCall call)
+void ProgramStateMap::uniform(const trace::Call& call)
 {
     assert(m_active_program);
     m_active_program->set_uniform(call);
@@ -201,7 +201,7 @@ void ProgramStateMap::do_emit_calls_to_list(CallSet& list) const
         m_active_program->emit_calls_to_list(list);
 }
 
-void LegacyProgramStateMap::program_string(PCall call)
+void LegacyProgramStateMap::program_string(const trace::Call& call)
 {
     auto shader = bound_in_call(call);
     assert(shader);

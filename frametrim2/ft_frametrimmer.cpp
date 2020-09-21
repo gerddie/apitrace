@@ -1,8 +1,9 @@
 #include "ft_frametrimmer.hpp"
 #include "ft_tracecall.hpp"
 #include "ft_framebuffer.hpp"
-#include "ft_objectstate.hpp"
 #include "ft_matrixstate.hpp"
+#include "ft_objectstate.hpp"
+#include "ft_programstate.hpp"
 
 #include <unordered_set>
 #include <algorithm>
@@ -71,6 +72,7 @@ struct FrameTrimmeImpl {
     std::map<unsigned, PTraceCall> m_enables;
 
     AllMatrisStates m_matrix_states;
+    LegacyProgramStateMap m_legacy_programs;
 
     bool m_in_target_frame;
 };
