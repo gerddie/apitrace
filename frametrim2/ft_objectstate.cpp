@@ -5,18 +5,12 @@ namespace frametrim {
 
 using std::stringstream;
 
-ObjectState::ObjectState(GLint glID, PCall call):
+ObjectState::ObjectState(GLint glID, PTraceCall call):
     m_glID(glID),
     m_emitting(false)
 {
     if (call)
-        m_gen_calls.insert(trace2call(*call));
-}
-
-ObjectState::ObjectState(GLint glID):
-    ObjectState(glID, nullptr)
-{
-
+        m_gen_calls.insert(call);
 }
 
 ObjectState::~ObjectState()
@@ -39,7 +33,6 @@ void ObjectState::emit_calls_to_list(CallSet& list) const
         m_emitting = true;
 
         list.insert(m_gen_calls);
-        list.insert(m_depenendet_calls);
         list.insert(m_state_calls);
         list.insert(m_calls);
 
@@ -48,11 +41,6 @@ void ObjectState::emit_calls_to_list(CallSet& list) const
         m_emitting = false;
     }
 }
-
-/*void ObjectState::append_gen_call(PCall call)
-{
-    m_gen_calls.insert(call);
-}*/
 
 void ObjectState::append_call(PTraceCall call)
 {
@@ -64,19 +52,14 @@ void ObjectState::reset_callset()
     m_calls.clear();
 }
 
-CallSet& ObjectState::dependent_calls()
-{
-    return m_depenendet_calls;
-}
-
-void ObjectState::set_state_call(PCall call, unsigned nstate_id_params)
+void ObjectState::set_state_call(const trace::Call& call, unsigned nstate_id_params)
 {
     stringstream state_call_name;
-    state_call_name << call->name();
+    state_call_name << call.name();
     for(unsigned i = 0; i < nstate_id_params; ++i)
-        state_call_name << "_" << call->arg(i).toUInt();
+        state_call_name << "_" << call.arg(i).toUInt();
 
-    m_state_calls[state_call_name.str()] = std::make_shared<TraceCall>(*call);
+    m_state_calls[state_call_name.str()] = trace2call(call);
 }
 
 bool ObjectState::is_active() const
