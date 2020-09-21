@@ -1,5 +1,4 @@
 #include "ft_programstate.hpp"
-#include "ft_globalstate.hpp"
 
 #include <iostream>
 
@@ -8,7 +7,7 @@ namespace frametrim {
 using std::make_shared;
 
 ShaderState::ShaderState(unsigned id, unsigned stage):
-    ObjectWithBindState(id, nullptr),
+    ObjectWithBindState(id),
     m_stage(stage),
     m_attach_count(0)
 {
@@ -19,7 +18,7 @@ ShaderState::ShaderState(unsigned id, const trace::Call& call):
     m_stage(0),
     m_attach_count(0)
 {
-    append_call(trace2call(*call));
+    append_call(trace2call(call));
 }
 
 void ShaderState::set_stage(unsigned stage)

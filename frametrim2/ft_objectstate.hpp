@@ -18,7 +18,7 @@ class ObjectState
 public:
     using Pointer = std::shared_ptr<ObjectState>;
 
-    ObjectState(GLint glID, PTraceCall call);
+    ObjectState(GLint glID, const trace::Call& call);
 
     ObjectState(GLint glID);
 

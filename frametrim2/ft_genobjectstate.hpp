@@ -12,7 +12,7 @@ class GenObjectState : public ObjectWithBindState
 public:     
     using Pointer = std::shared_ptr<GenObjectState>;
 
-    GenObjectState(GLint glID, PCall gen_call);
+    GenObjectState(GLint glID, const trace::Call& gen_call);
 protected:
 
     void emit_gen_call(CallSet& list) const;
@@ -23,29 +23,28 @@ private:
 
 using PGenObjectState = GenObjectState::Pointer;
 
-
 template <typename T>
 class TGenObjStateMap : public TObjectWithBindStateMap<T> {
 
 public:
     using TObjectWithBindStateMap<T>::TObjectWithBindStateMap;
 
-    void generate(PCall call) {
-        const auto ids = (call->arg(1)).toArray();
+    void generate(const trace::Call &call) {
+        const auto ids = (call.arg(1)).toArray();
         for (auto& v : ids->values) {
             auto obj = std::make_shared<T>(v->toUInt(), call);
             this->set(v->toUInt(), obj);
         }
     }
 
-    void destroy(PCall call) {
-        const auto ids = (call->arg(1)).toArray();
+    void destroy(const trace::Call &call) {
+        const auto ids = (call.arg(1)).toArray();
         for (auto& v : ids->values) {
             auto state = this->get_by_id(v->toUInt());
             /* We erase the state here, but it might be referenced
              * elsewhere, so we have to record the call with the state */
             if (state)
-                state->append_call(trace2call(*call));
+                state->append_call(trace2call(call));
             this->clear(v->toUInt());
         }
     }
@@ -54,8 +53,6 @@ private:
             this->emit_all_states(list);
     }
 };
-
-
 
 class SizedObjectState : public GenObjectState
 {
@@ -66,7 +63,7 @@ public:
         renderbuffer
     };
 
-    SizedObjectState(GLint glID, PCall gen_call, EAttachmentType at);
+    SizedObjectState(GLint glID, const trace::Call& gen_call, EAttachmentType at);
 
     unsigned width(unsigned level = 0) const;
     unsigned height(unsigned level = 0) const;
@@ -93,8 +90,6 @@ using PSizedObjectState = std::shared_ptr<SizedObjectState>;
 
 bool operator == (const SizedObjectState& lhs,
                   const SizedObjectState& rhs);
-
-
 
 
 }

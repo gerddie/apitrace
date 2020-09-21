@@ -3,8 +3,15 @@
 namespace frametrim {
 
 ObjectWithBindState::ObjectWithBindState(GLint glID,
-                                         PTraceCall call):
+                                         const trace::Call& call):
     ObjectState(glID, call),
+    m_bound(false),
+    m_bound_dirty(false)
+{
+}
+
+ObjectWithBindState::ObjectWithBindState(GLint glID):
+    ObjectState(glID),
     m_bound(false),
     m_bound_dirty(false)
 {

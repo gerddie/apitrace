@@ -9,7 +9,8 @@ namespace frametrim {
 class ObjectWithBindState : public ObjectState
 {
 public:
-    ObjectWithBindState(GLint glID, PTraceCall call);
+    ObjectWithBindState(GLint glID, const trace::Call& call);
+    ObjectWithBindState(GLint glID);
 
     void bind(const trace::Call& call);
     void unbind(const trace::Call& call);

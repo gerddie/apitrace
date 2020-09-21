@@ -1,7 +1,7 @@
 #ifndef PROGRAMSTATE_HPP
 #define PROGRAMSTATE_HPP
 
-#include "ft_objectwithbindstate.hpp"
+#include "ft_genobjectstate.hpp"
 
 #include <unordered_map>
 
@@ -97,7 +97,6 @@ public:
 
 private:
     void do_emit_calls_to_list(CallSet& list) const override;
-
 };
 
 }

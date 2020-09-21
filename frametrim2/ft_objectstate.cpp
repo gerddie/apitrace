@@ -5,12 +5,11 @@ namespace frametrim {
 
 using std::stringstream;
 
-ObjectState::ObjectState(GLint glID, PTraceCall call):
+ObjectState::ObjectState(GLint glID, const trace::Call& call):
     m_glID(glID),
     m_emitting(false)
 {
-    if (call)
-        m_gen_calls.insert(call);
+    m_gen_calls.insert(trace2call(call));
 }
 
 ObjectState::~ObjectState()
