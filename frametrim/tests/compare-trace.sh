@@ -1,5 +1,4 @@
-
-#/bin/sh
+#/bin/bash
 
 trim="$1/glxtrim"
 apitrace="$1/apitrace"
@@ -19,7 +18,10 @@ ${apitrace} replay --headless "${datadir}/${trace}" --snapshot=${orig_img} --sna
 ${apitrace} replay --headless trim-${trace} --snapshot=frame --snapshot-prefix=${trace} || exit 1
 
 orig=$(printf "${trace}orig%010d.png" ${orig_img})
-trim=$(ls ${trace}0*.png)
+trim_array_=$(ls ${trace}0*.png)
+trim_array=( $trim_array_ )
+trim=${trim_array[-1]}
+echo $trim
 
 if [ "x$trim" = "x" ]; then
   exit 1

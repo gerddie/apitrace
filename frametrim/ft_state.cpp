@@ -732,7 +732,6 @@ void StateImpl::register_ignore_history_calls()
         "glXGetSwapIntervalMESA",
         "glXGetVisualFromFBConfig",
         "glXQueryVersion",
-        "glXSwapBuffers",
      };
     auto ignore_history_func = bind(&StateImpl::ignore_history, this, _1);
     update_call_table(ignore_history_calls, ignore_history_func);
@@ -775,6 +774,7 @@ void StateImpl::register_state_calls()
         "glStencilMask",
         "glStencilOpSeparate",
         "glVertexPointer",
+        "glXSwapBuffers",
     };
 
     auto state_call_func = bind(&StateImpl::record_state_call, this, _1);

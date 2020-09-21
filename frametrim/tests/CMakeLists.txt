@@ -2,7 +2,7 @@
 MACRO(TRACE_TEST name frame orig_img)
   
   ADD_TEST(NAME ${name} COMMAND
-    ${CMAKE_CURRENT_SOURCE_DIR}/compare-trace.sh
+    /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/compare-trace.sh
     ${CMAKE_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${name}.test_trace
@@ -24,7 +24,7 @@ TRACE_TEST(shadowmaps 560 42910)
 
 MACRO(TRACE_RTEST name frame orig_img)
   ADD_TEST(NAME ${name}_reverse COMMAND
-    ${CMAKE_CURRENT_SOURCE_DIR}/compare-trace_reverse.sh
+    /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/compare-trace_reverse.sh
     ${CMAKE_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
     ${name}.test_trace
