@@ -25,7 +25,7 @@ public:
 
     CallSetWithCycleCounter& state_calls();
 
-    void depends(PGenObjectState read_buffer);
+    void depends(Pointer read_buffer);
 protected:
 
     void set_attachment_types(unsigned buffer_types);

@@ -430,7 +430,6 @@ void StateImpl::VertexAttribPointer(PCall call)
 
     if (buf) {
         m_vertex_attr_pointer[call->arg(0).toUInt()] = buf;
-        m_programs.set_va(call->arg(0).toUInt(), buf);
         if (m_in_target_frame)
             buf->emit_calls_to_list(m_required_calls);
         else if (draw_fb)
@@ -438,7 +437,6 @@ void StateImpl::VertexAttribPointer(PCall call)
         buf->use(call);
     } else {
         m_vertex_attr_pointer[call->arg(0).toUInt()] = nullptr;
-        m_programs.set_va(call->arg(0).toUInt(), nullptr);
     }
 }
 

@@ -82,7 +82,7 @@ void FramebufferStateBase::do_clear()
 {
 }
 
-void FramebufferStateBase::depends(PGenObjectState read_buffer)
+void FramebufferStateBase::depends(Pointer read_buffer)
 {
     // TODO: we should check whether the drawn region is covering the
     // whole target so that we can remove un-needed calls

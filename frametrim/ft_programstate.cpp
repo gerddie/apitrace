@@ -93,11 +93,6 @@ void ProgramState::set_uniform(PCall call)
     m_uniforms[call->arg(0).toUInt()] = trace2call(*call);
 }
 
-void ProgramState::set_va(unsigned id, PObjectState va)
-{
-    m_va[id] = va;
-}
-
 void ProgramState::bind(PCall call)
 {
     m_last_bind = trace2call(*call);
@@ -114,10 +109,6 @@ void ProgramState::do_emit_calls_to_list(CallSet& list) const
 
         for (auto& s: m_uniforms)
             list.insert(s.second);
-
-        for (auto& va: m_va)
-            if (va.second)
-                va.second->emit_calls_to_list(list);
     }
 }
 
@@ -202,12 +193,6 @@ void ProgramStateMap::uniform(PCall call)
 {
     assert(m_active_program);
     m_active_program->set_uniform(call);
-}
-
-void ProgramStateMap::set_va(unsigned attrid, PBufferState buf)
-{
-    if (m_active_program)
-        m_active_program->set_va(attrid, buf);
 }
 
 void ProgramStateMap::do_emit_calls_to_list(CallSet& list) const

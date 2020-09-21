@@ -51,7 +51,6 @@ public:
 
     void attach_shader(PShaderState shader);
     void set_uniform(PCall call);
-    void set_va(unsigned id, PObjectState va);
 
     void bind(PCall call);
     void unbind(PCall call);
@@ -61,9 +60,7 @@ private:
     void do_emit_calls_to_list(CallSet& list) const override;
 
     std::unordered_map<unsigned, PShaderState> m_shaders;
-
     std::unordered_map<unsigned, PTraceCall> m_uniforms;
-    std::unordered_map<unsigned, PObjectState> m_va;
 
     PTraceCall m_last_bind;
 
