@@ -7,17 +7,17 @@
 
 namespace frametrim {
 
-class CFrameTrimmer
+class FrameTrimmer
 {
 public:
-    CFrameTrimmer();
-    ~CFrameTrimmer();
+    FrameTrimmer();
+    ~FrameTrimmer();
 
     void call(const trace::Call& call, bool in_target_frame);
 
     std::vector<unsigned> get_sorted_call_ids() const;
 private:
-    struct CFrameTrimmeImpl *impl;
+    struct FrameTrimmeImpl *impl;
 
 };
 
