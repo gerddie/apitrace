@@ -104,7 +104,7 @@ static int trim_to_frame(const char *filename,
         out_filename = std::string(base.str()) + std::string("-trim.trace");
     }
 
-    CFrameTrimmer trimmer;
+    FrameTrimmer trimmer;
 
     frame = 0;
     uint64_t callid = 0;
