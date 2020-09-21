@@ -13,15 +13,15 @@ MatrixState::MatrixState(MatrixState::Pointer parent):
 
 }
 
-void MatrixState::select_matrixtype(PCall call)
+void MatrixState::select_matrixtype(const trace::Call& call)
 {
-    m_type_select_call = trace2call(*call);
+    m_type_select_call = trace2call(call);
 }
 
-void MatrixState::set_matrix(PCall call)
+void MatrixState::set_matrix(const trace::Call &call)
 {
-    assert(!strcmp(call->name(), "glLoadIdentity") ||
-           !strncmp(call->name(), "glLoadMatrix", 12));
+    assert(!strcmp(call.name(), "glLoadIdentity") ||
+           !strncmp(call.name(), "glLoadMatrix", 12));
 
     /* Remember matrix type when doing
      * glMatrixMode
@@ -35,7 +35,7 @@ void MatrixState::set_matrix(PCall call)
     reset_callset();
     if (m_type_select_call)
         append_call(m_type_select_call);
-    append_call(trace2call(*call));
+    append_call(trace2call(call));
 }
 
 void MatrixState::do_emit_calls_to_list(CallSet& list) const
@@ -66,19 +66,19 @@ void AllMatrisStates::emit_state_to_lists(CallSet& list) const
         m_color_matrix.top()->emit_calls_to_list(list);
 }
 
-void AllMatrisStates::LoadIdentity(PCall call)
+void AllMatrisStates::LoadIdentity(const trace::Call& call)
 {
     m_current_matrix->set_matrix(call);
 }
 
-void AllMatrisStates::LoadMatrix(PCall call)
+void AllMatrisStates::LoadMatrix(const trace::Call& call)
 {
     m_current_matrix->set_matrix(call);
 }
 
-void AllMatrisStates::MatrixMode(PCall call)
+void AllMatrisStates::MatrixMode(const trace::Call& call)
 {
-    switch (call->arg(0).toUInt()) {
+    switch (call.arg(0).toUInt()) {
     case GL_MODELVIEW:
         m_current_matrix_stack = &m_mv_matrix;
         break;
@@ -102,24 +102,24 @@ void AllMatrisStates::MatrixMode(PCall call)
     m_current_matrix->select_matrixtype(call);
 }
 
-void AllMatrisStates::PopMatrix(PCall call)
+void AllMatrisStates::PopMatrix(const trace::Call& call)
 {
-    m_current_matrix->append_call(trace2call(*call));
+    m_current_matrix->append_call(trace2call(call));
     m_current_matrix_stack->pop();
     assert(!m_current_matrix_stack->empty());
     m_current_matrix = m_current_matrix_stack->top();
 }
 
-void AllMatrisStates::PushMatrix(PCall call)
+void AllMatrisStates::PushMatrix(const trace::Call& call)
 {
     m_current_matrix = make_shared<MatrixState>(m_current_matrix);
     m_current_matrix_stack->push(m_current_matrix);
-    m_current_matrix->append_call(trace2call(*call));
+    m_current_matrix->append_call(trace2call(call));
 }
 
-void AllMatrisStates::matrix_op(PCall call)
+void AllMatrisStates::matrix_op(const trace::Call& call)
 {
-    m_current_matrix->append_call(trace2call(*call));
+    m_current_matrix->append_call(trace2call(call));
 }
 
 }

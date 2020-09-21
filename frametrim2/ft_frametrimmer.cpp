@@ -2,6 +2,7 @@
 #include "ft_tracecall.hpp"
 #include "ft_framebuffer.hpp"
 #include "ft_objectstate.hpp"
+#include "ft_matrixstate.hpp"
 
 #include <unordered_set>
 #include <algorithm>
@@ -52,6 +53,8 @@ struct FrameTrimmeImpl {
     void CallList(const trace::Call& call);
     void DeleteLists(const trace::Call& call);
 
+    void todo(const trace::Call& call);
+
 
     Framebuffer::Pointer m_current_draw_buffer;
 
@@ -66,6 +69,8 @@ struct FrameTrimmeImpl {
 
     std::map<std::string, PTraceCall> m_state_calls;
     std::map<unsigned, PTraceCall> m_enables;
+
+    AllMatrisStates m_matrix_states;
 
     bool m_in_target_frame;
 };
@@ -407,7 +412,9 @@ void FrameTrimmeImpl::DeleteLists(const trace::Call& call)
     }
 }
 
-
-
+void FrameTrimmeImpl::todo(const trace::Call& call)
+{
+    std::cerr << "TODO: " << call.name() << "\n";
+}
 
 }
