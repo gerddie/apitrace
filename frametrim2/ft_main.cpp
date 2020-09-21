@@ -26,7 +26,7 @@
  *********************************************************************/
 
 
-#include "ft_state.hpp"
+#include "ft_frametrimmer.hpp"
 
 #include "os_time.hpp"
 #include "trace_parser.hpp"
@@ -39,6 +39,7 @@
 
 #include <limits.h> // for CHAR_MAX
 #include <getopt.h>
+#include <memory>
 
 using namespace frametrim;
 
@@ -103,11 +104,12 @@ static int trim_to_frame(const char *filename,
         out_filename = std::string(base.str()) + std::string("-trim.trace");
     }
 
-    State appstate;
+    CFrameTrimmer trimmer;
 
     frame = 0;
     uint64_t callid = 0;
-    std::shared_ptr<trace::Call> call(p.parse_call());
+    std::unique_ptr<trace::Call> call(p.parse_call());
+    bool in_target_frame = false;
     while (call) {
         /* There's no use doing any work past the last call and frame
         * requested by the user. */
@@ -118,11 +120,17 @@ static int trim_to_frame(const char *filename,
         /* If this call is included in the user-specified call set,
         * then require it (and all dependencies) in the trimmed
         * output. */
-        if (options.frames.contains(frame, call->flags))
-            appstate.target_frame_started(call->no);
+        if (!in_target_frame &&
+            options.frames.contains(frame, call->flags)) {
+            in_target_frame = true;
+        }
 
-        appstate.call(call);
+        if (in_target_frame &&
+            !options.frames.contains(frame, call->flags)) {
+            in_target_frame = false;
+        }
 
+        trimmer.call(*call, in_target_frame);
 
         if (call->flags & trace::CALL_FLAG_END_FRAME) {
             frame++;
@@ -142,7 +150,7 @@ static int trim_to_frame(const char *filename,
         return 2;
     }
 
-    auto call_ids = appstate.get_sorted_call_ids();
+    auto call_ids = trimmer.get_sorted_call_ids();
 
     p.close();
     p.open(filename);
