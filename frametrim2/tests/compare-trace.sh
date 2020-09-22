@@ -1,6 +1,6 @@
 #/bin/bash
 
-trim="$1/glxtrim"
+trim="$1/glxtrim2"
 apitrace="$1/apitrace"
 datadir="$2"
 trace="$3"
