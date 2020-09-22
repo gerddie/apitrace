@@ -9,7 +9,7 @@ using std::make_pair;
 struct BufferSubRange {
 
     BufferSubRange() = default;
-    BufferSubRange(uint64_t start, uint64_t end, const trace::Call& call, bool memcopy);
+    BufferSubRange(uint64_t start, uint64_t end, PTraceCall call, bool memcopy);
     bool overlap_with(const BufferSubRange& range) const;
     bool split(const BufferSubRange& range, BufferSubRange& second_split);
 
@@ -53,25 +53,25 @@ struct BufferStateImpl {
 
     void post_bind(const PTraceCall& call);
     void post_unbind(const PTraceCall& call);
-    void data(const trace::Call& call);
-    void append_data(const trace::Call& call);
-    void map(const trace::Call& call);
-    void map_range(const trace::Call& call);
-    void memcopy(const trace::Call& call);
-    void unmap(const trace::Call& call);
+    PTraceCall data(const trace::Call& call);
+    PTraceCall append_data(const trace::Call& call);
+    PTraceCall map(const trace::Call& call);
+    PTraceCall map_range(const trace::Call& call);
+    PTraceCall memcopy(const trace::Call& call);
+    PTraceCall unmap(const trace::Call& call);
     bool in_mapped_range(uint64_t address) const;
-    void add_sub_range(uint64_t start, uint64_t end, const trace::Call& call, bool memcopy);
+    PTraceCall add_sub_range(uint64_t start, uint64_t end, PTraceCall call, bool memcopy);
 
-    void use(const trace::Call& call);
+    PTraceCall use(const trace::Call& call);
     void emit_calls_to_list(CallSet& list) const;
     CallSet clean_bind_calls() const;
 };
 
 
 #define FORWARD_CALL(method) \
-    void BufferState:: method (const trace::Call& call) \
+    PTraceCall BufferState:: method (const trace::Call& call) \
 { \
-    impl->method(call); \
+    return impl->method(call); \
 }
 
 FORWARD_CALL(data)
@@ -135,20 +135,22 @@ void BufferStateImpl::post_unbind(const PTraceCall& call)
 }
 
 
-void BufferStateImpl::data(const trace::Call& call)
+PTraceCall BufferStateImpl::data(const trace::Call& call)
 {
+    auto c = trace2call(call);
     m_data_upload_set.clear();
 
     m_owner->emit_bind(m_data_upload_set);
 
     m_last_bind_call_dirty = false;
-    m_data_upload_set.insert(trace2call(call));
+    m_data_upload_set.insert(c);
     m_sub_buffers.clear();
 
     m_buffer_size = call.arg(1).toUInt();
+    return c;
 }
 
-void BufferStateImpl::append_data(const trace::Call& call)
+PTraceCall BufferStateImpl::append_data(const trace::Call& call)
 {
     if (m_last_bind_call_dirty) {
         m_owner->emit_bind(m_data_upload_set);
@@ -158,10 +160,13 @@ void BufferStateImpl::append_data(const trace::Call& call)
     uint64_t start = call.arg(0).toUInt();
     uint64_t end =  start + call.arg(1).toUInt();
 
-    add_sub_range(start, end, call, false);
+    auto c = trace2call(call);
+    add_sub_range(start, end, c, false);
+    return c;
 }
 
-void BufferStateImpl::add_sub_range(uint64_t start, uint64_t end, const trace::Call& call, bool memcopy)
+PTraceCall
+BufferStateImpl::add_sub_range(uint64_t start, uint64_t end, PTraceCall call, bool memcopy)
 {
     BufferSubRange bsr(start, end, call, memcopy);
 
@@ -182,13 +187,16 @@ void BufferStateImpl::add_sub_range(uint64_t start, uint64_t end, const trace::C
             m_sub_buffers.erase(b);
 
     } while (b != m_sub_buffers.begin());
+    return call;
 }
 
-void BufferStateImpl::use(const trace::Call& call)
+PTraceCall BufferStateImpl::use(const trace::Call& call)
 {
     m_data_use_set.clear();
     m_owner->emit_bind(m_data_use_set);
-    m_data_use_set.insert(trace2call(call));
+    auto c = trace2call(call);
+    m_data_use_set.insert(c);
+    return c;
 }
 
 void BufferStateImpl::emit_calls_to_list(CallSet& list) const
@@ -244,7 +252,7 @@ CallSet BufferStateImpl::clean_bind_calls() const
     return retval;
 }
 
-void BufferStateImpl::map(const trace::Call& call)
+PTraceCall BufferStateImpl::map(const trace::Call& call)
 {
     if (m_last_bind_call_dirty) {
         m_owner->emit_bind(m_sub_data_bind_calls);
@@ -253,21 +261,25 @@ void BufferStateImpl::map(const trace::Call& call)
 
     m_mapping.range_begin = m_mapping.buffer_base = call.ret->toUInt();
     m_mapping.range_end = m_mapping.range_begin + call.arg(0).toUInt();
-    m_map_calls.push_back(trace2call(call));
+    auto c = trace2call(call);
+    m_map_calls.push_back(c);
+    return c;
 }
 
 
-void BufferStateImpl::map_range(const trace::Call& call)
+PTraceCall BufferStateImpl::map_range(const trace::Call& call)
 {
     if (m_last_bind_call_dirty) {
         m_owner->emit_bind(m_sub_data_bind_calls);
         m_last_bind_call_dirty = false;
     }
     m_mapping = BufferMap(call);
-    m_map_calls.push_back(trace2call(call));
+    auto c = trace2call(call);
+    m_map_calls.push_back(c);
+    return c;
 }
 
-void BufferStateImpl::memcopy(const trace::Call& call)
+PTraceCall BufferStateImpl::memcopy(const trace::Call& call)
 {
     // @remark: we track only copies TO buffers, have to see whether we
     // actually also need to track copying FROM buffers
@@ -278,21 +290,22 @@ void BufferStateImpl::memcopy(const trace::Call& call)
     uint64_t start = start_ptr - m_mapping.buffer_base;
     uint64_t end = call.arg(2).toUInt() + start;
 
-    add_sub_range(start, end, call, true);
+    return add_sub_range(start, end, trace2call(call), true);
 }
 
-void BufferStateImpl::unmap(const trace::Call& call)
+PTraceCall BufferStateImpl::unmap(const trace::Call& call)
 {
-    m_unmap_calls.push_back(trace2call(call));
+    auto c = trace2call(call);
+    m_unmap_calls.push_back(c);
 
     m_mapping.buffer_base =
             m_mapping.range_begin =
             m_mapping.range_end = 0;
-
+    return c;
 }
 
-BufferSubRange::BufferSubRange(uint64_t start, uint64_t end, const trace::Call& call, bool memcopy):
-    m_start(start), m_end(end), m_call(trace2call(call)), m_is_memcopy(memcopy)
+BufferSubRange::BufferSubRange(uint64_t start, uint64_t end, PTraceCall call, bool memcopy):
+    m_start(start), m_end(end), m_call(call), m_is_memcopy(memcopy)
 {
 }
 
@@ -345,51 +358,59 @@ bool BufferMap::contains(uint64_t start)
     return start >= range_begin && start < range_end;
 }
 
-void BufferStateMap::data(const trace::Call& call)
+PTraceCall BufferStateMap::data(const trace::Call& call)
 {
     bound_to(call.arg(0).toUInt())->data(call);
+    return trace2call(call);
 }
 
-void BufferStateMap::sub_data(const trace::Call& call)
+PTraceCall BufferStateMap::sub_data(const trace::Call& call)
 {
     bound_to(call.arg(0).toUInt())->append_data(call);
+    return trace2call(call);
 }
 
-void BufferStateMap::map(const trace::Call& call)
+PTraceCall BufferStateMap::map(const trace::Call& call)
 {
     unsigned target = call.arg(0).toUInt();
     auto buf = bound_to(target);
+    PTraceCall c = trace2call(call);
     if (buf) {
         m_mapped_buffers[target][buf->id()] = buf;
-        buf->map(call);
+        c = buf->map(call);
     }
+    return c;
 }
 
-void BufferStateMap::map_range(const trace::Call& call)
+PTraceCall BufferStateMap::map_range(const trace::Call& call)
 {
     unsigned target = call.arg(0).toUInt();
     auto buf = bound_to(target);
+    PTraceCall c = trace2call(call);
     if (buf) {
         m_mapped_buffers[target][buf->id()] = buf;
-        buf->map_range(call);
+        c = buf->map_range(call);
     }
+    return c;
 }
 
-void BufferStateMap::memcpy(const trace::Call& call)
+PTraceCall
+BufferStateMap::memcpy(const trace::Call& call)
 {
     auto dest_address = call.arg(0).toUInt();
 
     for(auto& bt : m_mapped_buffers) {
         for(auto& b: bt.second) {
             if (b.second->in_mapped_range(dest_address)) {
-                b.second->memcopy(call);
-                return;
+                return b.second->memcopy(call);
             }
         }
     }
+    return trace2call(call);
 }
 
-void BufferStateMap::unmap(const trace::Call& call)
+PTraceCall
+BufferStateMap::unmap(const trace::Call& call)
 {
     unsigned target = call.arg(0).toUInt();
     auto buf = bound_to(target);
@@ -397,6 +418,7 @@ void BufferStateMap::unmap(const trace::Call& call)
         auto& mapped = m_mapped_buffers[target];
         mapped.erase(buf->id());
     }
+    return trace2call(call);
 }
 
 }

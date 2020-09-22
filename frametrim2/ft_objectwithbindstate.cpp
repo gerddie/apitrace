@@ -47,6 +47,11 @@ void ObjectWithBindState::emit_bind(CallSet& out_list) const
                   << id() << " but don't have one\n";
 }
 
+void ObjectWithBindState::do_emit_calls_to_list(CallSet &list) const
+{
+    list.insert(m_bind_call);
+}
+
 bool ObjectWithBindState::is_active() const
 {
     return bound();

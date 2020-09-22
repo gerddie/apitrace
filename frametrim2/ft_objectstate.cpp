@@ -1,4 +1,5 @@
 #include "ft_objectstate.hpp"
+#include "ft_framebuffer.hpp"
 #include <sstream>
 
 namespace frametrim {
@@ -7,7 +8,8 @@ using std::stringstream;
 
 ObjectState::ObjectState(GLint glID, PTraceCall call):
     m_glID(glID),
-    m_emitting(false)
+    m_emitting(false),
+    m_callset_dirty(true)
 {
     m_gen_calls.insert(call);
 }
@@ -57,6 +59,15 @@ ObjectState::append_call(PTraceCall call)
 void ObjectState::reset_callset()
 {
     m_calls.clear();
+}
+
+void ObjectState::flush_state_cache(FramebufferState& fbo) const
+{
+    if (m_callset_dirty) {
+        m_state_cache = std::make_shared<CallSet>();
+        emit_calls_to_list(*m_state_cache);
+    }
+    fbo.append_state_cache(m_state_cache);
 }
 
 PTraceCall

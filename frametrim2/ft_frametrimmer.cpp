@@ -5,6 +5,7 @@
 #include "ft_objectstate.hpp"
 #include "ft_programstate.hpp"
 #include "ft_texturestate.hpp"
+#include "ft_bufferstate.hpp"
 
 #include <unordered_set>
 #include <algorithm>
@@ -12,6 +13,9 @@
 #include <sstream>
 #include <iostream>
 #include <set>
+
+#include <GL/gl.h>
+#include <GL/glext.h>
 
 namespace frametrim {
 
@@ -46,8 +50,12 @@ struct FrameTrimmeImpl {
     void register_legacy_calls();
     void register_required_calls();
     void register_framebuffer_calls();
+    void register_buffer_calls();
+    void register_program_calls();
+    void register_va_calls();
 
     PTraceCall record_enable(const trace::Call& call);
+    PTraceCall record_va_enable(const trace::Call& call, bool enable);
     PTraceCall record_required_call(const trace::Call& call);
 
     void update_call_table(const std::vector<const char*>& names,
@@ -61,6 +69,7 @@ struct FrameTrimmeImpl {
     PTraceCall NewList(const trace::Call& call);
     PTraceCall CallList(const trace::Call& call);
     PTraceCall DeleteLists(const trace::Call& call);
+    PTraceCall VertexAttribPointer(const trace::Call& call);
 
     PTraceCall todo(const trace::Call& call);
 
@@ -80,8 +89,16 @@ struct FrameTrimmeImpl {
 
     AllMatrisStates m_matrix_states;
     LegacyProgramStateMap m_legacy_programs;
+    ProgramStateMap m_programs;
     TextureStateMap m_textures;
     FramebufferStateMap m_fbo;
+    BufferStateMap m_buffers;
+    ShaderStateMap m_shaders;
+
+    std::unordered_map<GLint, PTraceCall> m_va_enables;
+    std::unordered_map<GLint, bool> m_va_is_enabled;
+    TGenObjStateMap<GenObjectState> m_vertex_arrays;
+    std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
 
     bool m_recording_frame;
 };
@@ -116,6 +133,9 @@ FrameTrimmeImpl::FrameTrimmeImpl()
     register_legacy_calls();
     register_required_calls();
     register_framebuffer_calls();
+    register_buffer_calls();
+    register_program_calls();
+    register_va_calls();
 }
 
 void
@@ -182,15 +202,27 @@ void FrameTrimmeImpl::start_target_frame()
 
     m_fbo.current_framebuffer().emit_calls_to_list(m_required_calls);
 
+    m_textures.emit_calls_to_list(m_required_calls);
 
+    m_programs.emit_calls_to_list(m_required_calls);
 
+    m_vertex_arrays.emit_calls_to_list(m_required_calls);
+
+    for (auto&& va: m_va_is_enabled) {
+        if (!va.second)
+            continue;
+        auto buf = m_vertex_attr_pointer[va.first];
+        if (buf)
+            buf->emit_calls_to_list(m_required_calls);
+    }
+    for (auto&& va: m_va_enables)
+        m_required_calls.insert(va.second);
 }
 
 void FrameTrimmeImpl::end_target_frame()
 {
     m_recording_frame = false;
 }
-
 
 std::vector<unsigned>
 FrameTrimmeImpl::get_sorted_call_ids() const
@@ -249,6 +281,7 @@ FrameTrimmeImpl::record_enable(const trace::Call& call)
 
 
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, this, _1)))
+#define MAP_DATA(name, call, data) m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, this, _1, data)))
 #define MAP_GENOBJ(name, obj, call) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1)))
 #define MAP_GENOBJ_DATA(name, obj, call, data) \
@@ -258,6 +291,13 @@ FrameTrimmeImpl::record_enable(const trace::Call& call)
 #define MAP_GENOBJ_DATAREF_2(name, obj, call, data, param1, param2) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
                         std::ref(data), param1, param2)))
+
+#define MAP_GENOBJ_DATA_DATAREF(name, obj, call, data, dataref) \
+    m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, data, std::ref(dataref))))
+
+#define MAP_DATAREF_DATA(name, call, data, param1) \
+    m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, _1, \
+                        std::ref(data), param1)))
 
 
 
@@ -296,8 +336,8 @@ void FrameTrimmeImpl::register_legacy_calls()
                LegacyProgramStateMap::generate);
     MAP_GENOBJ(glDeletePrograms, m_legacy_programs,
                LegacyProgramStateMap::destroy);
-    MAP_GENOBJ(glBindProgram, m_legacy_programs,
-               LegacyProgramStateMap::bind);
+    MAP_GENOBJ_DATA_DATAREF(glBindProgram, m_legacy_programs,
+               LegacyProgramStateMap::bind, 1, m_fbo.current_framebuffer());
     MAP_GENOBJ(glProgramString, m_legacy_programs,
                LegacyProgramStateMap::program_string);
 
@@ -323,7 +363,8 @@ void FrameTrimmeImpl::register_framebuffer_calls()
     */
     MAP_GENOBJ(glGenFramebuffer, m_fbo, FramebufferStateMap::generate);
     MAP_GENOBJ(glDeleteFramebuffers, m_fbo, FramebufferStateMap::destroy);
-    MAP_GENOBJ(glBindFramebuffer, m_fbo, FramebufferStateMap::bind);
+    MAP_GENOBJ_DATA_DATAREF(glBindFramebuffer, m_fbo, FramebufferStateMap::bind, 1,
+                            m_fbo.current_framebuffer());
     MAP_GENOBJ(glViewport, m_fbo, FramebufferStateMap::viewport);
 
     //MAP_GENOBJ(glBlitFramebuffer, m_fbo, FramebufferStateMap::blit);
@@ -347,6 +388,46 @@ void FrameTrimmeImpl::register_framebuffer_calls()
     /* MAP(glReadBuffer, ReadBuffer); */
 }
 
+void
+FrameTrimmeImpl::register_buffer_calls()
+{
+    MAP_GENOBJ(glGenBuffers, m_buffers, BufferStateMap::generate);
+    MAP_GENOBJ(glDeleteBuffers, m_buffers, BufferStateMap::destroy);
+
+    MAP_GENOBJ_DATA_DATAREF(glBindBuffer, m_buffers, BufferStateMap::bind, 1,
+                            m_fbo.current_framebuffer());
+    MAP_GENOBJ(glBufferData, m_buffers, BufferStateMap::data);
+    MAP_GENOBJ(glBufferSubData, m_buffers, BufferStateMap::sub_data);
+
+    MAP_GENOBJ(glMapBuffer, m_buffers, BufferStateMap::map);
+    MAP_GENOBJ(glMapBufferRange, m_buffers, BufferStateMap::map_range);
+    MAP_GENOBJ(memcpy, m_buffers, BufferStateMap::memcpy);
+    MAP_GENOBJ(glUnmapBuffer, m_buffers, BufferStateMap::unmap);
+}
+
+void
+FrameTrimmeImpl::register_program_calls()
+{
+    MAP_GENOBJ_DATAREF(glAttachObject, m_programs,
+                       ProgramStateMap::attach_shader, m_shaders);
+    MAP_GENOBJ_DATAREF(glAttachShader, m_programs,
+                       ProgramStateMap::attach_shader, m_shaders);
+
+    MAP_GENOBJ(glCompileShader, m_shaders, ShaderStateMap::data);
+    MAP_GENOBJ(glCreateShader, m_shaders, ShaderStateMap::create);
+    MAP_GENOBJ(glShaderSource, m_shaders, ShaderStateMap::data);
+    MAP_GENOBJ(glBindAttribLocation, m_programs,
+               ProgramStateMap::bind_attr_location);
+    MAP_GENOBJ(glCreateProgram, m_programs, ProgramStateMap::create);
+    MAP_GENOBJ(glGetAttribLocation, m_programs, ProgramStateMap::data);
+    MAP_GENOBJ(glGetUniformLocation, m_programs, ProgramStateMap::data);
+    MAP_GENOBJ(glBindFragDataLocation, m_programs, ProgramStateMap::data);
+    MAP_GENOBJ(glLinkProgram, m_programs, ProgramStateMap::data);
+    MAP_GENOBJ(glProgramBinary, m_programs, ProgramStateMap::data);
+    MAP_GENOBJ(glUniform, m_programs, ProgramStateMap::uniform);
+    MAP_GENOBJ(glUseProgram, m_programs, ProgramStateMap::use);
+    MAP_GENOBJ_DATA(glProgramParameter, m_programs, ProgramStateMap::set_state, 2);
+}
 
 
 void
@@ -356,7 +437,6 @@ FrameTrimmeImpl::register_state_calls()
      * call before the target frame or an fbo creating a dependency is draw. */
     const std::vector<const char *> state_calls  = {
         "glAlphaFunc",
-        "glBindVertexArray",
         "glBlendColor",
         "glBlendEquation",
         "glBlendFunc",
@@ -435,6 +515,23 @@ void FrameTrimmeImpl::register_required_calls()
         "glXSwapIntervalMESA",
     };
     update_call_table(required_calls, required_func);
+}
+
+void
+FrameTrimmeImpl::register_va_calls()
+{
+    MAP_GENOBJ(glGenVertexArrays, m_vertex_arrays,
+               TGenObjStateMap<GenObjectState>::generate);
+    MAP_GENOBJ(glDeleteVertexArrays, m_vertex_arrays,
+               TGenObjStateMap<GenObjectState>::destroy);
+    MAP_GENOBJ_DATA_DATAREF(glBindVertexArray, m_vertex_arrays,
+                            TGenObjStateMap<GenObjectState>::bind, 0,
+                            m_fbo.current_framebuffer());
+
+    MAP_DATA(glDisableVertexAttribArray, record_va_enable, false);
+    MAP_DATA(glEnableVertexAttribArray, record_va_enable, true);
+
+    MAP(glVertexAttribPointer, VertexAttribPointer);
 }
 
 void
@@ -535,6 +632,25 @@ FrameTrimmeImpl::DeleteLists(const trace::Call& call)
         m_display_lists.erase(list);
     }
     return trace2call(call);
+}
+
+PTraceCall FrameTrimmeImpl::record_va_enable(const trace::Call& call, bool enable)
+{
+    auto id = call.arg(0).toUInt();
+    m_va_enables[id] = trace2call(call);
+    m_va_is_enabled[id] = enable;
+    return m_va_enables[id];
+}
+
+PTraceCall FrameTrimmeImpl::VertexAttribPointer(const trace::Call& call)
+{
+    auto buf = m_buffers.bound_to(GL_ARRAY_BUFFER);
+    PTraceCall c = trace2call(call);
+    if (buf) {
+        c = buf->use(call);
+        m_vertex_attr_pointer[call.arg(0).toUInt()] = buf;
+    }
+    return c;
 }
 
 PTraceCall

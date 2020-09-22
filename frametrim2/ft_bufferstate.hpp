@@ -14,16 +14,16 @@ public:
     BufferState(GLint glID, PTraceCall gen_call);
     ~BufferState();
 
-    void data(const trace::Call& call);
-    void append_data(const trace::Call& call);
+    PTraceCall data(const trace::Call& call);
+    PTraceCall append_data(const trace::Call& call);
 
-    void map(const trace::Call& call);
-    void map_range(const trace::Call& call);
-    void memcopy(const trace::Call& call);
-    void unmap(const trace::Call& call);
+    PTraceCall map(const trace::Call& call);
+    PTraceCall map_range(const trace::Call& call);
+    PTraceCall memcopy(const trace::Call& call);
+    PTraceCall unmap(const trace::Call& call);
     bool in_mapped_range(uint64_t address) const;
 
-    void use(const trace::Call& call);
+    PTraceCall use(const trace::Call& call);
 
 private:
     void post_bind(const PTraceCall& call) override;
@@ -40,13 +40,13 @@ class BufferStateMap : public TGenObjStateMap<BufferState> {
   public:
     using TGenObjStateMap<BufferState>::TGenObjStateMap;
 
-    void data(const trace::Call& call);
-    void sub_data(const trace::Call& call);
+    PTraceCall data(const trace::Call& call);
+    PTraceCall sub_data(const trace::Call& call);
 
-    void map(const trace::Call& call);
-    void map_range(const trace::Call& call);
-    void memcpy(const trace::Call& call);
-    void unmap(const trace::Call& call);
+    PTraceCall map(const trace::Call& call);
+    PTraceCall map_range(const trace::Call& call);
+    PTraceCall memcpy(const trace::Call& call);
+    PTraceCall unmap(const trace::Call& call);
 
 private:
     using BufferMap = std::unordered_map<GLint, PBufferState>;

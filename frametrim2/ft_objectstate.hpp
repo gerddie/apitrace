@@ -13,6 +13,8 @@
 
 namespace frametrim {
 
+class FramebufferState;
+
 class ObjectState
 {
 public:
@@ -31,6 +33,8 @@ public:
     PTraceCall append_call(PTraceCall call);
 
     PTraceCall set_state_call(const trace::Call& call, unsigned state_id_params);
+
+    void flush_state_cache(FramebufferState& fbo) const;
 
 protected:
 
@@ -51,6 +55,8 @@ private:
     CallSet m_calls;
 
     mutable bool m_emitting;
+    mutable bool m_callset_dirty;
+    mutable PCallSet m_state_cache;
 };
 
 

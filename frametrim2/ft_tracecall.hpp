@@ -76,6 +76,8 @@ private:
     std::unordered_set<PTraceCall, CallHash> m_calls;
 };
 
+using PCallSet = std::shared_ptr<CallSet>;
+
 class CallSetWithCycleCounter : public CallSet {
 public:
     CallSetWithCycleCounter();

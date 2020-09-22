@@ -30,6 +30,7 @@ PTraceCall FramebufferStateMap::draw(const trace::Call& call)
     return m_current_framebuffer->draw(call);
 }
 
+
 void FramebufferStateMap::post_bind(unsigned target,
                                     FramebufferState::Pointer fbo)
 {
@@ -52,6 +53,11 @@ void FramebufferState::set_viewport_size(unsigned width, unsigned height)
 {
     (void)width;
     (void)height;
+}
+
+void FramebufferState::append_state_cache(PCallSet cache)
+{
+    m_dependend_states.push_back(cache);
 }
 
 void
@@ -168,6 +174,9 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
     list.insert(m_viewport_call);
     emit_bind(list);
     list.insert(m_draw_calls);
+
+    for(auto&& deps : m_dependend_states)
+        list.insert(*deps);
 }
 
 void FBOState::attach(unsigned index, PSizedObjectState attachment,

@@ -5,6 +5,7 @@
 
 namespace frametrim {
 
+class FramebufferState;
 
 class ObjectWithBindState : public ObjectState
 {
@@ -23,6 +24,7 @@ private:
     bool is_active() const override;
     virtual void post_bind(const PTraceCall& call);
     virtual void post_unbind(const PTraceCall& call);
+    void do_emit_calls_to_list(CallSet &list) const override;
 
     bool m_bound;
     PTraceCall m_bind_call;
@@ -61,11 +63,16 @@ public:
         }
     }
 
-    PTraceCall bind(const trace::Call& call) {
-        auto target = target_id_from_call(call);
-        auto id = call.arg(1).toUInt();
+    PTraceCall bind(const trace::Call& call, unsigned obj_id_index,
+                    FramebufferState& fbo) {
+        auto target = obj_id_index > 0 ? target_id_from_call(call) : 0;
+        auto id = call.arg(obj_id_index).toUInt();
         PTraceCall c = trace2call(call);
         bind_target(target, id, c);
+
+        if (m_bound_objects[target])
+            m_bound_objects[target]->flush_state_cache(fbo);
+
         return c;
     }
 
