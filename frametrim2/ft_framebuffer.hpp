@@ -30,6 +30,7 @@ protected:
 private:
 
     virtual void set_viewport_size(unsigned width, unsigned height);
+    void do_emit_calls_to_list(CallSet& list) const override;
 
     unsigned m_width;
     unsigned m_height;
@@ -39,6 +40,8 @@ private:
     unsigned m_viewport_width;
     unsigned m_viewport_height;
 
+    PTraceCall m_viewport_call;
+    CallSet m_draw_calls;
 };
 
 using PFramebufferState = FramebufferState::Pointer;
@@ -65,6 +68,7 @@ public:
 
 private:
     void set_viewport_size(unsigned width, unsigned height) override;
+    bool is_active() const override;
 
     bool m_initial_viewport_set;
 
@@ -94,6 +98,9 @@ public:
     }
 
 private:
+
+    void post_bind(unsigned target, FramebufferState::Pointer fbo) override;
+
     FramebufferState::Pointer
     bound_to_call_target(const trace::Call& call) const;
 

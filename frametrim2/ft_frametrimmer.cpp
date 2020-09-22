@@ -33,6 +33,8 @@ struct string_part_less {
 struct FrameTrimmeImpl {
     FrameTrimmeImpl();
     void call(const trace::Call& call, bool in_target_frame);
+    void start_target_frame();
+    void end_target_frame();
 
     std::vector<unsigned> get_sorted_call_ids() const;
 
@@ -113,6 +115,7 @@ FrameTrimmeImpl::FrameTrimmeImpl()
     register_state_calls();
     register_legacy_calls();
     register_required_calls();
+    register_framebuffer_calls();
 }
 
 void
@@ -121,6 +124,11 @@ FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
     const char *call_name = call.name();
 
     PTraceCall c;
+
+    if (!m_recording_frame && in_target_frame)
+        start_target_frame();
+    if (m_recording_frame && !in_target_frame)
+        end_target_frame();
 
     auto cb_range = m_call_table.equal_range(call.name());
     if (cb_range.first != m_call_table.end() &&
@@ -160,6 +168,30 @@ FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
     }
 }
 
+void FrameTrimmeImpl::start_target_frame()
+{
+    m_recording_frame = true;
+
+    for(auto& s : m_state_calls)
+        m_required_calls.insert(s.second);
+
+    for(auto& s : m_enables)
+        m_required_calls.insert(s.second);
+
+    m_matrix_states.emit_state_to_lists(m_required_calls);
+
+    m_fbo.current_framebuffer().emit_calls_to_list(m_required_calls);
+
+
+
+}
+
+void FrameTrimmeImpl::end_target_frame()
+{
+    m_recording_frame = false;
+}
+
+
 std::vector<unsigned>
 FrameTrimmeImpl::get_sorted_call_ids() const
 {
@@ -174,8 +206,6 @@ FrameTrimmeImpl::get_sorted_call_ids() const
     std::sort(sorted_calls.begin(), sorted_calls.end());
     return sorted_calls;
 }
-
-
 
 unsigned
 FrameTrimmeImpl::equal_chars(const char *l, const char *r)
@@ -202,6 +232,10 @@ FrameTrimmeImpl::record_state_call(const trace::Call& call,
 
     auto c = std::make_shared<TraceCall>(call, s.str());
     m_state_calls[s.str()] = c;
+
+    if (m_active_display_list)
+        m_active_display_list->append_call(c);
+
     return c;
 }
 
@@ -290,6 +324,7 @@ void FrameTrimmeImpl::register_framebuffer_calls()
     MAP_GENOBJ(glGenFramebuffer, m_fbo, FramebufferStateMap::generate);
     MAP_GENOBJ(glDeleteFramebuffers, m_fbo, FramebufferStateMap::destroy);
     MAP_GENOBJ(glBindFramebuffer, m_fbo, FramebufferStateMap::bind);
+    MAP_GENOBJ(glViewport, m_fbo, FramebufferStateMap::viewport);
 
     //MAP_GENOBJ(glBlitFramebuffer, m_fbo, FramebufferStateMap::blit);
     MAP_GENOBJ_DATAREF_2(glFramebufferTexture, m_fbo,

@@ -50,12 +50,12 @@ public:
 
                 obj->bind(call);
                 m_bound_objects[target] = obj;
-                post_bind(call, m_bound_objects[target]);
+                post_bind(target, m_bound_objects[target]);
             }
         } else {
             if (m_bound_objects[target])  {
                 m_bound_objects[target]->unbind(call);
-                post_unbind(call, m_bound_objects[target]);
+                post_unbind(target, m_bound_objects[target]);
             }
             m_bound_objects[target] = nullptr;
         }
@@ -90,13 +90,13 @@ public:
     }
 
 private:
-    virtual void post_bind(const PTraceCall& call, typename T::Pointer obj) {
-        (void)call;
+    virtual void post_bind(unsigned target, typename T::Pointer obj) {
+        (void)target;
         (void)obj;
     }
 
-    virtual void post_unbind(const PTraceCall& call, typename T::Pointer obj){
-        (void)call;
+    virtual void post_unbind(unsigned target, typename T::Pointer obj){
+        (void)target;
         (void)obj;
     }
 

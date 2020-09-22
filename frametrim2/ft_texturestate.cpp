@@ -152,15 +152,15 @@ TextureStateMap::bind_multitex(const trace::Call& call)
 }
 
 void
-TextureStateMap::post_bind(const PTraceCall& call, PTextureState obj)
+TextureStateMap::post_bind(unsigned target, PTextureState obj)
 {
-    (void)call;
+    (void)target;
     obj->bind_unit(m_active_texture_unit_call);
 }
 
-void TextureStateMap::post_unbind(const PTraceCall& call, PTextureState obj)
+void TextureStateMap::post_unbind(unsigned target, PTextureState obj)
 {
-    (void)call;
+    (void)target;
     obj->bind_unit(m_active_texture_unit_call);
 }
 

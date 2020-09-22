@@ -30,6 +30,18 @@ PTraceCall FramebufferStateMap::draw(const trace::Call& call)
     return m_current_framebuffer->draw(call);
 }
 
+void FramebufferStateMap::post_bind(unsigned target,
+                                    FramebufferState::Pointer fbo)
+{
+    if (target == GL_FRAMEBUFFER ||
+        target == GL_DRAW_FRAMEBUFFER)
+        m_current_framebuffer = fbo;
+
+    if (target == GL_FRAMEBUFFER ||
+        target == GL_READ_FRAMEBUFFER)
+        m_read_buffer = fbo;
+}
+
 void FramebufferState::set_size(unsigned width, unsigned height)
 {
     m_width = width;
@@ -101,6 +113,11 @@ DefaultFramebufferState::DefaultFramebufferState():
 
 }
 
+bool DefaultFramebufferState::is_active() const
+{
+    return true;
+}
+
 FramebufferState::FramebufferState(GLint glID, PTraceCall gen_call):
     GenObjectState(glID, gen_call),
     m_width(0),
@@ -120,17 +137,37 @@ PTraceCall FramebufferState::viewport(const trace::Call& call)
     m_viewport_height = call.arg(3).toUInt();
 
     set_viewport_size(m_viewport_width, m_viewport_height);
-    return trace2call(call);
+
+    /* There may be cases where the viewport is not full sized and
+     * we have to track more than one call */
+    m_viewport_call = trace2call(call);
+    return m_viewport_call;
 }
 
 PTraceCall FramebufferState::clear(const trace::Call& call)
 {
-    return trace2call(call);
+    if (m_width == m_viewport_width &&
+        m_height == m_viewport_height)
+        m_draw_calls.clear();
+
+    auto c = trace2call(call);
+    m_draw_calls.insert(c);
+    return c;
 }
 
 PTraceCall FramebufferState::draw(const trace::Call& call)
 {
-    return trace2call(call);
+    auto c = trace2call(call);
+    m_draw_calls.insert(c);
+    return c;
+}
+
+void FramebufferState::do_emit_calls_to_list(CallSet& list) const
+{
+    std::cerr << __func__ << "\n";
+    list.insert(m_viewport_call);
+    emit_bind(list);
+    list.insert(m_draw_calls);
 }
 
 void FBOState::attach(unsigned index, PSizedObjectState attachment,

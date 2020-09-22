@@ -60,8 +60,8 @@ public:
     PTraceCall bind_multitex(const trace::Call& call);
 private:
 
-    void post_bind(const PTraceCall& call, PTextureState obj) override;
-    void post_unbind(const PTraceCall& call, PTextureState obj) override;
+    void post_bind(unsigned target, PTextureState obj) override;
+    void post_unbind(unsigned target, PTextureState obj) override;
     unsigned composed_target_id(unsigned id) const override;
 
     unsigned compose_target_id_with_unit(unsigned target, unsigned unit) const;
