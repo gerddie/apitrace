@@ -8,12 +8,12 @@ GenObjectState::GenObjectState(GLint glID, PTraceCall gen_call):
     ObjectWithBindState(glID, gen_call),
     m_gen_call(gen_call)
 {
-    assert(m_gen_call);
 }
 
 void GenObjectState::emit_gen_call(CallSet& list) const
 {
-    list.insert(m_gen_call);
+    if (m_gen_call)
+        list.insert(m_gen_call);
 }
 
 SizedObjectState::SizedObjectState(GLint glID, PTraceCall gen_call, EAttachmentType at):

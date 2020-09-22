@@ -20,7 +20,7 @@ public:
     PTraceCall data(const trace::Call& call);
     PTraceCall sub_data(const trace::Call& call);
     PTraceCall copy_sub_data(const trace::Call& call,
-                             FramebufferState::Pointer fbo);
+                             PFramebufferState fbo);
 
     void rendertarget_of(unsigned layer,
                          FramebufferState::Pointer fbo);

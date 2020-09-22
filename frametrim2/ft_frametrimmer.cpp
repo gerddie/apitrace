@@ -41,8 +41,10 @@ struct FrameTrimmeImpl {
 
     void register_state_calls();
     void register_legacy_calls();
+    void register_required_calls();
 
     PTraceCall record_enable(const trace::Call& call);
+    PTraceCall record_required_call(const trace::Call& call);
 
     void update_call_table(const std::vector<const char*>& names,
                            ft_callback cb);
@@ -339,6 +341,23 @@ FrameTrimmeImpl::register_state_calls()
     MAP(glEnable, record_enable);
 }
 
+void FrameTrimmeImpl::register_required_calls()
+{
+    /* These function set up the context and are, therefore, required
+     * TODO: figure out what is really required, and whether the can be
+     * tracked like state variables. */
+    auto required_func = bind(&FrameTrimmeImpl::record_required_call, this, _1);
+    const std::vector<const char *> required_calls = {
+        "glXChooseVisual",
+        "glXCreateContext",
+        "glXDestroyContext",
+        "glXMakeCurrent",
+        "glXChooseFBConfig",
+        "glXQueryExtensionsString",
+        "glXSwapIntervalMESA",
+    };
+    update_call_table(required_calls, required_func);
+}
 
 void
 FrameTrimmeImpl::update_call_table(const std::vector<const char*>& names,
@@ -445,6 +464,14 @@ FrameTrimmeImpl::todo(const trace::Call& call)
 {
     std::cerr << "TODO: " << call.name() << "\n";
     return trace2call(call);
+}
+
+PTraceCall
+FrameTrimmeImpl::record_required_call(const trace::Call& call)
+{
+    auto c = trace2call(call);
+    m_required_calls.insert(c);
+    return c;
 }
 
 }

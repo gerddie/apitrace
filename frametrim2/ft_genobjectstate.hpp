@@ -60,6 +60,7 @@ private:
 class SizedObjectState : public GenObjectState
 {
 public:
+    using Pointer = std::shared_ptr<SizedObjectState>;
 
     enum EAttachmentType {
         texture,
