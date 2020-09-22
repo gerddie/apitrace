@@ -109,16 +109,13 @@ void TextureState::rendertarget_of(unsigned layer,
 
 void TextureState::do_emit_calls_to_list(CallSet& list) const
 {
+    std::cerr << "Emit texture calls to list\n";
+
     emit_gen_call(list);
     emit_bind(list);
     for(unsigned i = 0; i < 16; ++i)
         list.insert(m_data_upload_set[i]);
     list.insert(m_data_use_set);
-
-    /* This is a somewhat lazy approach, but we assume that if the texture
-     * was attached to a draw FBO then this was done to create the contents
-     * of the texture, so we need to record all calls used in the fbo */
-    /* TODO: if the texture was drawn to emit the draw calls */
 }
 
 bool TextureState::is_active() const

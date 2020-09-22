@@ -201,7 +201,11 @@ PTraceCall BufferStateImpl::use(const trace::Call& call)
 
 void BufferStateImpl::emit_calls_to_list(CallSet& list) const
 {
-    list.insert(clean_bind_calls());
+    std::cerr << "Emit calls of buffer " << m_owner->id()
+              << " and "    << m_data_upload_set.size()
+              << " data upload calls\n";
+
+                 list.insert(clean_bind_calls());
     list.insert(m_data_upload_set);
     list.insert(m_data_use_set);
 }

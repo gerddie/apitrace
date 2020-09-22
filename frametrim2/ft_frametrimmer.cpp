@@ -53,6 +53,8 @@ struct FrameTrimmeImpl {
     void register_buffer_calls();
     void register_program_calls();
     void register_va_calls();
+    void register_texture_calls();
+    void register_draw_calls();
 
     PTraceCall record_enable(const trace::Call& call);
     PTraceCall record_va_enable(const trace::Call& call, bool enable);
@@ -136,6 +138,7 @@ FrameTrimmeImpl::FrameTrimmeImpl()
     register_buffer_calls();
     register_program_calls();
     register_va_calls();
+    register_texture_calls();
 }
 
 void
@@ -405,6 +408,11 @@ FrameTrimmeImpl::register_buffer_calls()
     MAP_GENOBJ(glUnmapBuffer, m_buffers, BufferStateMap::unmap);
 }
 
+void FrameTrimmeImpl::register_draw_calls()
+{
+
+}
+
 void
 FrameTrimmeImpl::register_program_calls()
 {
@@ -428,6 +436,38 @@ FrameTrimmeImpl::register_program_calls()
     MAP_GENOBJ(glUseProgram, m_programs, ProgramStateMap::use);
     MAP_GENOBJ_DATA(glProgramParameter, m_programs, ProgramStateMap::set_state, 2);
 }
+
+void FrameTrimmeImpl::register_texture_calls()
+{
+    MAP_GENOBJ(glGenTextures, m_textures, TextureStateMap::generate);
+    MAP_GENOBJ(glDeleteTextures, m_textures, TextureStateMap::destroy);
+
+    MAP_GENOBJ(glActiveTexture, m_textures, TextureStateMap::active_texture);
+    MAP_GENOBJ(glClientActiveTexture, m_textures, TextureStateMap::active_texture);
+    MAP_GENOBJ_DATA_DATAREF(glBindTexture, m_textures, TextureStateMap::bind, 1,
+                            m_fbo.current_framebuffer());
+    MAP_GENOBJ(glBindMultiTexture, m_textures, TextureStateMap::bind_multitex);
+
+    MAP_GENOBJ(glCompressedTexImage2D, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glGenerateMipmap, m_textures, TextureStateMap::gen_mipmap);
+    MAP_GENOBJ(glTexImage1D, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glTexImage2D, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glTexImage3D, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glTexSubImage1D, m_textures, TextureStateMap::set_sub_data);
+    MAP_GENOBJ(glTexSubImage2D, m_textures, TextureStateMap::set_sub_data);
+    MAP_GENOBJ(glTexSubImage3D, m_textures, TextureStateMap::set_sub_data);
+
+    /*
+    MAP_GENOBJ(glCopyTexSubImage2D, m_textures, TextureStateMap::copy_sub_data);
+    MAP_GENOBJ_DATA(glTexParameter, m_textures, TextureStateMap::set_state, 2);
+
+    MAP_GENOBJ(glBindSampler, m_samplers, SamplerStateMap::bind);
+    MAP_GENOBJ(glGenSamplers, m_samplers, SamplerStateMap::generate);
+    MAP_GENOBJ(glDeleteSamplers, m_samplers, SamplerStateMap::destroy);
+    MAP_GENOBJ_DATA(glSamplerParameter, m_samplers, SamplerStateMap::set_state, 2);
+    */
+}
+
 
 
 void
