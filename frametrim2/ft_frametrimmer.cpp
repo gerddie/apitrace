@@ -7,7 +7,9 @@
 
 #include <unordered_set>
 #include <algorithm>
+#include <functional>
 #include <sstream>
+#include <iostream>
 #include <set>
 
 namespace frametrim {
@@ -17,7 +19,7 @@ using std::placeholders::_1;
 using std::make_shared;
 
 
-using ft_callback = std::function<void(const trace::Call&)>;
+using ft_callback = std::function<PTraceCall(const trace::Call&)>;
 
 struct string_part_less {
     bool operator () (const char *lhs, const char *rhs)
@@ -35,29 +37,28 @@ struct FrameTrimmeImpl {
 
     static unsigned equal_chars(const char *l, const char *r);
 
-    void record_state_call(const trace::Call& call, unsigned no_param_sel);
+    PTraceCall record_state_call(const trace::Call& call, unsigned no_param_sel);
 
     void register_state_calls();
     void register_legacy_calls();
 
-    void record_enable(const trace::Call& call);
+    PTraceCall record_enable(const trace::Call& call);
 
     void update_call_table(const std::vector<const char*>& names,
                            ft_callback cb);
 
-    void Begin(const trace::Call& call);
-    void End(const trace::Call& call);
-    void Vertex(const trace::Call& call);
-    void EndList(const trace::Call& call);
-    void GenLists(const trace::Call& call);
-    void NewList(const trace::Call& call);
-    void CallList(const trace::Call& call);
-    void DeleteLists(const trace::Call& call);
+    PTraceCall Begin(const trace::Call& call);
+    PTraceCall End(const trace::Call& call);
+    PTraceCall Vertex(const trace::Call& call);
+    PTraceCall EndList(const trace::Call& call);
+    PTraceCall GenLists(const trace::Call& call);
+    PTraceCall NewList(const trace::Call& call);
+    PTraceCall CallList(const trace::Call& call);
+    PTraceCall DeleteLists(const trace::Call& call);
 
-    void todo(const trace::Call& call);
+    PTraceCall todo(const trace::Call& call);
 
-
-    Framebuffer::Pointer m_current_draw_buffer;
+    FramebufferState::Pointer m_current_draw_buffer;
 
     using CallTable = std::multimap<const char *, ft_callback, string_part_less>;
     CallTable m_call_table;
@@ -74,7 +75,7 @@ struct FrameTrimmeImpl {
     AllMatrisStates m_matrix_states;
     LegacyProgramStateMap m_legacy_programs;
 
-    bool m_in_target_frame;
+    bool m_recording_frame;
 };
 
 FrameTrimmer::FrameTrimmer()
@@ -90,9 +91,7 @@ FrameTrimmer::~FrameTrimmer()
 void
 FrameTrimmer::call(const trace::Call& call, bool in_target_frame)
 {
-
-
-
+    impl->call(call, in_target_frame);
 }
 
 std::vector<unsigned>
@@ -112,6 +111,8 @@ void
 FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
 {
     const char *call_name = call.name();
+
+    PTraceCall c;
 
     auto cb_range = m_call_table.equal_range(call.name());
     if (cb_range.first != m_call_table.end() &&
@@ -133,7 +134,7 @@ FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
         }
 
         //std::cerr << "Handle " << call->name() << " as " << cb->first << "\n";
-        cb->second(call);
+        c = cb->second(call);
     } else {
         /* This should be some debug output only, because we might
          * not handle some calls deliberately */
@@ -144,8 +145,11 @@ FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
         }
     }
 
-    if (in_target_frame)
-        m_required_calls.insert(trace2call(call));
+    if (in_target_frame) {
+        if (!c)
+            c = trace2call(call);
+        m_required_calls.insert(c);
+    }
 }
 
 std::vector<unsigned>
@@ -179,7 +183,7 @@ FrameTrimmeImpl::equal_chars(const char *l, const char *r)
     return retval;
 }
 
-void
+PTraceCall
 FrameTrimmeImpl::record_state_call(const trace::Call& call,
                                    unsigned no_param_sel)
 {
@@ -188,14 +192,17 @@ FrameTrimmeImpl::record_state_call(const trace::Call& call,
     for (unsigned i = 0; i < no_param_sel; ++i)
         s << "_" << call.arg(i).toUInt();
 
-    m_state_calls[s.str()] = std::make_shared<TraceCall>(call, s.str());
+    auto c = std::make_shared<TraceCall>(call, s.str());
+    m_state_calls[s.str()] = c;
+    return c;
 }
 
-void
+PTraceCall
 FrameTrimmeImpl::record_enable(const trace::Call& call)
 {
     unsigned value = call.arg(0).toUInt();
     m_enables[value] = trace2call(call);
+    return m_enables[value];
 }
 
 
@@ -333,77 +340,95 @@ FrameTrimmeImpl::register_state_calls()
 }
 
 
-void FrameTrimmeImpl::update_call_table(const std::vector<const char*>& names,
+void
+FrameTrimmeImpl::update_call_table(const std::vector<const char*>& names,
                                         ft_callback cb)
 {
     for (auto& i : names)
         m_call_table.insert(std::make_pair(i, cb));
 }
 
-void FrameTrimmeImpl::Begin(const trace::Call& call)
+PTraceCall
+FrameTrimmeImpl::Begin(const trace::Call& call)
 {
+    auto c = trace2call(call);
     if (m_active_display_list)
-        m_active_display_list->append_call(trace2call(call));
+        m_active_display_list->append_call(c);
+    return c;
 }
 
-void FrameTrimmeImpl::End(const trace::Call& call)
+PTraceCall
+FrameTrimmeImpl::End(const trace::Call& call)
 {
+    auto c = trace2call(call);
     if (m_active_display_list)
-        m_active_display_list->append_call(trace2call(call));
+        m_active_display_list->append_call(c);
+    return c;
 }
 
 
-void FrameTrimmeImpl::Vertex(const trace::Call& call)
+PTraceCall
+FrameTrimmeImpl::Vertex(const trace::Call& call)
 {
+    auto c = trace2call(call);
     if (m_active_display_list)
-        m_active_display_list->append_call(trace2call(call));
+        m_active_display_list->append_call(c);
+    return c;
 }
 
-void FrameTrimmeImpl::EndList(const trace::Call& call)
+PTraceCall
+FrameTrimmeImpl::EndList(const trace::Call& call)
 {
-    if (!m_in_target_frame)
-        m_active_display_list->append_call(trace2call(call));
+    auto c = trace2call(call);
+    if (!m_recording_frame)
+        m_active_display_list->append_call(c);
 
     m_active_display_list = nullptr;
+    return c;
 }
 
-void FrameTrimmeImpl::GenLists(const trace::Call& call)
+PTraceCall
+FrameTrimmeImpl::GenLists(const trace::Call& call)
 {
     unsigned nlists = call.arg(0).toUInt();
     GLuint origResult = (*call.ret).toUInt();
     for (unsigned i = 0; i < nlists; ++i)
         m_display_lists[i + origResult] = std::make_shared<ObjectState>(i + origResult);
 
-    if (!m_in_target_frame)
-        m_display_lists[origResult]->append_call(trace2call(call));
+    auto c = trace2call(call);
+    if (!m_recording_frame)
+        m_display_lists[origResult]->append_call(c);
+    return c;
 }
 
-void FrameTrimmeImpl::NewList(const trace::Call& call)
+PTraceCall
+FrameTrimmeImpl::NewList(const trace::Call& call)
 {
     assert(!m_active_display_list);
     auto list  = m_display_lists.find(call.arg(0).toUInt());
     assert(list != m_display_lists.end());
     m_active_display_list = list->second;
 
-    if (!m_in_target_frame)
-        m_active_display_list->append_call(trace2call(call));
+    auto c = trace2call(call);
+    if (!m_recording_frame)
+        m_active_display_list->append_call(c);
+    return c;
 }
 
-void FrameTrimmeImpl::CallList(const trace::Call& call)
+PTraceCall
+FrameTrimmeImpl::CallList(const trace::Call& call)
 {
     auto list  = m_display_lists.find(call.arg(0).toUInt());
     assert(list != m_display_lists.end());
 
-    if (m_in_target_frame)
+    if (m_recording_frame)
         list->second->emit_calls_to_list(m_required_calls);
 
-    /*
-    auto draw_fbo = m_framebuffers.draw_fb();
-    if (draw_fbo)
-        list->second->emit_calls_to_list(draw_fbo->state_calls()); */
+    return trace2call(call);
 }
 
-void FrameTrimmeImpl::DeleteLists(const trace::Call& call)
+PTraceCall
+FrameTrimmeImpl::DeleteLists(const trace::Call& call)
 {
     GLint value = call.arg(0).toUInt();
     GLint value_end = call.arg(1).toUInt() + value;
@@ -412,11 +437,14 @@ void FrameTrimmeImpl::DeleteLists(const trace::Call& call)
         assert(list != m_display_lists.end());
         m_display_lists.erase(list);
     }
+    return trace2call(call);
 }
 
-void FrameTrimmeImpl::todo(const trace::Call& call)
+PTraceCall
+FrameTrimmeImpl::todo(const trace::Call& call)
 {
     std::cerr << "TODO: " << call.name() << "\n";
+    return trace2call(call);
 }
 
 }

@@ -7,8 +7,14 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <iostream>
+#include <bitset>
 
 namespace frametrim {
+
+enum ECallFlags {
+    tc_required,
+    tc_last
+};
 
 class TraceCall {
 public:
@@ -25,11 +31,16 @@ public:
     bool is_recorded_at(unsigned reference_call) const;
     void record_at(unsigned reference_call);
 
+    void set_flag(ECallFlags flag) { m_flags.set(flag);}
+    bool test_flag(ECallFlags flag) { return m_flags.test(flag);}
 private:
+
     unsigned m_trace_call_no;
     unsigned m_recorded_at;
     std::string m_name;
     std::string m_name_with_params;
+
+    std::bitset<tc_last> m_flags;
 };
 using PTraceCall = TraceCall::Pointer;
 

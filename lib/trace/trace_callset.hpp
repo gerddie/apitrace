@@ -114,7 +114,8 @@ namespace trace {
         typedef std::list< CallRange > RangeList;
         RangeList ranges;
 
-        CallSet(): limits(std::numeric_limits<CallNo>::min(), std::numeric_limits<CallNo>::max()), firstmerge(true) {}
+        CallSet(): limits(std::numeric_limits<CallNo>::min(),
+                          std::numeric_limits<CallNo>::max()), firstmerge(true) {}
 
         CallSet(CallFlags freq);
 

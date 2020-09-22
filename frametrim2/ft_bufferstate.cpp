@@ -51,8 +51,8 @@ struct BufferStateImpl {
 
     BufferStateImpl(BufferState *owner);
 
-    void post_bind(const trace::Call& call);
-    void post_unbind(const trace::Call& call);
+    void post_bind(const PTraceCall& call);
+    void post_unbind(const PTraceCall& call);
     void data(const trace::Call& call);
     void append_data(const trace::Call& call);
     void map(const trace::Call& call);
@@ -74,8 +74,6 @@ struct BufferStateImpl {
     impl->method(call); \
 }
 
-FORWARD_CALL(post_bind)
-FORWARD_CALL(post_unbind)
 FORWARD_CALL(data)
 FORWARD_CALL(append_data)
 FORWARD_CALL(use)
@@ -83,6 +81,16 @@ FORWARD_CALL(map)
 FORWARD_CALL(map_range)
 FORWARD_CALL(memcopy)
 FORWARD_CALL(unmap)
+
+void BufferState::post_bind(const PTraceCall& call)
+{
+    impl->post_bind(call);
+}
+
+void BufferState::post_unbind(const PTraceCall& call)
+{
+    impl->post_unbind(call);
+}
 
 bool BufferState::in_mapped_range(uint64_t address) const
 {
@@ -97,7 +105,7 @@ void BufferState::do_emit_calls_to_list(CallSet& list) const
     }
 }
 
-BufferState::BufferState(GLint glID, const trace::Call& gen_call):
+BufferState::BufferState(GLint glID, PTraceCall gen_call):
     GenObjectState(glID, gen_call)
 {
     impl = new BufferStateImpl(this);
@@ -114,13 +122,13 @@ BufferStateImpl::BufferStateImpl(BufferState *owner):
 
 }
 
-void BufferStateImpl::post_bind(const trace::Call& call)
+void BufferStateImpl::post_bind(const PTraceCall& call)
 {
     (void)call;
     m_last_bind_call_dirty = true;
 }
 
-void BufferStateImpl::post_unbind(const trace::Call& call)
+void BufferStateImpl::post_unbind(const PTraceCall& call)
 {
     (void)call;
     m_last_bind_call_dirty = true;

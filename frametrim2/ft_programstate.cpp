@@ -13,12 +13,12 @@ ShaderState::ShaderState(unsigned id, unsigned stage):
 {
 }
 
-ShaderState::ShaderState(unsigned id, const trace::Call& call):
+ShaderState::ShaderState(unsigned id, PTraceCall call):
     ObjectWithBindState(id, call),
     m_stage(0),
     m_attach_count(0)
 {
-    append_call(trace2call(call));
+    append_call(call);
 }
 
 void ShaderState::set_stage(unsigned stage)
@@ -55,20 +55,20 @@ bool ShaderState::is_active() const
     return bound() || is_attached();
 }
 
-void ShaderStateMap::create(const trace::Call& call)
+PTraceCall ShaderStateMap::create(const trace::Call& call)
 {
-    GLint shader_id = call->ret->toUInt();
-    GLint stage = call->arg(0).toUInt();
+    GLint shader_id = call.ret->toUInt();
+    GLint stage = call.arg(0).toUInt();
     auto shader = make_shared<ShaderState>(shader_id, stage);
-    shader->append_call(trace2call(*call));
     set(shader_id, shader);
+    return shader->append_call(trace2call(call));
 }
 
 
-void ShaderStateMap::data(const trace::Call& call)
+PTraceCall ShaderStateMap::data(const trace::Call& call)
 {
-    auto shader = get_by_id(call->arg(0).toUInt());
-    shader->append_call(trace2call(*call));
+    auto shader = get_by_id(call.arg(0).toUInt());
+    return shader->append_call(trace2call(call));
 }
 
 void ShaderStateMap::do_emit_calls_to_list(CallSet& list) const
@@ -87,15 +87,18 @@ void ProgramState::attach_shader(PShaderState shader)
     m_shaders[shader->stage()] = shader;
 }
 
-void ProgramState::set_uniform(const trace::Call& call)
+PTraceCall
+ProgramState::set_uniform(const trace::Call& call)
 {
-    m_uniforms[call->arg(0).toUInt()] = trace2call(*call);
+    m_uniforms[call.arg(0).toUInt()] = trace2call(call);
+    return m_uniforms[call.arg(0).toUInt()];
 }
 
-void ProgramState::bind(const trace::Call& call)
+PTraceCall
+ProgramState::bind(const trace::Call& call)
 {
-    m_last_bind = trace2call(*call);
-    m_uniforms.clear();
+    m_last_bind = trace2call(call);
+    return m_last_bind;
 }
 
 void ProgramState::do_emit_calls_to_list(CallSet& list) const
@@ -112,22 +115,26 @@ void ProgramState::do_emit_calls_to_list(CallSet& list) const
 }
 
 
-void ProgramStateMap::create(const trace::Call& call)
+PTraceCall
+ProgramStateMap::create(const trace::Call& call)
 {
-    uint64_t id = call->ret->toUInt();
+    uint64_t id = call.ret->toUInt();
     auto program = make_shared<ProgramState>(id);
     this->set(id, program);
-    program->append_call(trace2call(*call));
+    return program->append_call(trace2call(call));
 }
 
-void ProgramStateMap::destroy(const trace::Call& call)
+PTraceCall
+ProgramStateMap::destroy(const trace::Call& call)
 {
-    this->clear(call->ret->toUInt());
+    this->clear(call.ret->toUInt());
+    return trace2call(call);
 }
 
-void ProgramStateMap::use(const trace::Call& call)
+PTraceCall
+ProgramStateMap::use(const trace::Call& call)
 {
-    unsigned progid = call->arg(0).toUInt();
+    unsigned progid = call.arg(0).toUInt();
     bool new_program = false;
 
     if (!m_active_program ||
@@ -137,61 +144,57 @@ void ProgramStateMap::use(const trace::Call& call)
     }
 
     if (m_active_program && new_program)
-        m_active_program->bind(call);
-
-    if (m_active_program) {
-        auto& gs = global_state();
-        if (gs.in_target_frame())
-            m_active_program->emit_calls_to_list(gs.global_callset());
-
-        auto draw_fb = gs.draw_framebuffer();
-        if (draw_fb)
-            m_active_program->emit_calls_to_list(draw_fb->dependent_calls());
-    }
+        m_active_program->bind(call);  
+    return trace2call(call);
 }
 
-void ProgramStateMap::set_state(const trace::Call& call, unsigned addr_params)
+PTraceCall
+ProgramStateMap::set_state(const trace::Call& call, unsigned addr_params)
 {
-    auto program = get_by_id(call->arg(0).toUInt());
+    auto program = get_by_id(call.arg(0).toUInt());
     if (!program) {
-        std::cerr << "No program found in call " << call->no
-                  << " target:" << call->arg(0).toUInt();
+        std::cerr << "No program found in call " << call.no
+                  << " target:" << call.arg(0).toUInt();
         assert(0);
     }
-    program->set_state_call(call, addr_params);
+    return program->set_state_call(call, addr_params);
 }
 
-void ProgramStateMap::attach_shader(const trace::Call& call, ShaderStateMap& shaders)
+PTraceCall
+ProgramStateMap::attach_shader(const trace::Call& call, ShaderStateMap& shaders)
 {
-    auto program = get_by_id(call->arg(0).toUInt());
+    auto program = get_by_id(call.arg(0).toUInt());
     assert(program);
 
-    auto shader = shaders.get_by_id(call->arg(1).toUInt());
+    auto shader = shaders.get_by_id(call.arg(1).toUInt());
     assert(shader);
 
     program->attach_shader(shader);
     shader->attach();
-    program->append_call(trace2call(*call));
+    return program->append_call(trace2call(call));
 }
 
-void ProgramStateMap::bind_attr_location(const trace::Call& call)
+PTraceCall
+ProgramStateMap::bind_attr_location(const trace::Call& call)
 {
-    GLint program_id = call->arg(0).toSInt();
+    GLint program_id = call.arg(0).toSInt();
     auto prog = get_by_id(program_id);
-    prog->append_call(trace2call(*call));
+    return prog->append_call(trace2call(call));
 }
 
-void ProgramStateMap::data(const trace::Call& call)
+PTraceCall
+ProgramStateMap::data(const trace::Call& call)
 {
-    auto prog = get_by_id(call->arg(0).toUInt());
+    auto prog = get_by_id(call.arg(0).toUInt());
     assert(prog);
-    prog->append_call(trace2call(*call));
+    return prog->append_call(trace2call(call));
 }
 
-void ProgramStateMap::uniform(const trace::Call& call)
+PTraceCall
+ProgramStateMap::uniform(const trace::Call& call)
 {
     assert(m_active_program);
-    m_active_program->set_uniform(call);
+    return m_active_program->set_uniform(call);
 }
 
 void ProgramStateMap::do_emit_calls_to_list(CallSet& list) const
@@ -200,14 +203,16 @@ void ProgramStateMap::do_emit_calls_to_list(CallSet& list) const
         m_active_program->emit_calls_to_list(list);
 }
 
-void LegacyProgramStateMap::program_string(const trace::Call& call)
+PTraceCall
+LegacyProgramStateMap::program_string(const trace::Call& call)
 {
     auto shader = bound_in_call(call);
     assert(shader);
-    shader->append_call(trace2call(*call));
+    return shader->append_call(trace2call(call));
 }
 
-void LegacyProgramStateMap::do_emit_calls_to_list(CallSet& list) const
+void
+LegacyProgramStateMap::do_emit_calls_to_list(CallSet& list) const
 {
     (void)list;
 }

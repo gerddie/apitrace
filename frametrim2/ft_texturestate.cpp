@@ -8,7 +8,7 @@ namespace frametrim {
 
 using std::stringstream;
 
-TextureState::TextureState(GLint glID, const trace::Call& gen_call):
+TextureState::TextureState(GLint glID, PTraceCall gen_call):
     SizedObjectState(glID, gen_call, texture),
     m_last_bind_call_dirty(true),
     m_attach_count(0)
@@ -25,19 +25,20 @@ void TextureState::bind_unit(PTraceCall unit)
         m_last_unit_call = unit;
 }
 
-void TextureState::post_bind(const trace::Call& call)
+void TextureState::post_bind(const PTraceCall& call)
 {
     (void)call;
     m_last_bind_call_dirty = true;
 }
 
-void TextureState::post_unbind(const trace::Call& call)
+void TextureState::post_unbind(const PTraceCall& call)
 {
     (void)call;
     m_last_bind_call_dirty = true;
 }
 
-void TextureState::data(const trace::Call& call)
+PTraceCall
+TextureState::data(const trace::Call& call)
 {
     unsigned level = call.arg(1).toUInt();
     assert(level < 16);
@@ -53,7 +54,8 @@ void TextureState::data(const trace::Call& call)
         m_last_bind_call_dirty = false;
     }
 
-    m_data_upload_set[level].insert(trace2call(call));
+    auto c = trace2call(call);
+    m_data_upload_set[level].insert(c);
 
     if (!strcmp(call.name(), "glTexImage2D") ||
             !strcmp(call.name(), "glTexImage3D")) {
@@ -64,9 +66,11 @@ void TextureState::data(const trace::Call& call)
         auto w = call.arg(3).toUInt();
         set_size(level, w, 1);
     }
+    return c;
 }
 
-void TextureState::sub_data(const trace::Call& call)
+PTraceCall
+TextureState::sub_data(const trace::Call& call)
 {
     unsigned level = call.arg(1).toUInt();
     assert(level < 16);
@@ -81,15 +85,20 @@ void TextureState::sub_data(const trace::Call& call)
         emit_bind(m_data_upload_set[level]);
         m_last_bind_call_dirty = false;
     }
-    m_data_upload_set[level].insert(trace2call(call));
+    auto c = trace2call(call);
+    m_data_upload_set[level].insert(c);
+    return c;
 }
 
-void TextureState::copy_sub_data(const trace::Call& call,
-                                 FramebufferState::Pointer read_buffer)
+PTraceCall
+TextureState::copy_sub_data(const trace::Call& call,
+                            FramebufferState::Pointer read_buffer)
 {
+    auto c = trace2call(call);
     auto level = call.arg(1).toUInt();
-    m_data_upload_set[level].insert(trace2call(call));
+    m_data_upload_set[level].insert(c);
     m_fbo[level] = read_buffer;
+    return c;
 }
 
 void TextureState::rendertarget_of(unsigned layer,
@@ -121,13 +130,15 @@ TextureStateMap::TextureStateMap()
 {
 }
 
-void TextureStateMap::active_texture(const trace::Call& call)
+PTraceCall TextureStateMap::active_texture(const trace::Call& call)
 {
     m_active_texture_unit = call.arg(0).toUInt() - GL_TEXTURE0;
     m_active_texture_unit_call = trace2call(call);
+    return m_active_texture_unit_call;
 }
 
-void TextureStateMap::bind_multitex(const trace::Call& call)
+PTraceCall
+TextureStateMap::bind_multitex(const trace::Call& call)
 {
     auto unit = call.arg(0).toUInt() - GL_TEXTURE0;
     auto target =  call.arg(1).toUInt();
@@ -135,22 +146,26 @@ void TextureStateMap::bind_multitex(const trace::Call& call)
 
     auto target_id = compose_target_id_with_unit(target, unit);
 
-    bind_target(target_id, id, call);
+    auto c = trace2call(call);
+    bind_target(target_id, id, c);
+    return c;
 }
 
-void TextureStateMap::post_bind(const trace::Call& call, PTextureState obj)
+void
+TextureStateMap::post_bind(const PTraceCall& call, PTextureState obj)
 {
     (void)call;
     obj->bind_unit(m_active_texture_unit_call);
 }
 
-void TextureStateMap::post_unbind(const trace::Call& call, PTextureState obj)
+void TextureStateMap::post_unbind(const PTraceCall& call, PTextureState obj)
 {
     (void)call;
     obj->bind_unit(m_active_texture_unit_call);
 }
 
-void TextureStateMap::set_data(const trace::Call& call)
+PTraceCall
+TextureStateMap::set_data(const trace::Call& call)
 {
     auto texture = bound_in_call(call);
 
@@ -161,9 +176,11 @@ void TextureStateMap::set_data(const trace::Call& call)
         assert(0);
     }
     texture->data(call);
+    return trace2call(call);
 }
 
-void TextureStateMap::set_sub_data(const trace::Call& call)
+PTraceCall
+TextureStateMap::set_sub_data(const trace::Call& call)
 {
     /* This will need some better handling */
     auto texture = bound_in_call(call);
@@ -174,10 +191,11 @@ void TextureStateMap::set_sub_data(const trace::Call& call)
                   << " U:" << m_active_texture_unit;
         assert(0);
     }
-    texture->sub_data(call);
+    return texture->sub_data(call);
 }
 
-void TextureStateMap::copy_sub_data(const trace::Call& call,
+PTraceCall
+TextureStateMap::copy_sub_data(const trace::Call& call,
                                     FramebufferState::Pointer read_fb)
 {
     auto texture = bound_in_call(call);
@@ -191,10 +209,12 @@ void TextureStateMap::copy_sub_data(const trace::Call& call,
         std::cerr << "TODO: Handle if the read buffer "
                      "is the default framebuffer\n";
     }
-    texture->copy_sub_data(call, read_fb);
+    return texture->copy_sub_data(call, read_fb);
+
 }
 
-void TextureStateMap::gen_mipmap(const trace::Call& call)
+PTraceCall
+TextureStateMap::gen_mipmap(const trace::Call& call)
 {
     auto texture = bound_in_call(call);
 
@@ -204,7 +224,7 @@ void TextureStateMap::gen_mipmap(const trace::Call& call)
                   << " U:" << m_active_texture_unit;
         assert(0);
     }
-    texture->append_call(trace2call(call));
+    return texture->append_call(trace2call(call));
 }
 
 unsigned TextureStateMap::composed_target_id(unsigned target) const

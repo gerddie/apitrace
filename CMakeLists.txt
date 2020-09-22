@@ -586,7 +586,8 @@ add_subdirectory (dispatch)
 add_subdirectory (helpers)
 add_subdirectory (wrappers)
 add_subdirectory (retrace)
-add_subdirectory (frametrim)
+#add_subdirectory (frametrim)
+add_subdirectory (frametrim2)
 
 
 ##############################################################################

@@ -9,11 +9,11 @@ namespace frametrim {
 class ObjectWithBindState : public ObjectState
 {
 public:
-    ObjectWithBindState(GLint glID, const trace::Call& call);
+    ObjectWithBindState(GLint glID, PTraceCall call);
     ObjectWithBindState(GLint glID);
 
-    void bind(const trace::Call& call);
-    void unbind(const trace::Call& call);
+    void bind(PTraceCall call);
+    void unbind(PTraceCall call);
     bool bound() const;
 
 protected:
@@ -21,8 +21,8 @@ protected:
 
 private:
     bool is_active() const override;
-    virtual void post_bind(const trace::Call& call);
-    virtual void post_unbind(const trace::Call& call);
+    virtual void post_bind(const PTraceCall& call);
+    virtual void post_unbind(const PTraceCall& call);
 
     bool m_bound;
     PTraceCall m_bind_call;
@@ -34,7 +34,7 @@ class TObjectWithBindStateMap: public TObjStateMap<T>  {
 public:
     using TObjStateMap<T>::TObjStateMap;
 
-    void bind_target(unsigned target, unsigned id, const trace::Call& call) {
+    void bind_target(unsigned target, unsigned id, PTraceCall call) {
         if (id > 0) {
             if (!m_bound_objects[target] ||
                     m_bound_objects[target]->id() != id) {
@@ -51,16 +51,6 @@ public:
                 obj->bind(call);
                 m_bound_objects[target] = obj;
                 post_bind(call, m_bound_objects[target]);
-
-                auto& gs = this->global_state();
-
-                if (gs.in_target_frame()) {
-                    obj->emit_calls_to_list(gs.global_callset());
-                }
-                auto draw_fb = gs.draw_framebuffer();
-                if (draw_fb)
-                    obj->emit_calls_to_list(draw_fb->dependent_calls());
-
             }
         } else {
             if (m_bound_objects[target])  {
@@ -71,10 +61,12 @@ public:
         }
     }
 
-    void bind(const trace::Call& call) {
+    PTraceCall bind(const trace::Call& call) {
         auto target = target_id_from_call(call);
         auto id = call.arg(1).toUInt();
-        bind_target(target, id, call);
+        PTraceCall c = trace2call(call);
+        bind_target(target, id, c);
+        return c;
     }
 
     typename T::Pointer bound_to(unsigned target) {
@@ -98,12 +90,12 @@ public:
     }
 
 private:
-    virtual void post_bind(const trace::Call& call, typename T::Pointer obj) {
+    virtual void post_bind(const PTraceCall& call, typename T::Pointer obj) {
         (void)call;
         (void)obj;
     }
 
-    virtual void post_unbind(const trace::Call& call, typename T::Pointer obj){
+    virtual void post_unbind(const PTraceCall& call, typename T::Pointer obj){
         (void)call;
         (void)obj;
     }

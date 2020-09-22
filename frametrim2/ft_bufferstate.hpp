@@ -11,7 +11,7 @@ public:
 
     using Pointer = std::shared_ptr<BufferState>;
 
-    BufferState(GLint glID, const trace::Call& gen_call);
+    BufferState(GLint glID, PTraceCall gen_call);
     ~BufferState();
 
     void data(const trace::Call& call);
@@ -26,8 +26,8 @@ public:
     void use(const trace::Call& call);
 
 private:
-    void post_bind(const trace::Call& call) override;
-    void post_unbind(const trace::Call& call) override;
+    void post_bind(const PTraceCall& call) override;
+    void post_unbind(const PTraceCall& call) override;
     void do_emit_calls_to_list(CallSet& list) const override;
 
     friend struct BufferStateImpl;

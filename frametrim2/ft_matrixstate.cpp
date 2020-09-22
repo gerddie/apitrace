@@ -7,18 +7,21 @@ using std::make_shared;
 namespace frametrim {
 
 MatrixState::MatrixState(MatrixState::Pointer parent):
-    ObjectState(0, nullptr),
+    ObjectState(0),
     m_parent(parent)
 {
 
 }
 
-void MatrixState::select_matrixtype(const trace::Call& call)
+PTraceCall
+MatrixState::select_matrixtype(const trace::Call& call)
 {
     m_type_select_call = trace2call(call);
+    return m_type_select_call;
 }
 
-void MatrixState::set_matrix(const trace::Call &call)
+PTraceCall
+MatrixState::set_matrix(const trace::Call &call)
 {
     assert(!strcmp(call.name(), "glLoadIdentity") ||
            !strncmp(call.name(), "glLoadMatrix", 12));
@@ -35,7 +38,7 @@ void MatrixState::set_matrix(const trace::Call &call)
     reset_callset();
     if (m_type_select_call)
         append_call(m_type_select_call);
-    append_call(trace2call(call));
+    return append_call(trace2call(call));
 }
 
 void MatrixState::do_emit_calls_to_list(CallSet& list) const
@@ -66,17 +69,20 @@ void AllMatrisStates::emit_state_to_lists(CallSet& list) const
         m_color_matrix.top()->emit_calls_to_list(list);
 }
 
-void AllMatrisStates::LoadIdentity(const trace::Call& call)
+PTraceCall
+AllMatrisStates::LoadIdentity(const trace::Call& call)
 {
-    m_current_matrix->set_matrix(call);
+    return m_current_matrix->set_matrix(call);
 }
 
-void AllMatrisStates::LoadMatrix(const trace::Call& call)
+PTraceCall
+AllMatrisStates::LoadMatrix(const trace::Call& call)
 {
-    m_current_matrix->set_matrix(call);
+    return m_current_matrix->set_matrix(call);
 }
 
-void AllMatrisStates::MatrixMode(const trace::Call& call)
+PTraceCall
+AllMatrisStates::MatrixMode(const trace::Call& call)
 {
     switch (call.arg(0).toUInt()) {
     case GL_MODELVIEW:
@@ -99,27 +105,34 @@ void AllMatrisStates::MatrixMode(const trace::Call& call)
         m_current_matrix_stack->push(make_shared<MatrixState>(nullptr));
 
     m_current_matrix = m_current_matrix_stack->top();
-    m_current_matrix->select_matrixtype(call);
+    return m_current_matrix->select_matrixtype(call);
 }
 
-void AllMatrisStates::PopMatrix(const trace::Call& call)
+PTraceCall
+AllMatrisStates::PopMatrix(const trace::Call& call)
 {
     m_current_matrix->append_call(trace2call(call));
     m_current_matrix_stack->pop();
     assert(!m_current_matrix_stack->empty());
     m_current_matrix = m_current_matrix_stack->top();
+    return trace2call(call);
 }
 
-void AllMatrisStates::PushMatrix(const trace::Call& call)
+PTraceCall
+AllMatrisStates::PushMatrix(const trace::Call& call)
 {
     m_current_matrix = make_shared<MatrixState>(m_current_matrix);
     m_current_matrix_stack->push(m_current_matrix);
     m_current_matrix->append_call(trace2call(call));
+    return trace2call(call);
 }
 
-void AllMatrisStates::matrix_op(const trace::Call& call)
+PTraceCall
+AllMatrisStates::matrix_op(const trace::Call& call)
 {
-    m_current_matrix->append_call(trace2call(call));
+    auto c = trace2call(call);
+    m_current_matrix->append_call(c);
+    return c;
 }
 
 }

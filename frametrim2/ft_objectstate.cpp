@@ -5,11 +5,17 @@ namespace frametrim {
 
 using std::stringstream;
 
-ObjectState::ObjectState(GLint glID, const trace::Call& call):
+ObjectState::ObjectState(GLint glID, PTraceCall call):
     m_glID(glID),
     m_emitting(false)
 {
-    m_gen_calls.insert(trace2call(call));
+    m_gen_calls.insert(call);
+}
+
+ObjectState::ObjectState(GLint glID):
+    m_glID(glID),
+    m_emitting(false)
+{
 }
 
 ObjectState::~ObjectState()
@@ -41,9 +47,11 @@ void ObjectState::emit_calls_to_list(CallSet& list) const
     }
 }
 
-void ObjectState::append_call(PTraceCall call)
+PTraceCall
+ObjectState::append_call(PTraceCall call)
 {
     m_calls.insert(call);
+    return call;
 }
 
 void ObjectState::reset_callset()
@@ -51,7 +59,8 @@ void ObjectState::reset_callset()
     m_calls.clear();
 }
 
-void ObjectState::set_state_call(const trace::Call& call, unsigned nstate_id_params)
+PTraceCall
+ObjectState::set_state_call(const trace::Call& call, unsigned nstate_id_params)
 {
     stringstream state_call_name;
     state_call_name << call.name();
@@ -59,6 +68,7 @@ void ObjectState::set_state_call(const trace::Call& call, unsigned nstate_id_par
         state_call_name << "_" << call.arg(i).toUInt();
 
     m_state_calls[state_call_name.str()] = trace2call(call);
+    return m_state_calls[state_call_name.str()];
 }
 
 bool ObjectState::is_active() const

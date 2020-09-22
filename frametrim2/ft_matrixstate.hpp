@@ -13,9 +13,9 @@ public:
 
     MatrixState(Pointer parent);
 
-    void select_matrixtype(const trace::Call& call);
+    PTraceCall select_matrixtype(const trace::Call& call);
 
-    void set_matrix(const trace::Call& call);
+    PTraceCall set_matrix(const trace::Call& call);
 
 private:
 
@@ -33,13 +33,12 @@ class AllMatrisStates {
 public:
     AllMatrisStates();
 
-    void LoadIdentity(const trace::Call& call);
-    void LoadMatrix(const trace::Call& call);
-    void MatrixMode(const trace::Call& call);
-    void PopMatrix(const trace::Call& call);
-    void PushMatrix(const trace::Call& call);
-
-    void matrix_op(const trace::Call& call);
+    PTraceCall LoadIdentity(const trace::Call& call);
+    PTraceCall LoadMatrix(const trace::Call& call);
+    PTraceCall MatrixMode(const trace::Call& call);
+    PTraceCall PopMatrix(const trace::Call& call);
+    PTraceCall PushMatrix(const trace::Call& call);
+    PTraceCall matrix_op(const trace::Call& call);
 
     void emit_state_to_lists(CallSet& list) const;
 

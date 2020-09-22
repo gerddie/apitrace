@@ -11,16 +11,16 @@ class TextureState : public SizedObjectState
 public:
     using Pointer = std::shared_ptr<TextureState>;
 
-    TextureState(GLint glID, const trace::Call& gen_call);
+    TextureState(GLint glID, PTraceCall gen_call);
 
     void bind_unit(PTraceCall unit);
-    void post_bind(const trace::Call& unit) override;
-    void post_unbind(const trace::Call& unit) override;
+    void post_bind(const PTraceCall& unit) override;
+    void post_unbind(const PTraceCall& unit) override;
 
-    void data(const trace::Call& call);
-    void sub_data(const trace::Call& call);
-    void copy_sub_data(const trace::Call& call,
-                       FramebufferState::Pointer fbo);
+    PTraceCall data(const trace::Call& call);
+    PTraceCall sub_data(const trace::Call& call);
+    PTraceCall copy_sub_data(const trace::Call& call,
+                             FramebufferState::Pointer fbo);
 
     void rendertarget_of(unsigned layer,
                          FramebufferState::Pointer fbo);
@@ -47,21 +47,21 @@ class TextureStateMap : public TGenObjStateMap<TextureState>
 public:
     TextureStateMap();
 
-    void active_texture(const trace::Call& call);
+    PTraceCall active_texture(const trace::Call& call);
 
-    void set_data(const trace::Call& call);
+    PTraceCall set_data(const trace::Call& call);
 
-    void set_sub_data(const trace::Call& call);
-    void copy_sub_data(const trace::Call& call,
-                       FramebufferState::Pointer read_fb);
+    PTraceCall set_sub_data(const trace::Call& call);
+    PTraceCall copy_sub_data(const trace::Call& call,
+                             FramebufferState::Pointer read_fb);
 
-    void gen_mipmap(const trace::Call& call);
+    PTraceCall gen_mipmap(const trace::Call& call);
 
-    void bind_multitex(const trace::Call& call);
+    PTraceCall bind_multitex(const trace::Call& call);
 private:
 
-    void post_bind(const trace::Call& call, PTextureState obj) override;
-    void post_unbind(const trace::Call& call, PTextureState obj) override;
+    void post_bind(const PTraceCall& call, PTextureState obj) override;
+    void post_unbind(const PTraceCall& call, PTextureState obj) override;
     unsigned composed_target_id(unsigned id) const override;
 
     unsigned compose_target_id_with_unit(unsigned target, unsigned unit) const;

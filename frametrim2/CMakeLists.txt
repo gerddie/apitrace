@@ -16,20 +16,20 @@ cmake_policy(SET CMP0079 NEW)
 
 add_executable(glxtrim2
    ft_bufferstate.cpp
-   ft_framebufferstate.cpp
+   ft_framebuffer.cpp
+   ft_frametrimmer.cpp
    ft_genobjectstate.cpp
    ft_matrixstate.cpp
    ft_main.cpp
    ft_objectstate.cpp
    ft_objectwithbindstate.cpp
    ft_programstate.cpp
-   ft_state.cpp
    ft_samplerstate.cpp
    ft_texturestate.cpp
    ft_tracecall.cpp
    )
 
-target_link_libraries (glxtrim
+target_link_libraries (glxtrim2
     retrace_common
     glretrace_common
     )

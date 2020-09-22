@@ -18,7 +18,7 @@ class ObjectState
 public:
     using Pointer = std::shared_ptr<ObjectState>;
 
-    ObjectState(GLint glID, const trace::Call& call);
+    ObjectState(GLint glID, PTraceCall call);
 
     ObjectState(GLint glID);
 
@@ -28,9 +28,9 @@ public:
 
     void emit_calls_to_list(CallSet& list) const;
 
-    void append_call(PTraceCall call);
+    PTraceCall append_call(PTraceCall call);
 
-    void set_state_call(const trace::Call& call, unsigned state_id_params);
+    PTraceCall set_state_call(const trace::Call& call, unsigned state_id_params);
 
 protected:
 

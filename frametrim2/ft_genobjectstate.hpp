@@ -12,7 +12,7 @@ class GenObjectState : public ObjectWithBindState
 public:     
     using Pointer = std::shared_ptr<GenObjectState>;
 
-    GenObjectState(GLint glID, const trace::Call& gen_call);
+    GenObjectState(GLint glID, PTraceCall gen_call);
 protected:
 
     void emit_gen_call(CallSet& list) const;
@@ -29,15 +29,17 @@ class TGenObjStateMap : public TObjectWithBindStateMap<T> {
 public:
     using TObjectWithBindStateMap<T>::TObjectWithBindStateMap;
 
-    void generate(const trace::Call &call) {
+    PTraceCall generate(const trace::Call &call) {
+        auto c = trace2call(call);
         const auto ids = (call.arg(1)).toArray();
         for (auto& v : ids->values) {
-            auto obj = std::make_shared<T>(v->toUInt(), call);
+            auto obj = std::make_shared<T>(v->toUInt(), c);
             this->set(v->toUInt(), obj);
         }
+        return c;
     }
 
-    void destroy(const trace::Call &call) {
+    PTraceCall destroy(const trace::Call &call) {
         const auto ids = (call.arg(1)).toArray();
         for (auto& v : ids->values) {
             auto state = this->get_by_id(v->toUInt());
@@ -47,6 +49,7 @@ public:
                 state->append_call(trace2call(call));
             this->clear(v->toUInt());
         }
+        return trace2call(call);
     }
 private:
     void do_emit_calls_to_list(CallSet& list) const override {
@@ -63,7 +66,7 @@ public:
         renderbuffer
     };
 
-    SizedObjectState(GLint glID, const trace::Call& gen_call, EAttachmentType at);
+    SizedObjectState(GLint glID, PTraceCall gen_call, EAttachmentType at);
 
     unsigned width(unsigned level = 0) const;
     unsigned height(unsigned level = 0) const;
