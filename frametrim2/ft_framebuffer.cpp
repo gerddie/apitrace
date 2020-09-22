@@ -133,5 +133,18 @@ PTraceCall FramebufferState::draw(const trace::Call& call)
     return trace2call(call);
 }
 
+void FBOState::attach(unsigned index, PSizedObjectState attachment,
+                      unsigned layer, PTraceCall call)
+{
+    assert(0);
+}
+
+
+void FBOState::set_viewport_size(unsigned width, unsigned height)
+{
+    (void)width;
+    (void)height;
+}
+
 
 }

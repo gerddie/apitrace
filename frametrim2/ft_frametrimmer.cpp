@@ -4,6 +4,7 @@
 #include "ft_matrixstate.hpp"
 #include "ft_objectstate.hpp"
 #include "ft_programstate.hpp"
+#include "ft_texturestate.hpp"
 
 #include <unordered_set>
 #include <algorithm>
@@ -42,6 +43,7 @@ struct FrameTrimmeImpl {
     void register_state_calls();
     void register_legacy_calls();
     void register_required_calls();
+    void register_framebuffer_calls();
 
     PTraceCall record_enable(const trace::Call& call);
     PTraceCall record_required_call(const trace::Call& call);
@@ -76,6 +78,8 @@ struct FrameTrimmeImpl {
 
     AllMatrisStates m_matrix_states;
     LegacyProgramStateMap m_legacy_programs;
+    TextureStateMap m_textures;
+    FramebufferStateMap m_fbo;
 
     bool m_recording_frame;
 };
@@ -106,7 +110,9 @@ FrameTrimmer::get_sorted_call_ids() const
 
 FrameTrimmeImpl::FrameTrimmeImpl()
 {
-
+    register_state_calls();
+    register_legacy_calls();
+    register_required_calls();
 }
 
 void
@@ -215,6 +221,10 @@ FrameTrimmeImpl::record_enable(const trace::Call& call)
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, data)))
 #define MAP_GENOBJ_DATAREF(name, obj, call, data) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, std::ref(data))))
+#define MAP_GENOBJ_DATAREF_2(name, obj, call, data, param1, param2) \
+    m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
+                        std::ref(data), param1, param2)))
+
 
 
 void FrameTrimmeImpl::register_legacy_calls()
@@ -269,6 +279,39 @@ void FrameTrimmeImpl::register_legacy_calls()
     MAP_GENOBJ(glPopMatrix, m_matrix_states, AllMatrisStates::PopMatrix);
     MAP_GENOBJ(glPushMatrix, m_matrix_states, AllMatrisStates::PushMatrix);
 }
+
+void FrameTrimmeImpl::register_framebuffer_calls()
+{
+    /*MAP(glBindRenderbuffer, bind_renderbuffer);
+    MAP_GENOBJ(glDeleteRenderbuffers, m_renderbuffers, RenderbufferObjectMap::destroy);
+    MAP_GENOBJ(glGenRenderbuffer, m_renderbuffers, RenderbufferObjectMap::generate);
+    MAP_GENOBJ(glRenderbufferStorage, m_renderbuffers, RenderbufferObjectMap::storage);
+    */
+    MAP_GENOBJ(glGenFramebuffer, m_fbo, FramebufferStateMap::generate);
+    MAP_GENOBJ(glDeleteFramebuffers, m_fbo, FramebufferStateMap::destroy);
+    MAP_GENOBJ(glBindFramebuffer, m_fbo, FramebufferStateMap::bind);
+
+    //MAP_GENOBJ(glBlitFramebuffer, m_fbo, FramebufferStateMap::blit);
+    MAP_GENOBJ_DATAREF_2(glFramebufferTexture, m_fbo,
+                         FramebufferStateMap::attach_texture, m_textures,
+                         2, 3);
+    MAP_GENOBJ_DATAREF_2(glFramebufferTexture1D, m_fbo,
+                         FramebufferStateMap::attach_texture, m_textures,
+                         3, 4);
+    MAP_GENOBJ_DATAREF_2(glFramebufferTexture2D, m_fbo,
+                         FramebufferStateMap::attach_texture, m_textures,
+                         3, 4);
+
+
+/*    MAP_GENOBJ_DATAREF(glFramebufferTexture3D, m_fbo,
+                         FramebufferStateMap::attach_texture3d, m_textures);
+
+    MAP_GENOBJ_DATAREF(glFramebufferRenderbuffer, m_fbo,
+                       FramebufferStateMap::attach_renderbuffer, m_renderbuffers); */
+
+    /* MAP(glReadBuffer, ReadBuffer); */
+}
+
 
 
 void
