@@ -6,6 +6,8 @@
 #include "ft_programstate.hpp"
 #include "ft_texturestate.hpp"
 #include "ft_bufferstate.hpp"
+#include "ft_vertexarray.hpp"
+#include "ft_displaylists.hpp"
 
 #include <unordered_set>
 #include <algorithm>
@@ -72,6 +74,7 @@ struct FrameTrimmeImpl {
     PTraceCall CallList(const trace::Call& call);
     PTraceCall DeleteLists(const trace::Call& call);
     PTraceCall VertexAttribPointer(const trace::Call& call);
+    PTraceCall DrawElements(const trace::Call& call);
 
     PTraceCall todo(const trace::Call& call);
 
@@ -83,8 +86,8 @@ struct FrameTrimmeImpl {
     CallSet m_required_calls;
     std::set<std::string> m_unhandled_calls;
 
-    std::unordered_map<unsigned, ObjectState::Pointer> m_display_lists;
-    ObjectState::Pointer m_active_display_list;
+    std::unordered_map<unsigned, DisplayLists::Pointer> m_display_lists;
+    DisplayLists::Pointer m_active_display_list;
 
     std::map<std::string, PTraceCall> m_state_calls;
     std::map<unsigned, PTraceCall> m_enables;
@@ -99,7 +102,7 @@ struct FrameTrimmeImpl {
 
     std::unordered_map<GLint, PTraceCall> m_va_enables;
     std::unordered_map<GLint, bool> m_va_is_enabled;
-    TGenObjStateMap<GenObjectState> m_vertex_arrays;
+    TGenObjStateMap<VertexArray> m_vertex_arrays;
     std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
 
     bool m_recording_frame;
@@ -139,6 +142,7 @@ FrameTrimmeImpl::FrameTrimmeImpl()
     register_program_calls();
     register_va_calls();
     register_texture_calls();
+    register_draw_calls();
 }
 
 void
@@ -193,6 +197,8 @@ FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
 
 void FrameTrimmeImpl::start_target_frame()
 {
+    std::cerr << "Start recording\n";
+
     m_recording_frame = true;
 
     for(auto& s : m_state_calls)
@@ -224,6 +230,7 @@ void FrameTrimmeImpl::start_target_frame()
 
 void FrameTrimmeImpl::end_target_frame()
 {
+    std::cerr << "End recording\n";
     m_recording_frame = false;
 }
 
@@ -410,7 +417,7 @@ FrameTrimmeImpl::register_buffer_calls()
 
 void FrameTrimmeImpl::register_draw_calls()
 {
-
+    MAP(glDrawElements, DrawElements);
 }
 
 void
@@ -562,11 +569,11 @@ void
 FrameTrimmeImpl::register_va_calls()
 {
     MAP_GENOBJ(glGenVertexArrays, m_vertex_arrays,
-               TGenObjStateMap<GenObjectState>::generate);
+               TGenObjStateMap<VertexArray>::generate);
     MAP_GENOBJ(glDeleteVertexArrays, m_vertex_arrays,
-               TGenObjStateMap<GenObjectState>::destroy);
+               TGenObjStateMap<VertexArray>::destroy);
     MAP_GENOBJ_DATA_DATAREF(glBindVertexArray, m_vertex_arrays,
-                            TGenObjStateMap<GenObjectState>::bind, 0,
+                            TGenObjStateMap<VertexArray>::bind, 0,
                             m_fbo.current_framebuffer());
 
     MAP_DATA(glDisableVertexAttribArray, record_va_enable, false);
@@ -628,7 +635,7 @@ FrameTrimmeImpl::GenLists(const trace::Call& call)
     unsigned nlists = call.arg(0).toUInt();
     GLuint origResult = (*call.ret).toUInt();
     for (unsigned i = 0; i < nlists; ++i)
-        m_display_lists[i + origResult] = std::make_shared<ObjectState>(i + origResult);
+        m_display_lists[i + origResult] = std::make_shared<DisplayLists>(i + origResult);
 
     auto c = trace2call(call);
     if (!m_recording_frame)
@@ -673,6 +680,21 @@ FrameTrimmeImpl::DeleteLists(const trace::Call& call)
         m_display_lists.erase(list);
     }
     return trace2call(call);
+}
+
+PTraceCall FrameTrimmeImpl::DrawElements(const trace::Call& call)
+{
+    auto c = trace2call(call);
+
+    if (m_recording_frame) {
+        auto ibo = m_buffers.bound_to(GL_ELEMENT_ARRAY_BUFFER);
+        if (ibo) {
+            c = ibo->use(call);
+            ibo->emit_calls_to_list(m_required_calls);
+        }
+    }
+
+    return c;
 }
 
 PTraceCall FrameTrimmeImpl::record_va_enable(const trace::Call& call, bool enable)

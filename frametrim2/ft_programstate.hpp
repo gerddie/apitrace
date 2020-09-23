@@ -25,6 +25,8 @@ public:
 private:
     bool is_active() const override;
 
+    ObjectType type() const override {return bt_shader;}
+
     unsigned m_stage;
     int m_attach_count;
 };
@@ -56,6 +58,7 @@ public:
     PTraceCall unbind(const trace::Call& call);
 
 private:
+    ObjectType type() const override {return bt_program;}
 
     void do_emit_calls_to_list(CallSet& list) const override;
 

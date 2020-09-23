@@ -30,6 +30,7 @@ protected:
     void set_size(unsigned width, unsigned height);
 
 private:
+    ObjectType type() const override {return bt_framebuffer;}
 
     virtual void set_viewport_size(unsigned width, unsigned height);
     void do_emit_calls_to_list(CallSet& list) const override;

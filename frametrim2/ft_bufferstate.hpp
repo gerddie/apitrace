@@ -26,6 +26,7 @@ public:
     PTraceCall use(const trace::Call& call);
 
 private:
+    ObjectType type() const override {return bt_buffer;}
     void post_bind(const PTraceCall& call) override;
     void post_unbind(const PTraceCall& call) override;
     void do_emit_calls_to_list(CallSet& list) const override;

@@ -18,6 +18,7 @@ public:
     PTraceCall set_matrix(const trace::Call& call);
 
 private:
+    ObjectType type() const override {return bt_matrix;}
 
     void do_emit_calls_to_list(CallSet& list) const override;
 

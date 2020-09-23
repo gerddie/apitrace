@@ -15,6 +15,21 @@ namespace frametrim {
 
 class FramebufferState;
 
+enum ObjectType {
+    bt_buffer,
+    bt_display_list,
+    bt_framebuffer,
+    bt_program,
+    bt_legacy_program,
+    bt_matrix,
+    bt_renderbuffer,
+    bt_shader,
+    bt_sampler,
+    bt_texture,
+    bt_vertex_array,
+    bt_last
+};
+
 class ObjectState
 {
 public:
@@ -36,11 +51,15 @@ public:
 
     void flush_state_cache(FramebufferState& fbo) const;
 
+    unsigned global_id() const;
+
 protected:
 
     void reset_callset();
 
 private:
+
+    virtual ObjectType type() const = 0;
 
     virtual bool is_active() const;
 
@@ -54,11 +73,12 @@ private:
 
     CallSet m_calls;
 
+    ObjectType m_type;
+
     mutable bool m_emitting;
     mutable bool m_callset_dirty;
     mutable PCallSet m_state_cache;
 };
-
 
 template <typename T>
 class TObjStateMap {

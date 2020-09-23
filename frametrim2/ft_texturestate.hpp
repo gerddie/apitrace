@@ -29,6 +29,8 @@ public:
 private:
     bool is_active() const override;
 
+    ObjectType type() const override {return bt_texture;}
+
     void do_emit_calls_to_list(CallSet& list) const override;
 
     bool  m_last_unit_call_dirty;

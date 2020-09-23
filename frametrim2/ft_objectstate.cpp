@@ -30,6 +30,11 @@ unsigned ObjectState::id() const
     return m_glID;
 }
 
+unsigned ObjectState::global_id() const
+{
+    return type() + bt_last * id();
+}
+
 void ObjectState::emit_calls_to_list(CallSet& list) const
 {
     /* Because of circular references (e.g. FBO and texture attachments that
