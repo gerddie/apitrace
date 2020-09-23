@@ -109,7 +109,6 @@ static int trim_to_frame(const char *filename,
     frame = 0;
     uint64_t callid = 0;
     std::unique_ptr<trace::Call> call(p.parse_call());
-    bool in_target_frame = false;
     while (call) {
         /* There's no use doing any work past the last call and frame
         * requested by the user. */
@@ -117,20 +116,7 @@ static int trim_to_frame(const char *filename,
             break;
         }
 
-        /* If this call is included in the user-specified call set,
-        * then require it (and all dependencies) in the trimmed
-        * output. */
-        if (!in_target_frame &&
-            options.frames.contains(frame, call->flags)) {
-            in_target_frame = true;
-        }
-
-        if (in_target_frame &&
-            !options.frames.contains(frame, call->flags)) {
-            in_target_frame = false;
-        }
-
-        trimmer.call(*call, in_target_frame);
+        trimmer.call(*call, options.frames.contains(frame, call->flags));
 
         if (call->flags & trace::CALL_FLAG_END_FRAME) {
             frame++;
@@ -142,6 +128,7 @@ static int trim_to_frame(const char *filename,
 
         call.reset(p.parse_call());
     }
+    trimmer.finalize();
     std::cerr << "\rDone trimming frames     \n";
 
     trace::Writer writer;

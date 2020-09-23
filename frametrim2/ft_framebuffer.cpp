@@ -238,6 +238,7 @@ PTraceCall FramebufferState::viewport(const trace::Call& call)
     /* There may be cases where the viewport is not full sized and
      * we have to track more than one call */
     m_viewport_call = trace2call(call);
+    dirty_cache();
     return m_viewport_call;
 }
 
@@ -249,6 +250,7 @@ PTraceCall FramebufferState::clear(const trace::Call& call)
 
     auto c = trace2call(call);
     m_draw_calls.insert(c);
+    dirty_cache();
     return c;
 }
 
@@ -292,6 +294,8 @@ void FBOState::attach(unsigned index, PSizedObjectState attachment,
 
     if (attachment)
         attachment->flush_state_cache(*this);
+    dirty_cache();
+
 }
 
 void FBOState::emit_attachment_calls_to_list(CallSet& list) const

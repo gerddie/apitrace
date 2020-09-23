@@ -147,6 +147,7 @@ PTraceCall BufferStateImpl::data(const trace::Call& call)
     m_sub_buffers.clear();
 
     m_buffer_size = call.arg(1).toUInt();
+    m_owner->dirty_cache();
     return c;
 }
 
@@ -187,6 +188,7 @@ BufferStateImpl::add_sub_range(uint64_t start, uint64_t end, PTraceCall call, bo
             m_sub_buffers.erase(b);
 
     } while (b != m_sub_buffers.begin());
+    m_owner->dirty_cache();
     return call;
 }
 
@@ -196,6 +198,7 @@ PTraceCall BufferStateImpl::use(const trace::Call& call)
     m_owner->emit_bind(m_data_use_set);
     auto c = trace2call(call);
     m_data_use_set.insert(c);
+    m_owner->dirty_cache();
     return c;
 }
 

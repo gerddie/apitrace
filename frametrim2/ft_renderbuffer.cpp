@@ -32,6 +32,8 @@ RenderBuffer::set_storage(const trace::Call& call)
     unsigned w = call.arg(2).toUInt();
     unsigned h = call.arg(2).toUInt();
     set_size(0, w, h);
+    m_set_storage_call->set_required_call(bind_call());
+    dirty_cache();
     return m_set_storage_call;
 }
 

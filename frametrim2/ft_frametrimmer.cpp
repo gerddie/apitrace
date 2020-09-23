@@ -82,6 +82,8 @@ struct FrameTrimmeImpl {
     PTraceCall todo(const trace::Call& call);
     PTraceCall ignore_history(const trace::Call& call);
 
+    void finalize();
+
     FramebufferState::Pointer m_current_draw_buffer;
 
     using CallTable = std::multimap<const char *, ft_callback, string_part_less>;
@@ -136,7 +138,10 @@ FrameTrimmer::get_sorted_call_ids() const
     return impl->get_sorted_call_ids();
 }
 
-
+void FrameTrimmer::finalize()
+{
+    impl->finalize();
+}
 
 FrameTrimmeImpl::FrameTrimmeImpl():
     m_recording_frame(false)
@@ -236,8 +241,14 @@ void FrameTrimmeImpl::start_target_frame()
         m_required_calls.insert(va.second);
 }
 
+void FrameTrimmeImpl::finalize()
+{
+    m_fbo.emit_calls_to_list(m_required_calls);
+}
+
 void FrameTrimmeImpl::end_target_frame()
 {
+    m_fbo.emit_calls_to_list(m_required_calls);
     std::cerr << "End recording\n";
     m_recording_frame = false;
 }

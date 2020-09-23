@@ -15,6 +15,8 @@ public:
 
     void call(const trace::Call& call, bool in_target_frame);
 
+    void finalize();
+
     std::vector<unsigned> get_sorted_call_ids() const;
 private:
     struct FrameTrimmeImpl *impl;
