@@ -132,7 +132,7 @@ ProgramStateMap::destroy(const trace::Call& call)
 }
 
 PTraceCall
-ProgramStateMap::use(const trace::Call& call)
+ProgramStateMap::use(const trace::Call& call, FramebufferState& fbo)
 {
     unsigned progid = call.arg(0).toUInt();
     bool new_program = false;
@@ -143,8 +143,10 @@ ProgramStateMap::use(const trace::Call& call)
         new_program = true;
     }
 
-    if (m_active_program && new_program)
+    if (m_active_program && new_program) {
         m_active_program->bind(call);  
+        m_active_program->flush_state_cache(fbo);
+    }
     return trace2call(call);
 }
 

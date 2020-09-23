@@ -78,7 +78,7 @@ public:
 
     PTraceCall create(const trace::Call& call);
     PTraceCall destroy(const trace::Call& call);
-    PTraceCall use(const trace::Call& call);
+    PTraceCall use(const trace::Call& call, FramebufferState& fbo);
     PTraceCall attach_shader(const trace::Call& call, ShaderStateMap &shaders);
     PTraceCall bind_attr_location(const trace::Call& call);
     PTraceCall data(const trace::Call& call);

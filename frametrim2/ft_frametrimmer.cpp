@@ -440,7 +440,8 @@ FrameTrimmeImpl::register_program_calls()
     MAP_GENOBJ(glLinkProgram, m_programs, ProgramStateMap::data);
     MAP_GENOBJ(glProgramBinary, m_programs, ProgramStateMap::data);
     MAP_GENOBJ(glUniform, m_programs, ProgramStateMap::uniform);
-    MAP_GENOBJ(glUseProgram, m_programs, ProgramStateMap::use);
+    MAP_GENOBJ_DATAREF(glUseProgram, m_programs, ProgramStateMap::use,
+                       m_fbo.current_framebuffer());
     MAP_GENOBJ_DATA(glProgramParameter, m_programs, ProgramStateMap::set_state, 2);
 }
 
