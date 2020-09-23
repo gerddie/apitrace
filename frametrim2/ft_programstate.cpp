@@ -148,10 +148,6 @@ ProgramStateMap::use(const trace::Call& call, FramebufferState& fbo)
     if (m_active_program && new_program) {
         m_active_program->bind(call);  
         m_active_program->flush_state_cache(fbo);
-        std::cerr << "Flushed program state of "
-                  << m_active_program->id()
-                  << " to framebuffer " << fbo.id()
-                  << "\n";
     }
     return trace2call(call);
 }

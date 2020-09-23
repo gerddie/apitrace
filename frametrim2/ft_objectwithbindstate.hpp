@@ -37,12 +37,14 @@ public:
     using TObjStateMap<T>::TObjStateMap;
 
     void bind_target(unsigned target, unsigned id, PTraceCall call) {
+
         if (id > 0) {
+
             if (!m_bound_objects[target] ||
-                    m_bound_objects[target]->id() != id) {
+                m_bound_objects[target]->id() != id) {
 
                 if (m_bound_objects[target])
-                            m_bound_objects[target]->unbind(call);
+                    m_bound_objects[target]->unbind(call);
 
                 auto obj = this->get_by_id(id);
                 if (!obj) {

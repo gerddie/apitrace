@@ -24,6 +24,7 @@ add_executable(glxtrim2
    ft_objectstate.cpp
    ft_objectwithbindstate.cpp
    ft_programstate.cpp
+   ft_renderbuffer.cpp
    ft_samplerstate.cpp
    ft_texturestate.cpp
    ft_tracecall.cpp

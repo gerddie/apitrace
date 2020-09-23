@@ -1,5 +1,6 @@
 #include "ft_framebuffer.hpp"
 #include "ft_texturestate.hpp"
+#include "ft_renderbuffer.hpp"
 
 
 #include <GL/gl.h>
@@ -98,6 +99,21 @@ FramebufferStateMap::attach_texture(const trace::Call &call,
         tex->rendertarget_of(layer, fbo);
 
     fbo->attach(attach_point, tex, layer, c);
+    return c;
+}
+
+PTraceCall
+FramebufferStateMap::attach_renderbuffer(const trace::Call& call,
+                                         RenderbufferMap& renderbuffer_map)
+{
+    auto attach_point = call.arg(1).toUInt();
+    auto rb = renderbuffer_map.get_by_id(call.arg(3).toUInt());
+    auto fbo = bound_to_call_target(call);
+
+    PTraceCall c = make_shared<TraceCall>(call);
+    if (rb)
+        rb->attach_as_rendertarget(fbo);
+    fbo->attach(attach_point, rb, 0, c);
     return c;
 }
 

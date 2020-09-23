@@ -9,6 +9,8 @@
 
 namespace frametrim {
 
+class RenderbufferMap;
+
 class FramebufferState : public GenObjectState {
 public:
     using Pointer = std::shared_ptr<FramebufferState>;
@@ -97,6 +99,9 @@ public:
     PTraceCall attach_texture(const trace::Call& call, TextureStateMap& texture_map,
                               unsigned tex_param_idx,
                               unsigned level_param_idx);
+
+    PTraceCall attach_renderbuffer(const trace::Call& call,
+                                   RenderbufferMap& renderbuffer_map);
 
     FramebufferState& current_framebuffer() {
         assert(m_current_framebuffer);

@@ -124,7 +124,8 @@ bool TextureState::is_active() const
     return bound() || is_attached();
 }
 
-TextureStateMap::TextureStateMap()
+TextureStateMap::TextureStateMap():
+    m_active_texture_unit(0)
 {
 }
 
@@ -248,6 +249,7 @@ unsigned TextureStateMap::compose_target_id_with_unit(unsigned target,
                                                       unsigned unit) const
 
 {
+
     switch (target) {
     case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
     case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:

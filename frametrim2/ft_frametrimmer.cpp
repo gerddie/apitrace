@@ -8,6 +8,7 @@
 #include "ft_bufferstate.hpp"
 #include "ft_vertexarray.hpp"
 #include "ft_displaylists.hpp"
+#include "ft_renderbuffer.hpp"
 
 #include <unordered_set>
 #include <algorithm>
@@ -99,6 +100,7 @@ struct FrameTrimmeImpl {
     FramebufferStateMap m_fbo;
     BufferStateMap m_buffers;
     ShaderStateMap m_shaders;
+    RenderbufferMap m_renderbuffers;
 
     std::unordered_map<GLint, PTraceCall> m_va_enables;
     std::unordered_map<GLint, bool> m_va_is_enabled;
@@ -367,11 +369,12 @@ void FrameTrimmeImpl::register_legacy_calls()
 
 void FrameTrimmeImpl::register_framebuffer_calls()
 {
-    /*MAP(glBindRenderbuffer, bind_renderbuffer);
-    MAP_GENOBJ(glDeleteRenderbuffers, m_renderbuffers, RenderbufferObjectMap::destroy);
-    MAP_GENOBJ(glGenRenderbuffer, m_renderbuffers, RenderbufferObjectMap::generate);
-    MAP_GENOBJ(glRenderbufferStorage, m_renderbuffers, RenderbufferObjectMap::storage);
-    */
+    MAP_GENOBJ_DATA_DATAREF(glBindRenderbuffer, m_renderbuffers, RenderbufferMap::bind, 1,
+                            m_fbo.current_framebuffer());
+    MAP_GENOBJ(glDeleteRenderbuffers, m_renderbuffers, RenderbufferMap::destroy);
+    MAP_GENOBJ(glGenRenderbuffer, m_renderbuffers, RenderbufferMap::generate);
+    MAP_GENOBJ(glRenderbufferStorage, m_renderbuffers, RenderbufferMap::storage);
+
     MAP_GENOBJ(glGenFramebuffer, m_fbo, FramebufferStateMap::generate);
     MAP_GENOBJ(glDeleteFramebuffers, m_fbo, FramebufferStateMap::destroy);
     MAP_GENOBJ_DATA_DATAREF(glBindFramebuffer, m_fbo, FramebufferStateMap::bind, 1,
@@ -392,11 +395,13 @@ void FrameTrimmeImpl::register_framebuffer_calls()
 
 /*    MAP_GENOBJ_DATAREF(glFramebufferTexture3D, m_fbo,
                          FramebufferStateMap::attach_texture3d, m_textures);
+      MAP(glReadBuffer, ReadBuffer); */
+
 
     MAP_GENOBJ_DATAREF(glFramebufferRenderbuffer, m_fbo,
-                       FramebufferStateMap::attach_renderbuffer, m_renderbuffers); */
+                       FramebufferStateMap::attach_renderbuffer, m_renderbuffers);
 
-    /* MAP(glReadBuffer, ReadBuffer); */
+
 }
 
 void
