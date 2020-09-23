@@ -36,6 +36,7 @@ private:
 
     virtual void set_viewport_size(unsigned width, unsigned height);
     void do_emit_calls_to_list(CallSet& list) const override;
+    virtual void emit_attachment_calls_to_list(CallSet& list) const;
 
     unsigned m_width;
     unsigned m_height;
@@ -63,8 +64,10 @@ public:
 
 private:
     void set_viewport_size(unsigned width, unsigned height) override;
+    void emit_attachment_calls_to_list(CallSet& list) const override;
 
     std::unordered_map<unsigned, SizedObjectState::Pointer> m_attachments;
+    std::unordered_map<unsigned, std::pair<PTraceCall, PTraceCall>> m_attach_call;
 };
 
 class DefaultFramebufferState : public FramebufferState {
@@ -111,6 +114,7 @@ public:
 private:
 
     void post_bind(unsigned target, FramebufferState::Pointer fbo) override;
+    void post_unbind(unsigned target, FramebufferState::Pointer fbo) override;
 
     FramebufferState::Pointer
     bound_to_call_target(const trace::Call& call) const;

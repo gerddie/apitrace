@@ -12,8 +12,9 @@ using std::make_shared;
 
 FramebufferStateMap::FramebufferStateMap()
 {
-    m_current_framebuffer = make_shared<DefaultFramebufferState>();
-    set(0, m_current_framebuffer);
+    m_default_framebuffer = make_shared<DefaultFramebufferState>();
+    set(0, m_default_framebuffer);
+    m_read_buffer = m_current_framebuffer = m_default_framebuffer;
 }
 
 PTraceCall FramebufferStateMap::viewport(const trace::Call& call)
@@ -36,12 +37,29 @@ void FramebufferStateMap::post_bind(unsigned target,
                                     FramebufferState::Pointer fbo)
 {
     if (target == GL_FRAMEBUFFER ||
-        target == GL_DRAW_FRAMEBUFFER)
+        target == GL_DRAW_FRAMEBUFFER) {
         m_current_framebuffer = fbo;
+    }
 
     if (target == GL_FRAMEBUFFER ||
-        target == GL_READ_FRAMEBUFFER)
+        target == GL_READ_FRAMEBUFFER) {
         m_read_buffer = fbo;
+    }
+}
+
+void FramebufferStateMap::post_unbind(unsigned target,
+                                      FramebufferState::Pointer fbo)
+{
+    (void)fbo;
+    if (target == GL_FRAMEBUFFER ||
+        target == GL_DRAW_FRAMEBUFFER) {
+        m_current_framebuffer = m_default_framebuffer;
+    }
+
+    if (target == GL_FRAMEBUFFER ||
+        target == GL_READ_FRAMEBUFFER) {
+        m_read_buffer = m_default_framebuffer;
+    }
 }
 
 void FramebufferState::set_size(unsigned width, unsigned height)
@@ -107,8 +125,13 @@ FramebufferStateMap::attach_renderbuffer(const trace::Call& call,
                                          RenderbufferMap& renderbuffer_map)
 {
     auto attach_point = call.arg(1).toUInt();
+    std::cerr << "Get Renderbuffer with ID " << call.arg(3).toUInt() << "\n";
+
     auto rb = renderbuffer_map.get_by_id(call.arg(3).toUInt());
     auto fbo = bound_to_call_target(call);
+
+    assert(fbo);
+    assert(fbo->id() > 0);
 
     PTraceCall c = make_shared<TraceCall>(call);
     if (rb)
@@ -121,6 +144,8 @@ FramebufferState::Pointer
 FramebufferStateMap::bound_to_call_target(const trace::Call& call) const
 {
     auto target = call.arg(0).toUInt();
+
+    std::cerr << "Current fbo: " << m_current_framebuffer->id() << "\n";
 
     if (target == GL_FRAMEBUFFER ||
             target == GL_DRAW_FRAMEBUFFER) {
@@ -194,18 +219,41 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
 
     for(auto&& deps : m_dependend_states)
         list.insert(*deps.second);
+
+    emit_attachment_calls_to_list(list);
+}
+
+void FramebufferState::emit_attachment_calls_to_list(CallSet& list) const
+{
+    (void)list;
 }
 
 void FBOState::attach(unsigned index, PSizedObjectState attachment,
                       unsigned layer, PTraceCall call)
 {
-    (void)index;
-    (void)attachment;
     (void)layer;
     (void)call;
-    assert(0);
+    m_attachments[index] = attachment;
+    m_attach_call[index] = std::make_pair(bind_call(), call);
+
+    if (attachment)
+        attachment->flush_state_cache(*this);
 }
 
+void FBOState::emit_attachment_calls_to_list(CallSet& list) const
+{
+    for (auto&& a : m_attachments)
+        if (a.second)
+            a.second->emit_calls_to_list(list);
+
+    for (auto&& a : m_attach_call) {
+        if (a.second.first)
+            list.insert(a.second.first);
+        if (a.second.second)
+            list.insert(a.second.second);
+    }
+
+}
 
 void FBOState::set_viewport_size(unsigned width, unsigned height)
 {

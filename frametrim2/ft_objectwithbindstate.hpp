@@ -17,6 +17,7 @@ public:
     void unbind(PTraceCall call);
     bool bound() const;
 
+    PTraceCall bind_call() const { return m_bind_call;}
 protected:
     void emit_bind(CallSet& out_list) const;
 

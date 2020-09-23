@@ -4,21 +4,20 @@ namespace frametrim {
 
 RenderBuffer::RenderBuffer(GLint glID, PTraceCall gen_call):
     SizedObjectState(glID, gen_call, renderbuffer),
-    m_is_blit_source(false),
-    m_attach_count(0)
+    m_is_blit_source(false)
 {
 
 }
 
 void RenderBuffer::attach_as_rendertarget(PFramebufferState write_fb)
 {
-    ++m_attach_count;
+    attach();
     m_data_source = write_fb;
 }
 
 void RenderBuffer::detach()
 {
-    --m_attach_count;
+    unattach();
 }
 
 void RenderBuffer::set_used_as_blit_source()
@@ -54,7 +53,7 @@ void RenderBuffer::do_emit_calls_to_list(CallSet& list) const
 
 bool RenderBuffer::is_active() const
 {
-    return bound() || m_attach_count > 0;
+    return bound() || is_attached();
 }
 
 

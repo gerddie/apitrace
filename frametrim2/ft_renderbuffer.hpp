@@ -36,8 +36,6 @@ private:
     * of the data here */
     bool m_is_blit_source;
     PFramebufferState m_data_source;
-
-    int m_attach_count;
 };
 
 class RenderbufferMap : public TGenObjStateMap<RenderBuffer>
