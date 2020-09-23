@@ -57,6 +57,7 @@ void FramebufferState::set_viewport_size(unsigned width, unsigned height)
 
 void FramebufferState::append_state_cache(unsigned object_id, PCallSet cache)
 {
+    assert(cache);
     m_dependend_states[object_id] = cache;
 }
 

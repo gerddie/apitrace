@@ -132,7 +132,8 @@ FrameTrimmer::get_sorted_call_ids() const
 
 
 
-FrameTrimmeImpl::FrameTrimmeImpl()
+FrameTrimmeImpl::FrameTrimmeImpl():
+    m_recording_frame(false)
 {
     register_state_calls();
     register_legacy_calls();

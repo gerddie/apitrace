@@ -192,7 +192,6 @@ BufferStateImpl::add_sub_range(uint64_t start, uint64_t end, PTraceCall call, bo
 
 PTraceCall BufferStateImpl::use(const trace::Call& call)
 {
-    std::cerr << "Use buffer " << m_owner->id() << "\n";
     m_data_use_set.clear();
     m_owner->emit_bind(m_data_use_set);
     auto c = trace2call(call);

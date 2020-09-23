@@ -117,8 +117,6 @@ void TextureState::rendertarget_of(unsigned layer,
 
 void TextureState::do_emit_calls_to_list(CallSet& list) const
 {
-    std::cerr << "Emit texture calls to list\n";
-
     emit_gen_call(list);
     emit_bind(list);
     for(unsigned i = 0; i < 16; ++i)

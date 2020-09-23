@@ -16,7 +16,8 @@ ObjectState::ObjectState(GLint glID, PTraceCall call):
 
 ObjectState::ObjectState(GLint glID):
     m_glID(glID),
-    m_emitting(false)
+    m_emitting(false),
+    m_callset_dirty(true)
 {
 }
 
