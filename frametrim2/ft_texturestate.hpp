@@ -63,7 +63,7 @@ public:
 private:
 
     void post_bind(unsigned target, PTextureState obj) override;
-    void post_unbind(unsigned target, PTextureState obj) override;
+    void post_unbind(unsigned target, PTraceCall call) override;
     unsigned composed_target_id(unsigned id) const override;
 
     unsigned compose_target_id_with_unit(unsigned target, unsigned unit) const;

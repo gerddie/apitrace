@@ -9,6 +9,7 @@
 #include "ft_vertexarray.hpp"
 #include "ft_displaylists.hpp"
 #include "ft_renderbuffer.hpp"
+#include "ft_samplerstate.hpp"
 
 #include <unordered_set>
 #include <algorithm>
@@ -58,6 +59,7 @@ struct FrameTrimmeImpl {
     void register_va_calls();
     void register_texture_calls();
     void register_draw_calls();
+    void register_ignore_history_calls();
 
     PTraceCall record_enable(const trace::Call& call);
     PTraceCall record_va_enable(const trace::Call& call, bool enable);
@@ -78,6 +80,7 @@ struct FrameTrimmeImpl {
     PTraceCall DrawElements(const trace::Call& call);
 
     PTraceCall todo(const trace::Call& call);
+    PTraceCall ignore_history(const trace::Call& call);
 
     FramebufferState::Pointer m_current_draw_buffer;
 
@@ -101,6 +104,7 @@ struct FrameTrimmeImpl {
     BufferStateMap m_buffers;
     ShaderStateMap m_shaders;
     RenderbufferMap m_renderbuffers;
+    SamplerStateMap m_samplers;
 
     std::unordered_map<GLint, PTraceCall> m_va_enables;
     std::unordered_map<GLint, bool> m_va_is_enabled;
@@ -146,6 +150,7 @@ FrameTrimmeImpl::FrameTrimmeImpl():
     register_va_calls();
     register_texture_calls();
     register_draw_calls();
+    register_ignore_history_calls();
 }
 
 void
@@ -381,7 +386,7 @@ void FrameTrimmeImpl::register_framebuffer_calls()
                             m_fbo.current_framebuffer());
     MAP_GENOBJ(glViewport, m_fbo, FramebufferStateMap::viewport);
 
-    //MAP_GENOBJ(glBlitFramebuffer, m_fbo, FramebufferStateMap::blit);
+    MAP_GENOBJ(glBlitFramebuffer, m_fbo, FramebufferStateMap::blit);
     MAP_GENOBJ_DATAREF_2(glFramebufferTexture, m_fbo,
                          FramebufferStateMap::attach_texture, m_textures,
                          2, 3);
@@ -391,6 +396,9 @@ void FrameTrimmeImpl::register_framebuffer_calls()
     MAP_GENOBJ_DATAREF_2(glFramebufferTexture2D, m_fbo,
                          FramebufferStateMap::attach_texture, m_textures,
                          3, 4);
+
+    MAP_GENOBJ(glReadBuffer, m_fbo, FramebufferStateMap::read_buffer);
+    MAP_GENOBJ(glDrawBuffer, m_fbo, FramebufferStateMap::draw_buffer);
 
 
 /*    MAP_GENOBJ_DATAREF(glFramebufferTexture3D, m_fbo,
@@ -424,6 +432,8 @@ FrameTrimmeImpl::register_buffer_calls()
 void FrameTrimmeImpl::register_draw_calls()
 {
     MAP(glDrawElements, DrawElements);
+    MAP(glDrawRangeElements, DrawElements);
+    MAP(glDrawRangeElementsBaseVertex, DrawElements);
 }
 
 void
@@ -474,13 +484,15 @@ void FrameTrimmeImpl::register_texture_calls()
 
     /*
     MAP_GENOBJ(glCopyTexSubImage2D, m_textures, TextureStateMap::copy_sub_data);
+    */
 
 
-    MAP_GENOBJ(glBindSampler, m_samplers, SamplerStateMap::bind);
+    MAP_GENOBJ_DATA_DATAREF(glBindSampler, m_samplers, SamplerStateMap::bind, 1,
+                            m_fbo.current_framebuffer());
     MAP_GENOBJ(glGenSamplers, m_samplers, SamplerStateMap::generate);
     MAP_GENOBJ(glDeleteSamplers, m_samplers, SamplerStateMap::destroy);
     MAP_GENOBJ_DATA(glSamplerParameter, m_samplers, SamplerStateMap::set_state, 2);
-    */
+
 }
 
 
@@ -571,6 +583,46 @@ void FrameTrimmeImpl::register_required_calls()
     };
     update_call_table(required_calls, required_func);
 }
+
+void FrameTrimmeImpl::register_ignore_history_calls()
+{
+    /* These functions are ignored outside required recordings
+     * TODO: Delete calls should probably really delete things */
+    const std::vector<const char *> ignore_history_calls = {
+        "glCheckFramebufferStatus",
+        "glDeleteBuffers",
+        "glDeleteProgram",
+        "glDeleteShader",
+        "glDeleteVertexArrays",
+        "glDetachShader",
+        "glDrawArrays",
+        "glGetError",
+        "glGetFloat",
+        "glGetFramebufferAttachmentParameter",
+        "glGetInfoLog",
+        "glGetInteger",
+        "glGetObjectParameter",
+        "glGetProgram",
+        "glGetShader",
+        "glGetString",
+        "glGetTexLevelParameter",
+        "glGetTexImage",
+        "glIsEnabled",
+        "glXGetClientString",
+        "glXGetCurrentContext",
+        "glXGetCurrentDisplay",
+        "glXGetCurrentDrawable",
+        "glXGetFBConfigAttrib",
+        "glXGetFBConfigs",
+        "glXGetProcAddress",
+        "glXGetSwapIntervalMESA",
+        "glXGetVisualFromFBConfig",
+        "glXQueryVersion",
+     };
+    auto ignore_history_func = bind(&FrameTrimmeImpl::ignore_history, this, _1);
+    update_call_table(ignore_history_calls, ignore_history_func);
+}
+
 
 void
 FrameTrimmeImpl::register_va_calls()
@@ -727,6 +779,11 @@ PTraceCall
 FrameTrimmeImpl::todo(const trace::Call& call)
 {
     std::cerr << "TODO: " << call.name() << "\n";
+    return trace2call(call);
+}
+
+PTraceCall FrameTrimmeImpl::ignore_history(const trace::Call& call)
+{
     return trace2call(call);
 }
 

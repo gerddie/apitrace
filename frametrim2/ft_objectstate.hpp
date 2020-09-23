@@ -91,7 +91,8 @@ public:
     }
 
     typename T::Pointer get_by_id(uint64_t id) {
-        assert(id > 0);
+        if (!id)
+            return nullptr;
 
         auto iter = m_states.find(id);
         if (iter == m_states.end()) {

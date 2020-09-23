@@ -40,7 +40,6 @@ public:
     void bind_target(unsigned target, unsigned id, PTraceCall call) {
 
         if (id > 0) {
-
             if (!m_bound_objects[target] ||
                 m_bound_objects[target]->id() != id) {
 
@@ -60,7 +59,7 @@ public:
         } else {
             if (m_bound_objects[target])  {
                 m_bound_objects[target]->unbind(call);
-                post_unbind(target, m_bound_objects[target]);
+                post_unbind(target, call);
             }
             m_bound_objects[target] = nullptr;
         }
@@ -105,9 +104,9 @@ private:
         (void)obj;
     }
 
-    virtual void post_unbind(unsigned target, typename T::Pointer obj){
+    virtual void post_unbind(unsigned target, PTraceCall call){
         (void)target;
-        (void)obj;
+        (void)call;
     }
 
     void do_emit_calls_to_list(CallSet& list) const override {

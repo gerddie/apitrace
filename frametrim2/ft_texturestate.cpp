@@ -117,6 +117,11 @@ void TextureState::do_emit_calls_to_list(CallSet& list) const
     for(unsigned i = 0; i < 16; ++i)
         list.insert(m_data_upload_set[i]);
     list.insert(m_data_use_set);
+
+    for(auto&& f: m_fbo) {
+        if (f.second)
+            f.second->emit_calls_to_list(list);
+    }
 }
 
 bool TextureState::is_active() const
@@ -157,10 +162,10 @@ TextureStateMap::post_bind(unsigned target, PTextureState obj)
     obj->bind_unit(m_active_texture_unit_call);
 }
 
-void TextureStateMap::post_unbind(unsigned target, PTextureState obj)
+void TextureStateMap::post_unbind(unsigned target, PTraceCall call)
 {
     (void)target;
-    obj->bind_unit(m_active_texture_unit_call);
+    (void)call;
 }
 
 PTraceCall

@@ -71,10 +71,10 @@ void RenderbufferMap::post_bind(unsigned target, RenderBuffer::Pointer obj)
     m_active_renderbuffer = obj;
 }
 
-void RenderbufferMap::post_unbind(unsigned target, RenderBuffer::Pointer obj)
+void RenderbufferMap::post_unbind(unsigned target, PTraceCall call)
 {
     (void)target;
-    (void)obj;
+    (void)call;
     m_active_renderbuffer = nullptr;
 }
 

@@ -632,6 +632,9 @@ void StateImpl::register_framebuffer_calls()
                        FramebufferMap::texture, m_textures);
     MAP_GENOBJ(glGenFramebuffer, m_framebuffers, FramebufferMap::generate);
     MAP_GENOBJ(glDeleteFramebuffers, m_framebuffers, FramebufferMap::destroy);
+    MAP_GENOBJ(glDrawBuffer, m_framebuffers, FramebufferMap::draw_buffer);
+    MAP_GENOBJ(glReadBuffer, m_framebuffers, FramebufferMap::read_buffer);
+
 
     MAP_GENOBJ(glBindRenderbuffer, m_renderbuffers, RenderbufferMap::bind);
     MAP_GENOBJ(glDeleteRenderbuffers, m_renderbuffers, RenderbufferMap::destroy);

@@ -90,12 +90,22 @@ void TraceCall::record_at(unsigned reference_call)
     m_recorded_at = reference_call;
 }
 
+void TraceCall::set_required_call(Pointer call)
+{
+    m_required_call = call;
+}
+
 void CallSet::insert(PTraceCall call)
 {
     if (!call)
         return;
     do_insert(call);
+    auto dep = call->required_call();
+    if (dep)
+        do_insert(dep);
 }
+
+
 
 void CallSet::insert(const CallSet& set)
 {

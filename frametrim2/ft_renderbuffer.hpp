@@ -44,7 +44,7 @@ public:
     using TGenObjStateMap<RenderBuffer>::TGenObjStateMap;
 
     void post_bind(unsigned target, RenderBuffer::Pointer obj) override;
-    void post_unbind(unsigned target, RenderBuffer::Pointer obj) override;
+    void post_unbind(unsigned target, PTraceCall call) override;
 
     PTraceCall storage(const trace::Call& call);
 

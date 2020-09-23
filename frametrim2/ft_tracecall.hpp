@@ -35,6 +35,10 @@ public:
 
     void set_flag(ECallFlags flag) { m_flags.set(flag);}
     bool test_flag(ECallFlags flag) { return m_flags.test(flag);}
+
+    void set_required_call(Pointer call);
+
+    Pointer required_call() const { return m_required_call;}
 private:
 
     static std::string name_with_paramsel(const trace::Call& call, unsigned nsel);
@@ -45,6 +49,8 @@ private:
     std::string m_name_with_params;
 
     std::bitset<tc_last> m_flags;
+
+    Pointer m_required_call;
 };
 using PTraceCall = TraceCall::Pointer;
 

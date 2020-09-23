@@ -23,10 +23,16 @@ public:
 
     PTraceCall draw(const trace::Call& call);
 
+    PTraceCall draw_buffer(const trace::Call& call);
+
+    PTraceCall read_buffer(const trace::Call& call);
+
     void append_state_cache(unsigned object_id, PCallSet cache);
 
     virtual void attach(unsigned index, PSizedObjectState attachment,
                         unsigned layer, PTraceCall call) = 0;
+
+    PTraceCall blit(const trace::Call& call);
 
 protected:
     void set_size(unsigned width, unsigned height);
@@ -47,6 +53,8 @@ private:
     unsigned m_viewport_height;
 
     PTraceCall m_viewport_call;
+    PTraceCall m_drawbuffer_call;
+    PTraceCall m_readbuffer_call;
     CallSet m_draw_calls;
 
     std::unordered_map<unsigned, PCallSet> m_dependend_states;
@@ -99,12 +107,20 @@ public:
 
     PTraceCall draw(const trace::Call& call);
 
+    PTraceCall draw_buffer(const trace::Call& call);
+
+    PTraceCall read_buffer(const trace::Call& call);
+
     PTraceCall attach_texture(const trace::Call& call, TextureStateMap& texture_map,
                               unsigned tex_param_idx,
                               unsigned level_param_idx);
 
     PTraceCall attach_renderbuffer(const trace::Call& call,
                                    RenderbufferMap& renderbuffer_map);
+
+    PTraceCall blit(const trace::Call& call);
+
+
 
     FramebufferState& current_framebuffer() {
         assert(m_current_framebuffer);
@@ -114,7 +130,7 @@ public:
 private:
 
     void post_bind(unsigned target, FramebufferState::Pointer fbo) override;
-    void post_unbind(unsigned target, FramebufferState::Pointer fbo) override;
+    void post_unbind(unsigned target, PTraceCall call) override;
 
     FramebufferState::Pointer
     bound_to_call_target(const trace::Call& call) const;
