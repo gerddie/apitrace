@@ -101,6 +101,14 @@ TextureState::copy_sub_data(const trace::Call& call,
     return c;
 }
 
+PTraceCall TextureState::set_state(const trace::Call& call, unsigned nparam_sel)
+{
+    auto c = std::make_shared<TraceCall>(call, nparam_sel);
+    // Todo somehow the bind call should be tracked
+    m_state_calls[c->name()] = c;
+    return c;
+}
+
 void TextureState::rendertarget_of(unsigned layer,
                                    FramebufferState::Pointer fbo)
 {
@@ -116,6 +124,9 @@ void TextureState::do_emit_calls_to_list(CallSet& list) const
     for(unsigned i = 0; i < 16; ++i)
         list.insert(m_data_upload_set[i]);
     list.insert(m_data_use_set);
+
+    for(auto&& s: m_state_calls)
+        list.insert(s.second);
 }
 
 bool TextureState::is_active() const
@@ -174,6 +185,20 @@ TextureStateMap::set_data(const trace::Call& call)
     }
     texture->data(call);
     return trace2call(call);
+}
+
+PTraceCall
+TextureStateMap::set_state(const trace::Call& call, unsigned nparam_sel)
+{
+    auto texture = bound_in_call(call);
+
+    if (!texture) {
+        std::cerr << "No texture found in call " << call.no
+                  << " target:" << call.arg(0).toUInt()
+                  << " U:" << m_active_texture_unit;
+        assert(0);
+    }
+    return texture->set_state(call, nparam_sel);
 }
 
 PTraceCall

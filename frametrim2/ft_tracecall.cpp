@@ -39,7 +39,7 @@ protected:
 
 namespace frametrim {
 
-TraceCall::TraceCall(const trace::Call &call, const std::string& name):
+TraceCall::TraceCall(const trace::Call& call, const std::string& name):
     m_trace_call_no(call.no),
     m_recorded_at(0),
     m_name(name)
@@ -55,9 +55,29 @@ TraceCall::TraceCall(const trace::Call &call, const std::string& name):
     m_name_with_params = s.str();
 }
 
+TraceCall::TraceCall(const trace::Call& call, unsigned nsel):
+    TraceCall(call, name_with_paramsel(call, nsel))
+{
+
+}
+
 TraceCall::TraceCall(const trace::Call& call):
     TraceCall(call, call.name())
 {
+}
+
+std::string
+TraceCall::name_with_paramsel(const trace::Call &call, unsigned nsel)
+{
+    std::stringstream s;
+    s << call.name();
+
+    trace::StreamVisitor sv(s);
+    for(unsigned i = 0; i < nsel; ++i ) {
+        s << "_";
+        call.args[i].value->visit(sv);
+    }
+    return s.str();
 }
 
 bool TraceCall::is_recorded_at(unsigned reference_call) const

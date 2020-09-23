@@ -456,10 +456,11 @@ void FrameTrimmeImpl::register_texture_calls()
     MAP_GENOBJ(glTexSubImage1D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ(glTexSubImage2D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ(glTexSubImage3D, m_textures, TextureStateMap::set_sub_data);
+    MAP_GENOBJ_DATA(glTexParameter, m_textures, TextureStateMap::set_state, 2);
 
     /*
     MAP_GENOBJ(glCopyTexSubImage2D, m_textures, TextureStateMap::copy_sub_data);
-    MAP_GENOBJ_DATA(glTexParameter, m_textures, TextureStateMap::set_state, 2);
+
 
     MAP_GENOBJ(glBindSampler, m_samplers, SamplerStateMap::bind);
     MAP_GENOBJ(glGenSamplers, m_samplers, SamplerStateMap::generate);

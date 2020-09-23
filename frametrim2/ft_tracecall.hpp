@@ -20,7 +20,9 @@ class TraceCall {
 public:
     using Pointer = std::shared_ptr<TraceCall>;
 
-    TraceCall(const trace::Call &call, const std::string& name);
+    TraceCall(const trace::Call& call, const std::string& name);
+
+    TraceCall(const trace::Call& call, unsigned nparam_sel);
 
     TraceCall(const trace::Call& call);
 
@@ -34,6 +36,8 @@ public:
     void set_flag(ECallFlags flag) { m_flags.set(flag);}
     bool test_flag(ECallFlags flag) { return m_flags.test(flag);}
 private:
+
+    static std::string name_with_paramsel(const trace::Call& call, unsigned nsel);
 
     unsigned m_trace_call_no;
     unsigned m_recorded_at;
