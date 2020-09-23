@@ -182,6 +182,10 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
 void FBOState::attach(unsigned index, PSizedObjectState attachment,
                       unsigned layer, PTraceCall call)
 {
+    (void)index;
+    (void)attachment;
+    (void)layer;
+    (void)call;
     assert(0);
 }
 
