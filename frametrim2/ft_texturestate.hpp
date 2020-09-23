@@ -21,8 +21,6 @@ public:
     PTraceCall sub_data(const trace::Call& call);
     PTraceCall copy_sub_data(const trace::Call& call,
                              PFramebufferState fbo);
-
-    PTraceCall set_state(const trace::Call& call, unsigned nparam_sel);
     void rendertarget_of(unsigned layer,
                          FramebufferState::Pointer fbo);
 
@@ -39,8 +37,6 @@ private:
     CallSet m_data_upload_set[16];
     CallSet m_data_use_set;
     int m_attach_count;
-    std::unordered_map<std::string, PTraceCall> m_state_calls;
-
     std::unordered_map<unsigned, FramebufferState::Pointer> m_fbo;
 };
 

@@ -58,6 +58,7 @@ void ObjectState::emit_calls_to_list(CallSet& list) const
 PTraceCall
 ObjectState::append_call(PTraceCall call)
 {
+    m_callset_dirty = true;
     m_calls.insert(call);
     return call;
 }
@@ -79,13 +80,10 @@ void ObjectState::flush_state_cache(FramebufferState& fbo) const
 PTraceCall
 ObjectState::set_state_call(const trace::Call& call, unsigned nstate_id_params)
 {
-    stringstream state_call_name;
-    state_call_name << call.name();
-    for(unsigned i = 0; i < nstate_id_params; ++i)
-        state_call_name << "_" << call.arg(i).toUInt();
-
-    m_state_calls[state_call_name.str()] = trace2call(call);
-    return m_state_calls[state_call_name.str()];
+    m_callset_dirty = true;
+    auto c = std::make_shared<TraceCall>(call, nstate_id_params);
+    m_state_calls[c->name()] = c;
+    return c;
 }
 
 bool ObjectState::is_active() const
