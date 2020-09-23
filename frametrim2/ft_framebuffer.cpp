@@ -55,9 +55,9 @@ void FramebufferState::set_viewport_size(unsigned width, unsigned height)
     (void)height;
 }
 
-void FramebufferState::append_state_cache(PCallSet cache)
+void FramebufferState::append_state_cache(unsigned object_id, PCallSet cache)
 {
-    m_dependend_states.push_back(cache);
+    m_dependend_states[object_id] = cache;
 }
 
 void
@@ -176,7 +176,7 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
     list.insert(m_draw_calls);
 
     for(auto&& deps : m_dependend_states)
-        list.insert(*deps);
+        list.insert(*deps.second);
 }
 
 void FBOState::attach(unsigned index, PSizedObjectState attachment,

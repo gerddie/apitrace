@@ -21,7 +21,7 @@ public:
 
     PTraceCall draw(const trace::Call& call);
 
-    void append_state_cache(PCallSet cache);
+    void append_state_cache(unsigned object_id, PCallSet cache);
 
     virtual void attach(unsigned index, PSizedObjectState attachment,
                         unsigned layer, PTraceCall call) = 0;
@@ -46,7 +46,7 @@ private:
     PTraceCall m_viewport_call;
     CallSet m_draw_calls;
 
-    std::vector<PCallSet> m_dependend_states;
+    std::unordered_map<unsigned, PCallSet> m_dependend_states;
 };
 
 using PFramebufferState = FramebufferState::Pointer;

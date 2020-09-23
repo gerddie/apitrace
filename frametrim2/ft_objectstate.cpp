@@ -72,7 +72,7 @@ void ObjectState::flush_state_cache(FramebufferState& fbo) const
         m_state_cache = std::make_shared<CallSet>();
         emit_calls_to_list(*m_state_cache);
     }
-    fbo.append_state_cache(m_state_cache);
+    fbo.append_state_cache(global_id(), m_state_cache);
 }
 
 PTraceCall
