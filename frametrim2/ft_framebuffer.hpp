@@ -52,7 +52,7 @@ private:
     unsigned m_viewport_width;
     unsigned m_viewport_height;
 
-    PTraceCall m_viewport_call;
+    std::vector<PTraceCall> m_viewport_calls;
     PTraceCall m_drawbuffer_call;
     PTraceCall m_readbuffer_call;
     CallSet m_draw_calls;

@@ -237,9 +237,13 @@ PTraceCall FramebufferState::viewport(const trace::Call& call)
 
     /* There may be cases where the viewport is not full sized and
      * we have to track more than one call */
-    m_viewport_call = trace2call(call);
+    auto c = trace2call(call);
+    if (m_viewport_calls.empty()|| (*m_viewport_calls.rbegin())->name_with_params() !=
+        c->name_with_params())
+        m_viewport_calls.push_back(c);
+
     dirty_cache();
-    return m_viewport_call;
+    return c;
 }
 
 PTraceCall FramebufferState::clear(const trace::Call& call)
@@ -263,7 +267,8 @@ PTraceCall FramebufferState::draw(const trace::Call& call)
 
 void FramebufferState::do_emit_calls_to_list(CallSet& list) const
 {
-    list.insert(m_viewport_call);
+    for (auto&& vc : m_viewport_calls)
+        list.insert(vc);
     emit_bind(list);
     list.insert(m_draw_calls);
 

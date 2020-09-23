@@ -503,10 +503,7 @@ void FrameTrimmeImpl::register_texture_calls()
     MAP_GENOBJ(glGenSamplers, m_samplers, SamplerStateMap::generate);
     MAP_GENOBJ(glDeleteSamplers, m_samplers, SamplerStateMap::destroy);
     MAP_GENOBJ_DATA(glSamplerParameter, m_samplers, SamplerStateMap::set_state, 2);
-
 }
-
-
 
 void
 FrameTrimmeImpl::register_state_calls()
