@@ -22,12 +22,13 @@ void ObjectWithBindState::bind(PTraceCall call)
     m_bind_call = call;
     m_bound = true;
     m_bound_dirty = true;
-
+    dirty_cache();
     post_bind(m_bind_call);
 }
 
 void ObjectWithBindState::unbind(PTraceCall call)
 {
+    dirty_cache();
     m_bind_call = call;
     m_bound = false;
     post_unbind(m_bind_call);

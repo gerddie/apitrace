@@ -43,6 +43,7 @@ TextureState::data(const trace::Call& call)
     unsigned level = call.arg(1).toUInt();
     assert(level < 16);
 
+    dirty_cache();
     m_data_upload_set[level].clear();
     if (m_last_unit_call) {
         m_data_upload_set[level].insert(m_last_unit_call);
@@ -87,6 +88,7 @@ TextureState::sub_data(const trace::Call& call)
     }
     auto c = trace2call(call);
     m_data_upload_set[level].insert(c);
+    dirty_cache();
     return c;
 }
 
@@ -98,6 +100,7 @@ TextureState::copy_sub_data(const trace::Call& call,
     auto level = call.arg(1).toUInt();
     m_data_upload_set[level].insert(c);
     m_fbo[level] = read_buffer;
+    dirty_cache();
     return c;
 }
 

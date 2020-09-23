@@ -57,6 +57,8 @@ protected:
 
     void reset_callset();
 
+    void dirty_cache() {m_callset_dirty = true;}
+
 private:
 
     virtual ObjectType type() const = 0;

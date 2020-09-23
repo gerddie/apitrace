@@ -91,6 +91,7 @@ void ProgramState::attach_shader(PShaderState shader)
 PTraceCall
 ProgramState::set_uniform(const trace::Call& call)
 {
+    dirty_cache();
     m_uniforms[call.arg(0).toUInt()] = trace2call(call);
     return m_uniforms[call.arg(0).toUInt()];
 }
