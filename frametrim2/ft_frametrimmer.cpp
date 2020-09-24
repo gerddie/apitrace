@@ -431,6 +431,11 @@ FrameTrimmeImpl::register_buffer_calls()
 
     MAP_GENOBJ_DATA_DATAREF(glBindBuffer, m_buffers, BufferStateMap::bind, 1,
                             m_fbo.current_framebuffer());
+
+    /* This will need a bit more to be handled correctly */
+    MAP_GENOBJ_DATA_DATAREF(glBindBufferBase, m_buffers, BufferStateMap::bind, 2,
+                            m_fbo.current_framebuffer());
+
     MAP_GENOBJ(glBufferData, m_buffers, BufferStateMap::data);
     MAP_GENOBJ(glBufferSubData, m_buffers, BufferStateMap::sub_data);
 
@@ -487,6 +492,7 @@ void FrameTrimmeImpl::register_texture_calls()
     MAP_GENOBJ(glGenerateMipmap, m_textures, TextureStateMap::gen_mipmap);
     MAP_GENOBJ(glTexImage1D, m_textures, TextureStateMap::set_data);
     MAP_GENOBJ(glTexImage2D, m_textures, TextureStateMap::set_data);
+    MAP_GENOBJ(glTexStorage2D, m_textures, TextureStateMap::storage);
     MAP_GENOBJ(glTexImage3D, m_textures, TextureStateMap::set_data);
     MAP_GENOBJ(glTexSubImage1D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ(glTexSubImage2D, m_textures, TextureStateMap::set_sub_data);
@@ -543,6 +549,8 @@ FrameTrimmeImpl::register_state_calls()
         "glStencilOpSeparate",
         "glVertexPointer",
         "glXSwapBuffers",
+        "eglSwapBuffers",
+        "glFinish",
     };
 
     auto state_call_func = bind(&FrameTrimmeImpl::record_state_call, this, _1, 0);
@@ -585,9 +593,16 @@ void FrameTrimmeImpl::register_required_calls()
         "glXCreateContext",
         "glXDestroyContext",
         "glXMakeCurrent",
+        "glXMakeContextCurrent",
         "glXChooseFBConfig",
         "glXQueryExtensionsString",
         "glXSwapIntervalMESA",
+
+        "eglInitialize",
+        "eglCreatePlatformWindowSurface",
+        "eglBindAPI",
+        "eglCreateContext",
+        "eglMakeCurrent"
     };
     update_call_table(required_calls, required_func);
 }
@@ -616,6 +631,7 @@ void FrameTrimmeImpl::register_ignore_history_calls()
         "glGetTexLevelParameter",
         "glGetTexImage",
         "glIsEnabled",
+        "glReadPixels",
         "glXGetClientString",
         "glXGetCurrentContext",
         "glXGetCurrentDisplay",
@@ -626,6 +642,14 @@ void FrameTrimmeImpl::register_ignore_history_calls()
         "glXGetSwapIntervalMESA",
         "glXGetVisualFromFBConfig",
         "glXQueryVersion",
+        "eglGetProcAddress",
+        "eglQueryString",
+        "eglGetError",
+        "eglGetPlatformDisplay",
+        "eglGetConfigs",
+        "eglGetConfigAttrib",
+        "eglQuerySurface",
+
      };
     auto ignore_history_func = bind(&FrameTrimmeImpl::ignore_history, this, _1);
     update_call_table(ignore_history_calls, ignore_history_func);

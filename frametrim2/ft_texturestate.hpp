@@ -18,6 +18,7 @@ public:
     void post_unbind(const PTraceCall& unit) override;
 
     PTraceCall data(const trace::Call& call);
+    PTraceCall storage(const trace::Call& call);
     PTraceCall sub_data(const trace::Call& call);
     PTraceCall copy_sub_data(const trace::Call& call,
                              PFramebufferState fbo);
@@ -50,6 +51,8 @@ public:
     PTraceCall active_texture(const trace::Call& call);
 
     PTraceCall set_data(const trace::Call& call);
+
+    PTraceCall storage(const trace::Call& call);
 
     PTraceCall set_sub_data(const trace::Call& call);
     PTraceCall copy_sub_data(const trace::Call& call,

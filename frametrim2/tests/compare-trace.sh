@@ -11,7 +11,7 @@ echo "Run tests $trace"
 
 rm ${trace}*.png
 rm ${trace}*.md5
-rm trim$-{trace}
+rm trim-{trace}
 
 ${trim} "${datadir}/${trace}" --frames ${frame} -o trim-${trace} || exit 1
 ${apitrace} replay --headless "${datadir}/${trace}" --snapshot=${orig_img} --snapshot-prefix=${trace}orig || exit 1
