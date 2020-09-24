@@ -1,7 +1,7 @@
 
 MACRO(TRACE_TEST name frame orig_img)
   
-  ADD_TEST(NAME ${name} COMMAND
+  ADD_TEST(NAME ${name}-${frame} COMMAND
     /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/compare-trace.sh
     ${CMAKE_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -22,7 +22,7 @@ TRACE_TEST(render_to_texture 425, 29227)
 TRACE_TEST(rotations 68 103311)
 TRACE_TEST(shadowmaps 560 42910)
 TRACE_TEST(fbo-render 3 20278)
-#TRACE_TEST(fbo-render 48 176233)
+TRACE_TEST(fbo-render 50 176281)
 
 MACRO(TRACE_RTEST name frame orig_img)
   ADD_TEST(NAME ${name}_reverse COMMAND

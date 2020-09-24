@@ -7,28 +7,29 @@ trace="$3"
 frame=$4
 orig_img=$5
 
-echo "Run tests $trace"
+testname=${trace}-${frame}
 
-rm ${trace}*.png
-rm ${trace}*.md5
-rm trim-{trace}
+echo "Run test $testname"
 
-${trim} "${datadir}/${trace}" --frames ${frame} -o trim-${trace} || exit 1
-${apitrace} replay --headless "${datadir}/${trace}" --snapshot=${orig_img} --snapshot-prefix=${trace}orig || exit 1
-${apitrace} replay --headless trim-${trace} --snapshot=frame --snapshot-prefix=${trace} || exit 1
+rm ${testname}*.png
+rm ${testname}*.md5
+rm trim-{testname}
 
-orig=$(printf "${trace}orig%010d.png" ${orig_img})
-trim_array_=$(ls ${trace}0*.png)
+${trim} "${datadir}/${trace}" --frames ${frame} -o trim-${testname} || exit 1
+${apitrace} replay --headless "${datadir}/${trace}" --snapshot=${orig_img} --snapshot-prefix=${testname}orig || exit 1
+${apitrace} replay --headless trim-${testname} --snapshot=frame --snapshot-prefix=${testname} || exit 1
+
+orig=$(printf "${testname}orig%010d.png" ${orig_img})
+trim_array_=$(ls ${testname}0*.png)
 trim_array=( $trim_array_ )
 trim=${trim_array[-1]}
-echo $trim
 
 if [ "x$trim" = "x" ]; then
   exit 1
 fi
 
-md5sum ${orig} | sed -s "s/ .*//" >${trace}.orig.md5
-md5sum ${trim} | sed -s "s/ .*//" >${trace}.trim.md5
+md5sum ${orig} | sed -s "s/ .*//" >${testname}.orig.md5
+md5sum ${trim} | sed -s "s/ .*//" >${testname}.trim.md5
 
-diff -q ${trace}.orig.md5 ${trace}.trim.md5 && exit 0 || exit 1
+diff -q ${testname}.orig.md5 ${testname}.trim.md5 && exit 0 || exit 1
 
