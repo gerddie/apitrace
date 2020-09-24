@@ -537,11 +537,14 @@ FrameTrimmeImpl::register_state_calls()
         "glFrustum",
         "glLineStipple",
         "glLineWidth",
+        "glPatchParameteri",
         "glPixelZoom",
         "glPointSize",
         "glPolygonMode",
         "glPolygonOffset",
         "glPolygonStipple",
+        "glPrimitiveBoundingBox",
+        "glSampleCoverage",
         "glShadeModel",
         "glScissor",
         "glStencilFuncSeparate",
@@ -564,9 +567,11 @@ FrameTrimmeImpl::register_state_calls()
         "glColorMaterial",
         "glDisableClientState",
         "glEnableClientState",
+        "glHint",
         "glLight",
         "glPixelStorei",
         "glPixelTransfer",
+        "glVertexAttribDivisor",
     };
     update_call_table(state_calls_1, state_call_1_func);
 
