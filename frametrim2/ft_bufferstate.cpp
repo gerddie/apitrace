@@ -1,6 +1,9 @@
 #include "ft_bufferstate.hpp"
 #include <limits>
 
+#include <GL/gl.h>
+#include <GL/glext.h>
+
 namespace frametrim {
 
 using std::pair;
@@ -99,7 +102,9 @@ bool BufferState::in_mapped_range(uint64_t address) const
 
 void BufferState::do_emit_calls_to_list(CallSet& list) const
 {
-    if (!impl->m_data_use_set.empty()) {
+    /* Todo : correct the use set, theer are probably some links
+     * missing */
+    if (true || !impl->m_data_use_set.empty()) {
         emit_gen_call(list);
         impl->emit_calls_to_list(list);
     }
@@ -206,6 +211,8 @@ void BufferStateImpl::emit_calls_to_list(CallSet& list) const
 {
     list.insert(clean_bind_calls());
     list.insert(m_data_upload_set);
+    /* TODO: for some reason the initial data
+       call is not always submitted  */
     list.insert(m_data_use_set);
 }
 
@@ -363,6 +370,8 @@ bool BufferMap::contains(uint64_t start)
 
 PTraceCall BufferStateMap::data(const trace::Call& call)
 {
+    assert((call.arg(0).toUInt() != GL_PIXEL_UNPACK_BUFFER) &&
+           "Copying texture data from a buffer is not yet implemented");
     bound_to(call.arg(0).toUInt())->data(call);
     return trace2call(call);
 }

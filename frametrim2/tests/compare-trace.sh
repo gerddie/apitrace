@@ -7,6 +7,11 @@ trace="$3"
 frame=$4
 orig_img=$5
 
+if [ ! -r "${datadir}/${trace}" ]; then
+  echo "test $trace skipped because trace is not available"
+  exit 0
+fi
+
 testname=${trace}-${frame}
 
 echo "Run test $testname"

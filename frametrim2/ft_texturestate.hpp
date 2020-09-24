@@ -2,7 +2,7 @@
 #define TEXTURESTATE_HPP
 
 #include "ft_framebuffer.hpp"
-#include "ft_genobjectstate.hpp"
+#include "ft_bufferstate.hpp"
 
 namespace frametrim {
 
@@ -39,6 +39,7 @@ private:
     CallSet m_data_use_set;
     int m_attach_count;
     std::unordered_map<unsigned, FramebufferState::Pointer> m_fbo;
+    std::unordered_map<unsigned, BufferState> m_data_buffers;
 };
 
 using PTextureState = TextureState::Pointer;

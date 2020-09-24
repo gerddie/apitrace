@@ -39,6 +39,16 @@ struct string_part_less {
 };
 
 struct FrameTrimmeImpl {
+
+    enum PointerType {
+        pt_vertex,
+        pt_texcoord,
+        pt_color,
+        pt_normal,
+        pt_va,
+        pt_last
+    };
+
     FrameTrimmeImpl();
     void call(const trace::Call& call, bool in_target_frame);
     void start_target_frame();
@@ -62,8 +72,10 @@ struct FrameTrimmeImpl {
     void register_ignore_history_calls();
 
     PTraceCall record_enable(const trace::Call& call);
-    PTraceCall record_va_enable(const trace::Call& call, bool enable);
+    PTraceCall record_va_enable(const trace::Call& call, bool enable, PointerType type);
     PTraceCall record_required_call(const trace::Call& call);
+    PTraceCall record_client_state_enable(const trace::Call& call,
+                                          bool enable);
 
     void update_call_table(const std::vector<const char*>& names,
                            ft_callback cb);
@@ -76,7 +88,7 @@ struct FrameTrimmeImpl {
     PTraceCall NewList(const trace::Call& call);
     PTraceCall CallList(const trace::Call& call);
     PTraceCall DeleteLists(const trace::Call& call);
-    PTraceCall VertexAttribPointer(const trace::Call& call);
+    PTraceCall AttribPointer(const trace::Call& call, PointerType type);
     PTraceCall DrawElements(const trace::Call& call);
 
     PTraceCall todo(const trace::Call& call);
@@ -114,6 +126,8 @@ struct FrameTrimmeImpl {
     std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
 
     bool m_recording_frame;
+
+
 };
 
 FrameTrimmer::FrameTrimmer()
@@ -311,6 +325,8 @@ FrameTrimmeImpl::record_enable(const trace::Call& call)
 
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, this, _1)))
 #define MAP_DATA(name, call, data) m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, this, _1, data)))
+#define MAP_DATA2(name, call, data, data2) \
+    m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, this, _1, data, data2)))
 #define MAP_GENOBJ(name, obj, call) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1)))
 #define MAP_GENOBJ_DATA(name, obj, call, data) \
@@ -550,7 +566,6 @@ FrameTrimmeImpl::register_state_calls()
         "glStencilFuncSeparate",
         "glStencilMask",
         "glStencilOpSeparate",
-        "glVertexPointer",
         "glXSwapBuffers",
         "eglSwapBuffers",
         "glFinish",
@@ -565,8 +580,7 @@ FrameTrimmeImpl::register_state_calls()
         "glClipPlane",
         "glColorMaskIndexedEXT",
         "glColorMaterial",
-        "glDisableClientState",
-        "glEnableClientState",
+        "glFog",
         "glHint",
         "glLight",
         "glPixelStorei",
@@ -672,10 +686,16 @@ FrameTrimmeImpl::register_va_calls()
                             TGenObjStateMap<VertexArray>::bind, 0,
                             m_fbo.current_framebuffer());
 
-    MAP_DATA(glDisableVertexAttribArray, record_va_enable, false);
-    MAP_DATA(glEnableVertexAttribArray, record_va_enable, true);
+    MAP_DATA2(glDisableVertexAttribArray, record_va_enable, false, pt_va);
+    MAP_DATA2(glEnableVertexAttribArray, record_va_enable, true, pt_va);
 
-    MAP(glVertexAttribPointer, VertexAttribPointer);
+    MAP_DATA(glVertexAttribPointer, AttribPointer, pt_va);
+    MAP_DATA(glVertexPointer, AttribPointer, pt_vertex);
+    MAP_DATA(glTexCoordPointer, AttribPointer, pt_texcoord);
+
+    MAP_DATA(glDisableClientState, record_client_state_enable, false);
+    MAP_DATA(glEnableClientState, record_client_state_enable, true);
+
 }
 
 void
@@ -793,21 +813,42 @@ PTraceCall FrameTrimmeImpl::DrawElements(const trace::Call& call)
     return c;
 }
 
-PTraceCall FrameTrimmeImpl::record_va_enable(const trace::Call& call, bool enable)
+PTraceCall FrameTrimmeImpl::record_va_enable(const trace::Call& call,
+                                             bool enable, PointerType type)
 {
-    auto id = call.arg(0).toUInt();
+    unsigned id = type == pt_va ? call.arg(0).toUInt() * pt_last + type:
+                                  (unsigned)type;
     m_va_enables[id] = trace2call(call);
     m_va_is_enabled[id] = enable;
     return m_va_enables[id];
 }
 
-PTraceCall FrameTrimmeImpl::VertexAttribPointer(const trace::Call& call)
+PTraceCall
+FrameTrimmeImpl::record_client_state_enable(const trace::Call& call,
+                                                       bool enable)
+{
+    auto state = call.arg(0).toUInt();
+    PointerType type;
+    switch (state) {
+    case GL_VERTEX_ARRAY: type = pt_vertex; break;
+    case GL_TEXTURE_COORD_ARRAY: type = pt_texcoord; break;
+    case GL_COLOR_ARRAY: type = pt_color; break;
+    case GL_NORMAL_ARRAY: type = pt_normal; break;
+    default:
+        assert(0 && "Client state not supported");
+    }
+    return record_va_enable(call, enable, type);
+}
+
+PTraceCall FrameTrimmeImpl::AttribPointer(const trace::Call& call, PointerType type)
 {
     auto buf = m_buffers.bound_to(GL_ARRAY_BUFFER);
     PTraceCall c = trace2call(call);
     if (buf) {
         c = buf->use(call);
-        m_vertex_attr_pointer[call.arg(0).toUInt()] = buf;
+        unsigned id = type == pt_va ? call.arg(0).toUInt() * pt_last + type:
+                                      (unsigned)type;
+        m_vertex_attr_pointer[id] = buf;
     }
     return c;
 }

@@ -21,6 +21,7 @@ TRACE_TEST(normal_mapping 302 378970)
 TRACE_TEST(render_to_texture 425, 29227)
 TRACE_TEST(rotations 68 103311)
 TRACE_TEST(shadowmaps 560 42910)
+TRACE_TEST(sauerbraten 1342 2630043)
 
 MACRO(TRACE_RTEST name frame orig_img)
   ADD_TEST(NAME ${name}_reverse COMMAND
