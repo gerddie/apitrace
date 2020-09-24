@@ -193,26 +193,16 @@ TextureStateMap::set_data(const trace::Call& call)
 {
     auto texture = bound_in_call(call);
 
-    if (!texture) {
-        std::cerr << "No texture bound in call " << call.no
-                  << " target:" << call.arg(0).toUInt()
-                  << " unit:" << m_active_texture_unit
-                  << "\n";
+    if (!texture)
         return trace2call(call);
-    }
     return texture->data(call);
 }
 
 PTraceCall TextureStateMap::storage(const trace::Call& call)
 {
     auto texture = bound_in_call(call);
-    if (!texture) {
-        std::cerr << "No texture bound in call " << call.no
-                  << " target:" << call.arg(0).toUInt()
-                  << " unit:" << m_active_texture_unit
-                  << "\n";
+    if (!texture)
         return trace2call(call);
-    }
     return texture->storage(call);
 }
 
@@ -221,13 +211,8 @@ TextureStateMap::set_state(const trace::Call& call, unsigned nparam_sel)
 {
     auto texture = bound_in_call(call);
 
-    if (!texture) {
-        std::cerr << "No texture bound in call " << call.no
-                  << " target:" << call.arg(0).toUInt()
-                  << " unit:" << m_active_texture_unit
-                  << "\n";
+    if (!texture)
         return trace2call(call);
-    }
     return texture->set_state_call(call, nparam_sel);
 }
 
@@ -237,13 +222,9 @@ TextureStateMap::set_sub_data(const trace::Call& call)
     /* This will need some better handling */
     auto texture = bound_in_call(call);
 
-    if (!texture) {
-        std::cerr << __func__ << ": No texture bound in call " << call.no
-                  << " target:" << call.arg(0).toUInt()
-                  << " unit:" << m_active_texture_unit
-                  << "\n";
+    if (!texture)
         return trace2call(call);
-    }
+
     return texture->sub_data(call);
 }
 
