@@ -128,6 +128,7 @@ void TextureState::rendertarget_of(unsigned layer,
                                    FramebufferState::Pointer fbo)
 {
     m_fbo[layer] = fbo;
+    flush_state_cache(*fbo);
 }
 
 void TextureState::do_emit_calls_to_list(CallSet& list) const
