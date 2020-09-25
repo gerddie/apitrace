@@ -83,6 +83,7 @@ ObjectState::set_state_call(const trace::Call& call, unsigned nstate_id_params)
     m_callset_dirty = true;
     auto c = std::make_shared<TraceCall>(call, nstate_id_params);
     m_state_calls[c->name()] = c;
+    post_set_state_call(c);
     return c;
 }
 

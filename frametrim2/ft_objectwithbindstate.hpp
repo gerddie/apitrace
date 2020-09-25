@@ -26,6 +26,7 @@ private:
     virtual void post_bind(const PTraceCall& call);
     virtual void post_unbind(const PTraceCall& call);
     void do_emit_calls_to_list(CallSet &list) const override;
+    void post_set_state_call(PTraceCall call) override;
 
     bool m_bound;
     PTraceCall m_bind_call;

@@ -54,7 +54,7 @@ public:
     unsigned global_id() const;
 
 protected:
-
+    virtual void post_set_state_call(PTraceCall call) {(void)call;}
     void reset_callset();
 
     void dirty_cache() {m_callset_dirty = true;}
