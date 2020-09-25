@@ -267,9 +267,20 @@ PTraceCall FramebufferState::viewport(const trace::Call& call)
 
 PTraceCall FramebufferState::clear(const trace::Call& call)
 {
+    std::cerr << "Clear at " << call.no
+              << " w=" << m_width
+              << " h=" << m_height
+              << " vs. vpw=" << m_viewport_width
+              << " vph=" << m_viewport_height
+              << " mask=" << call.arg(0).toUInt();
+
     if (m_width == m_viewport_width &&
-        m_height == m_viewport_height)
+        m_height == m_viewport_height &&
+        clear_all_buffers(call.arg(0).toUInt())) {
         m_draw_calls.clear();
+        std::cerr << ": Full clear";
+    }
+    std::cerr << "\n";
 
     auto c = trace2call(call);
     m_draw_calls.insert(c);
@@ -342,6 +353,30 @@ void FBOState::set_viewport_size(unsigned width, unsigned height)
     (void)width;
     (void)height;
 }
+
+bool FBOState::clear_all_buffers(unsigned mask) const
+{
+    unsigned attached_mask = 0;
+    for (auto&& a : m_attachments) {
+        if (a.second) {
+            switch (a.first) {
+            case GL_DEPTH_ATTACHMENT:
+                attached_mask |= GL_DEPTH_BUFFER_BIT;
+                break;
+            case GL_STENCIL_ATTACHMENT:
+                attached_mask |= GL_STENCIL_BUFFER_BIT;
+                /* fallthrough */
+            case GL_DEPTH_STENCIL_ATTACHMENT:
+                attached_mask |= GL_DEPTH_BUFFER_BIT;
+                break;
+            default:
+                attached_mask |= GL_COLOR_BUFFER_BIT;
+            }
+        }
+    }
+    return (attached_mask & ~mask) ? false : true;
+}
+
 
 
 }

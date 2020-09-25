@@ -40,6 +40,8 @@ protected:
 private:
     ObjectType type() const override {return bt_framebuffer;}
 
+    virtual bool clear_all_buffers(unsigned mask) const = 0;
+
     virtual void set_viewport_size(unsigned width, unsigned height);
     void do_emit_calls_to_list(CallSet& list) const override;
     virtual void emit_attachment_calls_to_list(CallSet& list) const;
@@ -73,6 +75,7 @@ public:
 private:
     void set_viewport_size(unsigned width, unsigned height) override;
     void emit_attachment_calls_to_list(CallSet& list) const override;
+    bool clear_all_buffers(unsigned mask) const override;
 
     std::unordered_map<unsigned, SizedObjectState::Pointer> m_attachments;
     std::unordered_map<unsigned, std::pair<PTraceCall, PTraceCall>> m_attach_call;
@@ -86,6 +89,7 @@ public:
                         unsigned layer, PTraceCall call) override;
 
 private:
+    bool clear_all_buffers(unsigned mask) const override;
     void set_viewport_size(unsigned width, unsigned height) override;
     bool is_active() const override;
 
