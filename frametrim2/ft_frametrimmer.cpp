@@ -90,6 +90,7 @@ struct FrameTrimmeImpl {
     PTraceCall DeleteLists(const trace::Call& call);
     PTraceCall AttribPointer(const trace::Call& call, PointerType type);
     PTraceCall DrawElements(const trace::Call& call);
+    PTraceCall DrawArrays(const trace::Call& call);
 
     PTraceCall todo(const trace::Call& call);
     PTraceCall ignore_history(const trace::Call& call);
@@ -463,6 +464,7 @@ FrameTrimmeImpl::register_buffer_calls()
 
 void FrameTrimmeImpl::register_draw_calls()
 {
+    MAP("glDrawArrays", DrawArrays);
     MAP(glDrawElements, DrawElements);
     MAP(glDrawRangeElements, DrawElements);
     MAP(glDrawRangeElementsBaseVertex, DrawElements);
@@ -637,7 +639,6 @@ void FrameTrimmeImpl::register_ignore_history_calls()
         "glDeleteShader",
         "glDeleteVertexArrays",
         "glDetachShader",
-        "glDrawArrays",
         "glGetError",
         "glGetFloat",
         "glGetFramebufferAttachmentParameter",
@@ -800,17 +801,21 @@ FrameTrimmeImpl::DeleteLists(const trace::Call& call)
 
 PTraceCall FrameTrimmeImpl::DrawElements(const trace::Call& call)
 {
-    auto c = trace2call(call);
-
-    if (m_recording_frame) {
-        auto ibo = m_buffers.bound_to(GL_ELEMENT_ARRAY_BUFFER);
-        if (ibo) {
+    auto c = m_fbo.current_framebuffer().draw(call);
+    auto ibo = m_buffers.bound_to(GL_ELEMENT_ARRAY_BUFFER);
+    if (ibo) {
+        if (m_recording_frame) {
             c = ibo->use(call);
             ibo->emit_calls_to_list(m_required_calls);
         }
+        ibo->flush_state_cache(m_fbo.current_framebuffer());
     }
-
     return c;
+}
+
+PTraceCall FrameTrimmeImpl::DrawArrays(const trace::Call& call)
+{
+    return m_fbo.current_framebuffer().draw(call);
 }
 
 PTraceCall FrameTrimmeImpl::record_va_enable(const trace::Call& call,
