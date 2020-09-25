@@ -39,39 +39,17 @@ The following types of calls need to be considered:
 
 ## Tricky things:
 
-* Civilization V
-  - A renderbuffer is bound to two different framebuffers, one is used for
-    drawing the data, and the other one is used as blit source to copy the
-    final data to the screen.
-  - It seems the game draws some state display to the default framebuffer
-    and then blits the game part to partially fill the defulat framebuffer.
-    Problem: The state display is not updated with each frame.
+* sauerbraten doesn't start all frames with a clear, so it is not clear whether
+  one can throw away old ftaw calls
+* in the start screen sauerbraten only updates part of the screen, so one
+  must keep all the calls.
 
-## Next steps:
+## Currently known problems with v2
 
-* code cleanups, move more code out of ft_state.cpp to the respective objects
-* Handle all fbo render targtes
-* handle fbo blits
-* compute shaders and their changeing of buffers and textures (images)
-* atomics
-* transform feedback and conditional rendering
-
-
-## design for a reverse trace build
-
-* first scan the trace and copy the basic call info
-  - call number
-  - bound object the call will change the state of
-* start from the target frame and search backwards all the objects and
-  calls that set the related states.
-* collect the call numbers of these calls and go over the original trace
-  again to trim the trace
-
-## known problems:
-
-* The tests shadowmap and render_to_texture pass on radeonsi but fail on
-  Intel
-
+* Trimming HL2 with the exit dialog the text is not retained
+* in CIV5 one framebuffer setup is not correct, and this is likely
+  the reason for incorrect drawing of the tiles
+* Sauerbraten has some incorrect geometry
 
 
 
