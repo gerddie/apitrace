@@ -59,7 +59,6 @@ void FramebufferStateMap::post_bind(unsigned target,
 
     if (target == GL_FRAMEBUFFER ||
         target == GL_DRAW_FRAMEBUFFER) {
-        std::cerr << "Set drawbuffer to " << fbo->id() << "\n";
         m_current_framebuffer = fbo;
     }
 
@@ -289,21 +288,12 @@ PTraceCall FramebufferState::viewport(const trace::Call& call)
 
 PTraceCall FramebufferState::clear(const trace::Call& call)
 {
-    std::cerr << "framebuffer " << id()
-              << "Clear at " << call.no
-              << " w=" << m_width
-              << " h=" << m_height
-              << " vs. vpw=" << m_viewport_width
-              << " vph=" << m_viewport_height
-              << " mask=" << call.arg(0).toUInt();
-
     if (m_width == m_viewport_width &&
         m_height == m_viewport_height &&
         clear_all_buffers(call.arg(0).toUInt())) {
-        std::cerr << ": Full clear";
         m_draw_calls.clear();
+        m_draw_calls.insert(bind_call());
     }
-    std::cerr << "\n";
 
     auto c = trace2call(call);
     m_draw_calls.insert(c);
@@ -347,16 +337,6 @@ void FBOState::attach(unsigned index, PSizedObjectState attachment,
 {
     (void)layer;
 
-
-    if (attachment)
-        std::cerr << "Attach texture " << attachment->id() << " to fbo "
-                  << id() << "@" << index << "\n";
-    else if (m_attachments[index]) {
-        std::cerr << "Detach texture " << m_attachments[index]->id()
-                  << " from fbo "
-                  << id() << "@" << index << "\n";
-    }
-
     m_attachments[index] = attachment;
     m_attach_call[index] = std::make_pair(bind_call(), call);
 
@@ -366,7 +346,6 @@ void FBOState::attach(unsigned index, PSizedObjectState attachment,
                  attachment->height());
     }
     dirty_cache();
-
 }
 
 void FBOState::emit_attachment_calls_to_list(CallSet& list) const
@@ -375,11 +354,19 @@ void FBOState::emit_attachment_calls_to_list(CallSet& list) const
         if (a.second)
             a.second->emit_calls_to_list(list);
 
+    size_t s = list.size();
+
     for (auto&& a : m_attach_call) {
         if (a.second.first)
             list.insert(a.second.first);
         if (a.second.second)
             list.insert(a.second.second);
+    }
+
+    if (id() == 70) {
+        std::cerr << "Emitted "
+                  << list.size() - s
+                  << " attach calls\n";
     }
 
 }
