@@ -73,9 +73,6 @@ public:
         auto id = call.arg(obj_id_index).toUInt();
         PTraceCall c = trace2call(call);
 
-        /*std::cerr << call.name() << "("
-                  << call.no << "): Try bind object " << id << "\n"; */
-
         bind_target(target, id, c);
 
         if (m_bound_objects[target])

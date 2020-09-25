@@ -86,7 +86,7 @@ FORWARD_CALL(memcopy)
 FORWARD_CALL(unmap)
 
 void BufferState::post_bind(const PTraceCall& call)
-{
+{    
     impl->post_bind(call);
 }
 
@@ -431,6 +431,11 @@ BufferStateMap::unmap(const trace::Call& call)
         mapped.erase(buf->id());
     }
     return trace2call(call);
+}
+
+void BufferStateMap::post_bind(unsigned target, PBufferState obj)
+{
+    //
 }
 
 }

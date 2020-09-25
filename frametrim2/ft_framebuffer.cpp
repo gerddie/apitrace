@@ -32,7 +32,24 @@ PTraceCall FramebufferStateMap::draw(const trace::Call& call)
     return m_current_framebuffer->draw(call);
 }
 
+PTraceCall FramebufferStateMap::bind_fbo(const trace::Call& call)
+{
+    unsigned target = call.arg(0).toUInt();
+    unsigned id = call.arg(1).toUInt();
+    auto c = trace2call(call);
 
+
+    if (target == GL_FRAMEBUFFER ||
+        target == GL_DRAW_FRAMEBUFFER) {
+        bind_target(GL_DRAW_FRAMEBUFFER, id, c);
+    }
+
+    if (target == GL_FRAMEBUFFER ||
+        target == GL_READ_FRAMEBUFFER) {
+        bind_target(GL_READ_FRAMEBUFFER, id, c);
+    }
+    return c;
+}
 
 void FramebufferStateMap::post_bind(unsigned target,
                                     FramebufferState::Pointer fbo)
@@ -42,6 +59,7 @@ void FramebufferStateMap::post_bind(unsigned target,
 
     if (target == GL_FRAMEBUFFER ||
         target == GL_DRAW_FRAMEBUFFER) {
+        std::cerr << "Set drawbuffer to " << fbo->id() << "\n";
         m_current_framebuffer = fbo;
     }
 
@@ -49,6 +67,9 @@ void FramebufferStateMap::post_bind(unsigned target,
         target == GL_READ_FRAMEBUFFER) {
         m_read_buffer = fbo;
     }
+
+    if (m_current_framebuffer->id() != m_read_buffer->id())
+        m_read_buffer->flush_state_cache(*m_current_framebuffer);
 }
 
 void FramebufferStateMap::post_unbind(unsigned target,
@@ -167,7 +188,7 @@ FramebufferStateMap::attach_texture(const trace::Call &call,
 
     PTraceCall c = make_shared<TraceCall>(call);
     if (tex)
-        tex->rendertarget_of(layer, fbo);
+        tex->rendertarget_of(layer, fbo);            
 
     fbo->attach(attach_point, tex, layer, c);
     return c;
@@ -178,7 +199,6 @@ FramebufferStateMap::attach_renderbuffer(const trace::Call& call,
                                          RenderbufferMap& renderbuffer_map)
 {
     auto attach_point = call.arg(1).toUInt();
-    std::cerr << "Get Renderbuffer with ID " << call.arg(3).toUInt() << "\n";
 
     auto rb = renderbuffer_map.get_by_id(call.arg(3).toUInt());
     auto fbo = bound_to_call_target(call);
@@ -269,7 +289,8 @@ PTraceCall FramebufferState::viewport(const trace::Call& call)
 
 PTraceCall FramebufferState::clear(const trace::Call& call)
 {
-    std::cerr << "Clear at " << call.no
+    std::cerr << "framebuffer " << id()
+              << "Clear at " << call.no
               << " w=" << m_width
               << " h=" << m_height
               << " vs. vpw=" << m_viewport_width
@@ -279,8 +300,8 @@ PTraceCall FramebufferState::clear(const trace::Call& call)
     if (m_width == m_viewport_width &&
         m_height == m_viewport_height &&
         clear_all_buffers(call.arg(0).toUInt())) {
-        m_draw_calls.clear();
         std::cerr << ": Full clear";
+        m_draw_calls.clear();
     }
     std::cerr << "\n";
 
@@ -325,12 +346,25 @@ void FBOState::attach(unsigned index, PSizedObjectState attachment,
                       unsigned layer, PTraceCall call)
 {
     (void)layer;
-    (void)call;
+
+
+    if (attachment)
+        std::cerr << "Attach texture " << attachment->id() << " to fbo "
+                  << id() << "@" << index << "\n";
+    else if (m_attachments[index]) {
+        std::cerr << "Detach texture " << m_attachments[index]->id()
+                  << " from fbo "
+                  << id() << "@" << index << "\n";
+    }
+
     m_attachments[index] = attachment;
     m_attach_call[index] = std::make_pair(bind_call(), call);
 
-    if (attachment)
+    if (attachment) {
         attachment->flush_state_cache(*this);
+        set_size(attachment->width(),
+                 attachment->height());
+    }
     dirty_cache();
 
 }
