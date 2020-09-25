@@ -214,6 +214,7 @@ void BufferStateImpl::emit_calls_to_list(CallSet& list) const
     /* TODO: for some reason the initial data
        call is not always submitted  */
     list.insert(m_data_use_set);
+
 }
 
 CallSet BufferStateImpl::clean_bind_calls() const
@@ -221,12 +222,14 @@ CallSet BufferStateImpl::clean_bind_calls() const
     unsigned oldest_sub_buffer_call = std::numeric_limits<unsigned>::max();
     unsigned oldest_memcopy_call = std::numeric_limits<unsigned>::max();
 
+    CallSet retval;
     for(auto& b : m_sub_buffers) {
         if (oldest_sub_buffer_call > b.m_call->call_no())
             oldest_sub_buffer_call = b.m_call->call_no();
         if (b.m_is_memcopy)
             if (oldest_memcopy_call > b.m_call->call_no())
                 oldest_memcopy_call = b.m_call->call_no();
+        retval.insert(b.m_call);
     }
 
     unsigned first_needed_bind_call_no = 0;
@@ -237,24 +240,25 @@ CallSet BufferStateImpl::clean_bind_calls() const
     }
 
     unsigned first_needed_map_call_no = 0;
-    for(auto& b : m_map_calls) {
+    for(auto&& b : m_map_calls) {
         if (b->call_no() < oldest_memcopy_call &&
-                b->call_no() > first_needed_map_call_no)
+            b->call_no() > first_needed_map_call_no) {
             first_needed_map_call_no = b->call_no();
+        }
     }
 
-    CallSet retval;
-    for (auto b: m_sub_data_bind_calls) {
-        if (b->call_no() > first_needed_bind_call_no)
+    for (auto&& b: m_sub_data_bind_calls) {
+        if (b->call_no() >= first_needed_bind_call_no)
             retval.insert(b);
     }
 
-    for(auto& b : m_map_calls) {
-        if (b->call_no() > first_needed_map_call_no)
+    for(auto&& b : m_map_calls) {
+        if (b->call_no() >= first_needed_map_call_no){
             retval.insert(b);
+        }
     }
 
-    for(auto& b : m_unmap_calls) {
+    for(auto&& b : m_unmap_calls) {
         if (b->call_no() > first_needed_map_call_no)
             retval.insert(b);
     }
@@ -286,6 +290,7 @@ PTraceCall BufferStateImpl::map_range(const trace::Call& call)
     m_mapping = BufferMap(call);
     auto c = trace2call(call);
     m_map_calls.push_back(c);
+    m_owner->dirty_cache();
     return c;
 }
 
@@ -300,6 +305,7 @@ PTraceCall BufferStateImpl::memcopy(const trace::Call& call)
     uint64_t start = start_ptr - m_mapping.buffer_base;
     uint64_t end = call.arg(2).toUInt() + start;
 
+    m_owner->dirty_cache();
     return add_sub_range(start, end, trace2call(call), true);
 }
 
@@ -311,6 +317,7 @@ PTraceCall BufferStateImpl::unmap(const trace::Call& call)
     m_mapping.buffer_base =
             m_mapping.range_begin =
             m_mapping.range_end = 0;
+    m_owner->dirty_cache();
     return c;
 }
 
@@ -426,11 +433,13 @@ BufferStateMap::unmap(const trace::Call& call)
 {
     unsigned target = call.arg(0).toUInt();
     auto buf = bound_to(target);
+    auto c = trace2call(call);
     if (buf) {
         auto& mapped = m_mapped_buffers[target];
+        c = buf->unmap(call);
         mapped.erase(buf->id());
     }
-    return trace2call(call);
+    return c;
 }
 
 }
