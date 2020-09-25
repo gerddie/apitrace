@@ -433,9 +433,4 @@ BufferStateMap::unmap(const trace::Call& call)
     return trace2call(call);
 }
 
-void BufferStateMap::post_bind(unsigned target, PBufferState obj)
-{
-    //
-}
-
 }
