@@ -37,6 +37,9 @@ PTraceCall FramebufferStateMap::draw(const trace::Call& call)
 void FramebufferStateMap::post_bind(unsigned target,
                                     FramebufferState::Pointer fbo)
 {
+    if (!fbo)
+        fbo = m_default_framebuffer;
+
     if (target == GL_FRAMEBUFFER ||
         target == GL_DRAW_FRAMEBUFFER) {
         m_current_framebuffer = fbo;

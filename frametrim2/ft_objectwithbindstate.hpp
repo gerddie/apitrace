@@ -58,6 +58,7 @@ public:
                 post_bind(target, m_bound_objects[target]);
             }
         } else {
+            post_bind(target, nullptr);
             if (m_bound_objects[target])  {
                 m_bound_objects[target]->unbind(call);
                 post_unbind(target, call);

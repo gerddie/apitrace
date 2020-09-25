@@ -179,7 +179,8 @@ void
 TextureStateMap::post_bind(unsigned target, PTextureState obj)
 {
     (void)target;
-    obj->bind_unit(m_active_texture_unit_call);
+    if (obj)
+        obj->bind_unit(m_active_texture_unit_call);
 }
 
 void TextureStateMap::post_unbind(unsigned target, PTraceCall call)
