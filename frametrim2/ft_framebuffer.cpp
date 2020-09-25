@@ -106,6 +106,11 @@ PTraceCall FramebufferState::blit(const trace::Call& call)
 PTraceCall FramebufferState::draw_buffer(const trace::Call& call)
 {
     m_drawbuffer_call = trace2call(call);
+    if (call.arg(0).toUInt() == GL_BACK && id() != 0) {
+        std::cerr << "state error in call " << m_drawbuffer_call->call_no()
+                  << ": framebuffer ID is " << id() << "\n";
+        assert(0);
+    }
     m_drawbuffer_call->set_required_call(bind_call());
     return m_drawbuffer_call;
 }
@@ -126,7 +131,9 @@ DefaultFramebufferState::attach(unsigned index, PSizedObjectState attachment,
     (void)layer;
     (void)call;
 
-    assert(0 && "Default framebuffers can't have attachments");
+    std::cerr << "Default framebuffers can't have attachments in call " <<
+                 call->call_no() << "\n";
+    assert(0);
 }
 
 void DefaultFramebufferState::set_viewport_size(unsigned width, unsigned height)
@@ -135,6 +142,15 @@ void DefaultFramebufferState::set_viewport_size(unsigned width, unsigned height)
         set_size(width, height);
         m_initial_viewport_set = true;
     }
+}
+
+bool DefaultFramebufferState::clear_all_buffers(unsigned mask) const
+{
+    /* TODO: acquire the actual buffers from the creation call */
+    if (mask & GL_COLOR_BUFFER_BIT &&
+        mask & GL_DEPTH_BUFFER_BIT)
+        return true;
+    return false;
 }
 
 PTraceCall
