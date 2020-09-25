@@ -44,7 +44,6 @@ TextureState::data(const trace::Call& call)
     unsigned level = call.arg(1).toUInt();
     assert(level < 16);
 
-    dirty_cache();
     m_data_upload_set[level].clear();
     if (m_last_unit_call) {
         m_data_upload_set[level].insert(m_last_unit_call);
@@ -68,6 +67,7 @@ TextureState::data(const trace::Call& call)
         auto w = call.arg(3).toUInt();
         set_size(level, w, 1);
     }
+    dirty_cache();
     return c;
 }
 
@@ -81,12 +81,16 @@ PTraceCall TextureState::storage(const trace::Call& call)
                       call.arg(4).toUInt() : 1;
 
     auto c = trace2call(call);
+
+    c->set_required_call(bind_call());
+
     for (unsigned l = 0; l <= levels; ++l) {
         unsigned w = w0 >> l;
         unsigned h = h0 >> l;
         set_size(l, std::max(w, 1u), std::max(h, 1u));
         m_data_upload_set[l].insert(c);
     }
+    dirty_cache();
     return c;
 }
 
@@ -95,6 +99,11 @@ TextureState::sub_data(const trace::Call& call)
 {
     unsigned level = call.arg(1).toUInt();
     assert(level < 16);
+
+    /* Not exhaustive */
+    if (!strcmp(call.name(), "glTexImage2D"))
+        assert(call.arg(4).toUInt() <= width());
+
     /* We should check like with buffers and remove old
      * sub data calls */
     if (m_last_unit_call && m_last_unit_call_dirty) {
@@ -102,7 +111,7 @@ TextureState::sub_data(const trace::Call& call)
         m_last_unit_call_dirty = false;
     }
 
-    if (m_last_bind_call_dirty ) {
+    if (m_last_bind_call_dirty) {
         emit_bind(m_data_upload_set[level]);
         m_last_bind_call_dirty = false;
     }
@@ -134,7 +143,6 @@ void TextureState::rendertarget_of(unsigned layer,
 void TextureState::do_emit_calls_to_list(CallSet& list) const
 {
     emit_gen_call(list);
-    emit_bind(list);
     for(unsigned i = 0; i < 16; ++i)
         list.insert(m_data_upload_set[i]);
     list.insert(m_data_use_set);
