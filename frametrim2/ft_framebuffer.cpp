@@ -187,8 +187,10 @@ FramebufferStateMap::attach_renderbuffer(const trace::Call& call,
     assert(fbo->id() > 0);
 
     PTraceCall c = make_shared<TraceCall>(call);
-    if (rb)
+    if (rb) {
         rb->attach_as_rendertarget(fbo);
+        rb->flush_state_cache(*fbo);
+    }
     fbo->attach(attach_point, rb, 0, c);
     return c;
 }
