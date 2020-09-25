@@ -313,6 +313,10 @@ PTraceCall BufferStateImpl::memcopy(const trace::Call& call)
 PTraceCall BufferStateImpl::unmap(const trace::Call& call)
 {
     auto c = trace2call(call);
+
+    if (m_last_bind_call_dirty)
+        c->set_required_call(m_owner->bind_call());
+
     m_unmap_calls.push_back(c);
 
     m_mapping.buffer_base =
