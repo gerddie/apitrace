@@ -32,12 +32,12 @@ PTraceCall FramebufferStateMap::draw(const trace::Call& call)
     return m_current_framebuffer->draw(call);
 }
 
-PTraceCall FramebufferStateMap::bind_fbo(const trace::Call& call)
+PTraceCall FramebufferStateMap::bind_fbo(const trace::Call& call,
+                                         bool recording)
 {
     unsigned target = call.arg(0).toUInt();
     unsigned id = call.arg(1).toUInt();
     auto c = trace2call(call);
-
 
     if (target == GL_FRAMEBUFFER ||
         target == GL_DRAW_FRAMEBUFFER) {
@@ -48,6 +48,10 @@ PTraceCall FramebufferStateMap::bind_fbo(const trace::Call& call)
         target == GL_READ_FRAMEBUFFER) {
         bind_target(GL_READ_FRAMEBUFFER, id, c);
     }
+
+    if (recording && m_current_framebuffer->id() > 0)
+        m_current_framebuffer->flush_state_cache(*m_default_framebuffer);
+
     return c;
 }
 

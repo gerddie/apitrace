@@ -124,7 +124,7 @@ public:
 
     PTraceCall blit(const trace::Call& call);
 
-    PTraceCall bind_fbo(const trace::Call& call);
+    PTraceCall bind_fbo(const trace::Call& call, bool recording);
 
     FramebufferState& current_framebuffer() {
         assert(m_current_framebuffer);
