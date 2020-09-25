@@ -277,6 +277,7 @@ PTraceCall BufferStateImpl::map(const trace::Call& call)
     m_mapping.range_end = m_mapping.range_begin + call.arg(0).toUInt();
     auto c = trace2call(call);
     m_map_calls.push_back(c);
+    m_owner->dirty_cache();
     return c;
 }
 
