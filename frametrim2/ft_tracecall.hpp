@@ -70,6 +70,11 @@ class CallSet {
 public:
     using const_iterator = std::unordered_set<PTraceCall, CallHash>::const_iterator;
 
+    enum Flag {
+        attach_calls,
+        last_flag
+    };
+
     void insert(PTraceCall call);
     void insert(const CallSet& set);
     void insert(const StateCallMap& map);
@@ -78,12 +83,16 @@ public:
     size_t size() const {return m_calls.size(); }
     const_iterator begin() const;
     const_iterator end() const;
+
+    void set(Flag f) {m_flags.set(f);}
+    bool has(Flag f) {return m_flags.test(f);}
 protected:
     void insert_into_set(PTraceCall call) {m_calls.insert(call);}
 private:
     virtual void do_insert(PTraceCall call);
 
     std::unordered_set<PTraceCall, CallHash> m_calls;
+    std::bitset<last_flag> m_flags;
 };
 
 using PCallSet = std::shared_ptr<CallSet>;

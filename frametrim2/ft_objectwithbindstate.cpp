@@ -24,6 +24,10 @@ void ObjectWithBindState::bind(PTraceCall call)
     m_bound_dirty = true;
     dirty_cache();
     post_bind(m_bind_call);
+
+    auto gen = gen_call();
+    if (call && gen)
+        call->set_required_call(gen);
 }
 
 void ObjectWithBindState::unbind(PTraceCall call)

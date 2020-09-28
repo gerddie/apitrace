@@ -17,6 +17,8 @@ protected:
 
     void emit_gen_call(CallSet& list) const;
 
+    PTraceCall gen_call() const  override {return m_gen_call; }
+
 private:
 
     PTraceCall m_gen_call;

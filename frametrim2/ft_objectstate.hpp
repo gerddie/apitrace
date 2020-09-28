@@ -59,6 +59,8 @@ protected:
 
     void dirty_cache() {m_callset_dirty = true;}
 
+    virtual PTraceCall gen_call() const  {return nullptr; }
+
 private:
 
     virtual ObjectType type() const = 0;

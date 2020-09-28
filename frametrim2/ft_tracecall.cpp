@@ -127,6 +127,7 @@ void CallSet::do_insert(PTraceCall call)
 void CallSet::clear()
 {
     m_calls.clear();
+    m_flags.reset();
 }
 
 bool CallSet::empty() const

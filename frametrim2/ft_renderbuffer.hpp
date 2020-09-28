@@ -13,7 +13,7 @@ public:
 
     RenderBuffer(GLint glID, PTraceCall gen_call);
 
-    void attach_as_rendertarget(PFramebufferState write_fb);
+    void attach_as_rendertarget(PTraceCall attach_call);
 
     void detach();
 
@@ -35,6 +35,7 @@ private:
     PCallSet m_creator_state;
 
     PTraceCall m_set_storage_call;
+    PTraceCall m_attach_call;
 
     /* If the renderbuffer is used in a draw framebuffer and later in
     * a read framebuffer for doing a blit, we have to keep the creation

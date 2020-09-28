@@ -213,9 +213,9 @@ FramebufferStateMap::attach_renderbuffer(const trace::Call& call,
 
     PTraceCall c = make_shared<TraceCall>(call);
     if (rb) {
-        rb->attach_as_rendertarget(fbo);
-        rb->flush_state_cache(*fbo);
+        rb->attach_as_rendertarget(c);
     }
+
     fbo->attach(attach_point, rb, 0, c);
     return c;
 }
@@ -303,6 +303,11 @@ PTraceCall FramebufferState::clear(const trace::Call& call)
         m_draw_calls.insert(bind_call());
     }
 
+    if (!m_draw_calls.has(CallSet::attach_calls)) {
+        emit_attachment_calls_to_list(m_draw_calls);
+        m_draw_calls.set(CallSet::attach_calls);
+    }
+
     auto c = trace2call(call);
     m_draw_calls.insert(c);
     dirty_cache();
@@ -313,6 +318,10 @@ PTraceCall FramebufferState::clear(const trace::Call& call)
 PTraceCall FramebufferState::draw(const trace::Call& call)
 {
     auto c = trace2call(call);
+    if (!m_draw_calls.has(CallSet::attach_calls)) {
+        emit_attachment_calls_to_list(m_draw_calls);
+        m_draw_calls.set(CallSet::attach_calls);
+    }
     m_draw_calls.insert(c);
     dirty_cache();
     return c;
@@ -322,6 +331,7 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
 {
     for (auto&& vc : m_viewport_calls)
         list.insert(vc);
+    emit_gen_call(list);
     emit_bind(list);
     list.insert(m_draw_calls);
 
@@ -351,17 +361,23 @@ void FBOState::attach(unsigned index, PSizedObjectState attachment,
 {
     (void)layer;
 
-    if (m_attachments[index])
+    if (m_attachments[index] &&
+        (!attachment ||
+        m_attachments[index]->global_id() != attachment->global_id())) {
         flush_state_cache(*m_attachments[index]);
-
-    m_attachments[index] = attachment;
+    }
     m_attach_call[index] = std::make_pair(bind_call(), call);
 
     if (attachment) {
         attachment->flush_state_cache(*this);
+
         set_size(attachment->width(),
                  attachment->height());
     }
+
+    m_attachments[index] = attachment;
+    call->set_required_call(bind_call());
+
     dirty_cache();
 }
 
