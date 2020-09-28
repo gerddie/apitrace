@@ -29,13 +29,17 @@ private:
 
     void do_emit_calls_to_list(CallSet& list) const override;
 
+    void pass_state_cache(unsigned object_id, PCallSet cache) override;
+    void emit_dependend_caches(CallSet& list) const override;
+
+    PCallSet m_creator_state;
+
     PTraceCall m_set_storage_call;
 
     /* If the renderbuffer is used in a draw framebuffer and later in
     * a read framebuffer for doing a blit, we have to keep the creation
     * of the data here */
     bool m_is_blit_source;
-    PFramebufferState m_data_source;
 };
 
 class RenderbufferMap : public TGenObjStateMap<RenderBuffer>

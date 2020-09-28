@@ -86,15 +86,12 @@ protected:
 
 private:
 
-    void pass_state_cache(unsigned object_id, PCallSet cache) override;
-    void emit_dependend_caches(CallSet& list) const override;
 
     std::vector<std::pair<unsigned, unsigned>> m_size;
 
     EAttachmentType m_attachment_type;
     int m_attach_count;
 
-    PCallSet m_creator_state;
 };
 
 using PSizedObjectState = std::shared_ptr<SizedObjectState>;

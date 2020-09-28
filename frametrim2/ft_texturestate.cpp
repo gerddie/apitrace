@@ -158,6 +158,22 @@ bool TextureState::is_active() const
     return bound() || is_attached();
 }
 
+void TextureState::pass_state_cache(unsigned object_id, PCallSet cache)
+{
+    for (auto&& l : m_fbo) {
+        if (l.second && l.second->global_id() == object_id)
+            m_creator_states[l.first] = cache;
+    }
+}
+
+void TextureState::emit_dependend_caches(CallSet& list) const
+{
+    for(auto&& cs: m_creator_states) {
+        if (cs.second)
+            list.insert(*cs.second);
+    }
+}
+
 TextureStateMap::TextureStateMap():
     m_active_texture_unit(0)
 {

@@ -59,26 +59,11 @@ void SizedObjectState::set_size(unsigned level, unsigned w, unsigned h)
     m_size[level] = std::make_pair(w, h);
 }
 
-void SizedObjectState::pass_state_cache(unsigned object_id, PCallSet cache)
-{
-    (void)object_id;
-    m_creator_state = cache;
-}
 
 bool operator == (const SizedObjectState& lhs, const SizedObjectState& rhs)
 {
     return lhs.id() == rhs.id() &&
             lhs.m_attachment_type == rhs.m_attachment_type;
-}
-
-void SizedObjectState::emit_dependend_caches(CallSet& list) const
-{
-    if (m_creator_state) {
-        std::cerr << "Emit creator of " << global_id()
-                  << " with " << m_creator_state->size() << " calls\n";
-
-        list.insert(*m_creator_state);
-    }
 }
 
 }

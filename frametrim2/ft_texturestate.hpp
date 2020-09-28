@@ -31,6 +31,9 @@ private:
     ObjectType type() const override {return bt_texture;}
 
     void do_emit_calls_to_list(CallSet& list) const override;
+    void pass_state_cache(unsigned object_id, PCallSet cache) override;
+    void emit_dependend_caches(CallSet& list) const override;
+
 
     bool  m_last_unit_call_dirty;
     PTraceCall m_last_unit_call;
@@ -40,6 +43,8 @@ private:
     int m_attach_count;
     std::unordered_map<unsigned, FramebufferState::Pointer> m_fbo;
     std::unordered_map<unsigned, BufferState> m_data_buffers;
+    std::unordered_map<unsigned, PCallSet> m_creator_states;
+
 };
 
 using PTextureState = TextureState::Pointer;

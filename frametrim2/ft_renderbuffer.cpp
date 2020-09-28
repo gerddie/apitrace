@@ -12,7 +12,6 @@ RenderBuffer::RenderBuffer(GLint glID, PTraceCall gen_call):
 void RenderBuffer::attach_as_rendertarget(PFramebufferState write_fb)
 {
     attach();
-    m_data_source = write_fb;
 }
 
 void RenderBuffer::detach()
@@ -45,11 +44,6 @@ void RenderBuffer::do_emit_calls_to_list(CallSet& list) const
 
         if (m_set_storage_call)
             list.insert(m_set_storage_call);
-
-        if (m_is_blit_source) {
-            assert(m_data_source);
-            m_data_source->emit_calls_to_list(list);
-        }
     }
 }
 
@@ -58,6 +52,22 @@ bool RenderBuffer::is_active() const
     return bound() || is_attached();
 }
 
+
+void RenderBuffer::pass_state_cache(unsigned object_id, PCallSet cache)
+{
+    (void)object_id;
+    m_creator_state = cache;
+}
+
+void RenderBuffer::emit_dependend_caches(CallSet& list) const
+{
+    if (m_creator_state) {
+        std::cerr << "Emit creator of " << global_id()
+                  << " with " << m_creator_state->size() << " calls\n";
+
+        list.insert(*m_creator_state);
+    }
+}
 
 PTraceCall
 RenderbufferMap::storage(const trace::Call& call)
