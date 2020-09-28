@@ -99,7 +99,7 @@ public:
 
     PTraceCall program_string(const trace::Call& call);
     PTraceCall bind_shader(const trace::Call& call, FramebufferState &fbo);
-
+    PTraceCall program_parameter(const trace::Call& call);
 private:
     void do_emit_calls_to_list(CallSet& list) const override;
 };

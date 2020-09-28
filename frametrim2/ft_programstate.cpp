@@ -247,6 +247,13 @@ PTraceCall LegacyProgramStateMap::bind_shader(const trace::Call& call,
 
 }
 
+PTraceCall LegacyProgramStateMap::program_parameter(const trace::Call& call)
+{
+    auto shader = bound_in_call(call);
+    assert(shader);
+    return shader->set_state_call(call, 2);
+}
+
 void
 LegacyProgramStateMap::do_emit_calls_to_list(CallSet& list) const
 {

@@ -386,6 +386,9 @@ void FrameTrimmeImpl::register_legacy_calls()
                LegacyProgramStateMap::bind_shader, m_fbo.current_framebuffer());
     MAP_GENOBJ(glProgramString, m_legacy_programs,
                LegacyProgramStateMap::program_string);
+    MAP_GENOBJ(glProgramLocalParameter, m_legacy_programs,
+               LegacyProgramStateMap::program_parameter);
+
 
     // Matrix manipulation
     MAP_GENOBJ(glLoadIdentity, m_matrix_states, AllMatrisStates::LoadIdentity);
