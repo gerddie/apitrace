@@ -103,7 +103,7 @@ void FramebufferState::set_viewport_size(unsigned width, unsigned height)
     (void)height;
 }
 
-void FramebufferState::append_state_cache(unsigned object_id, PCallSet cache)
+void FramebufferState::pass_state_cache(unsigned object_id, PCallSet cache)
 {
     assert(cache);
     m_dependend_states[object_id] = cache;
@@ -304,6 +304,7 @@ PTraceCall FramebufferState::clear(const trace::Call& call)
     auto c = trace2call(call);
     m_draw_calls.insert(c);
     dirty_cache();
+
     return c;
 }
 
@@ -311,6 +312,7 @@ PTraceCall FramebufferState::draw(const trace::Call& call)
 {
     auto c = trace2call(call);
     m_draw_calls.insert(c);
+    dirty_cache();
     return c;
 }
 
@@ -321,9 +323,6 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
     emit_bind(list);
     list.insert(m_draw_calls);
 
-    for(auto&& deps : m_dependend_states)
-        list.insert(*deps.second);
-
     emit_attachment_calls_to_list(list);
 
     if (m_readbuffer_call)
@@ -333,15 +332,30 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
         list.insert(m_drawbuffer_call);
 }
 
+void FramebufferState::emit_dependend_caches(CallSet& list) const
+{
+    for(auto&& deps : m_dependend_states)
+        list.insert(*deps.second);
+
+}
+
 void FramebufferState::emit_attachment_calls_to_list(CallSet& list) const
 {
     (void)list;
+}
+
+void FramebufferState::submit_cache() const
+{
+
 }
 
 void FBOState::attach(unsigned index, PSizedObjectState attachment,
                       unsigned layer, PTraceCall call)
 {
     (void)layer;
+
+    if (m_attachments[index])
+        flush_state_cache(*m_attachments[index]);
 
     m_attachments[index] = attachment;
     m_attach_call[index] = std::make_pair(bind_call(), call);
@@ -406,6 +420,12 @@ bool FBOState::clear_all_buffers(unsigned mask) const
     return (attached_mask & ~mask) ? false : true;
 }
 
-
+void FBOState::submit_cache() const
+{
+    for (auto&& a: m_attachments) {
+        if (a.second)
+            flush_state_cache(*a.second);
+    }
+}
 
 }

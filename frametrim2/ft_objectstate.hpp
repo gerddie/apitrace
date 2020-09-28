@@ -49,7 +49,7 @@ public:
 
     PTraceCall set_state_call(const trace::Call& call, unsigned state_id_params);
 
-    void flush_state_cache(FramebufferState& fbo) const;
+    void flush_state_cache(ObjectState& fbo) const;
 
     unsigned global_id() const;
 
@@ -66,6 +66,10 @@ private:
     virtual bool is_active() const;
 
     virtual void do_emit_calls_to_list(CallSet& list) const;
+
+    virtual void pass_state_cache(unsigned object_id, PCallSet cache);
+
+    virtual void emit_dependend_caches(CallSet& list) const;
 
     GLint m_glID;
 

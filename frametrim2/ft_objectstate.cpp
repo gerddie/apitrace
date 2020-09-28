@@ -50,6 +50,7 @@ void ObjectState::emit_calls_to_list(CallSet& list) const
         list.insert(m_calls);
 
         do_emit_calls_to_list(list);
+        emit_dependend_caches(list);
 
         m_emitting = false;
     }
@@ -68,13 +69,21 @@ void ObjectState::reset_callset()
     m_calls.clear();
 }
 
-void ObjectState::flush_state_cache(FramebufferState& fbo) const
+void ObjectState::flush_state_cache(ObjectState& fbo) const
 {
     if (m_callset_dirty) {
         m_state_cache = std::make_shared<CallSet>();
         emit_calls_to_list(*m_state_cache);
+        m_callset_dirty = false;
     }
-    fbo.append_state_cache(global_id(), m_state_cache);
+    fbo.pass_state_cache(global_id(), m_state_cache);
+}
+
+void ObjectState::pass_state_cache(unsigned object_id, PCallSet cache)
+{
+    (void)object_id;
+    (void)cache;
+    assert(0 && "object type doesn't support dependend states");
 }
 
 PTraceCall
@@ -93,6 +102,11 @@ bool ObjectState::is_active() const
 }
 
 void ObjectState::do_emit_calls_to_list(CallSet &list) const
+{
+    (void)list;
+}
+
+void ObjectState::emit_dependend_caches(CallSet& list) const
 {
     (void)list;
 }

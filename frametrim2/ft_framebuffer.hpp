@@ -27,8 +27,6 @@ public:
 
     PTraceCall read_buffer(const trace::Call& call);
 
-    void append_state_cache(unsigned object_id, PCallSet cache);
-
     virtual void attach(unsigned index, PSizedObjectState attachment,
                         unsigned layer, PTraceCall call) = 0;
 
@@ -41,10 +39,14 @@ private:
     ObjectType type() const override {return bt_framebuffer;}
 
     virtual bool clear_all_buffers(unsigned mask) const = 0;
+    virtual void submit_cache() const;
 
     virtual void set_viewport_size(unsigned width, unsigned height);
     void do_emit_calls_to_list(CallSet& list) const override;
     virtual void emit_attachment_calls_to_list(CallSet& list) const;
+
+    void pass_state_cache(unsigned object_id, PCallSet cache) override;
+    void emit_dependend_caches(CallSet& list) const override;
 
     unsigned m_width;
     unsigned m_height;
@@ -76,6 +78,7 @@ private:
     void set_viewport_size(unsigned width, unsigned height) override;
     void emit_attachment_calls_to_list(CallSet& list) const override;
     bool clear_all_buffers(unsigned mask) const override;
+    void submit_cache() const override;
 
     std::unordered_map<unsigned, SizedObjectState::Pointer> m_attachments;
     std::unordered_map<unsigned, std::pair<PTraceCall, PTraceCall>> m_attach_call;
