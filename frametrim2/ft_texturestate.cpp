@@ -44,6 +44,10 @@ TextureState::data(const trace::Call& call)
     unsigned level = call.arg(1).toUInt();
     assert(level < 16);
 
+    if (id() == 11) {
+        std::cerr << "Set Texture level " << level << " dimenstions\n";
+    }
+
     m_data_upload_set[level].clear();
     if (m_last_unit_call) {
         m_data_upload_set[level].insert(m_last_unit_call);
@@ -137,18 +141,16 @@ void TextureState::rendertarget_of(unsigned layer,
                                    FramebufferState::Pointer fbo)
 {
     m_fbo[layer] = fbo;
+    attach();
     flush_state_cache(*fbo);
-    if (fbo)
-        attach();
-    else
-        unattach();
 }
 
 void TextureState::do_emit_calls_to_list(CallSet& list) const
 {
     emit_gen_call(list);
-    for(unsigned i = 0; i < 16; ++i)
+    for(unsigned i = 0; i < 16; ++i) {
         list.insert(m_data_upload_set[i]);
+    }
     list.insert(m_data_use_set);
 
     for(auto&& f: m_fbo) {
@@ -164,10 +166,8 @@ bool TextureState::is_active() const
 
 void TextureState::pass_state_cache(unsigned object_id, PCallSet cache)
 {
-    for (auto&& l : m_fbo) {
-        if (l.second && l.second->global_id() == object_id)
-            m_creator_states[l.first] = cache;
-    }
+    m_creator_states[object_id] = cache;
+    dirty_cache();
 }
 
 void TextureState::emit_dependend_caches(CallSet& list) const

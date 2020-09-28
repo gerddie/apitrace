@@ -245,6 +245,8 @@ void FrameTrimmeImpl::start_target_frame()
 
     m_vertex_arrays.emit_calls_to_list(m_required_calls);
 
+    m_legacy_programs.emit_calls_to_list(m_required_calls);
+
     for (auto&& va: m_va_is_enabled) {
         if (!va.second)
             continue;
@@ -810,6 +812,10 @@ PTraceCall FrameTrimmeImpl::DrawElements(const trace::Call& call)
         }
         ibo->flush_state_cache(m_fbo.current_framebuffer());
     }
+    if (m_recording_frame)
+        m_legacy_programs.emit_calls_to_list(m_required_calls);
+
+
     return c;
 }
 

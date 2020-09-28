@@ -365,6 +365,7 @@ void FBOState::attach(unsigned index, PSizedObjectState attachment,
         (!attachment ||
         m_attachments[index]->global_id() != attachment->global_id())) {
         flush_state_cache(*m_attachments[index]);
+        m_attachments[index]->unattach();
     }
     m_attach_call[index] = std::make_pair(bind_call(), call);
 
