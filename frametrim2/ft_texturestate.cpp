@@ -138,6 +138,10 @@ void TextureState::rendertarget_of(unsigned layer,
 {
     m_fbo[layer] = fbo;
     flush_state_cache(*fbo);
+    if (fbo)
+        attach();
+    else
+        unattach();
 }
 
 void TextureState::do_emit_calls_to_list(CallSet& list) const
