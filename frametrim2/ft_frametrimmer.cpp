@@ -54,7 +54,7 @@ struct FrameTrimmeImpl {
     void start_target_frame();
     void end_target_frame();
 
-    std::vector<unsigned> get_sorted_call_ids() const;
+    std::vector<unsigned> get_sorted_call_ids();
 
     static unsigned equal_chars(const char *l, const char *r);
 
@@ -148,7 +148,7 @@ FrameTrimmer::call(const trace::Call& call, bool in_target_frame)
 }
 
 std::vector<unsigned>
-FrameTrimmer::get_sorted_call_ids() const
+FrameTrimmer::get_sorted_call_ids()
 {
     return impl->get_sorted_call_ids();
 }
@@ -271,10 +271,11 @@ void FrameTrimmeImpl::end_target_frame()
 }
 
 std::vector<unsigned>
-FrameTrimmeImpl::get_sorted_call_ids() const
+FrameTrimmeImpl::get_sorted_call_ids()
 {
     std::unordered_set<unsigned> make_sure_its_singular;
 
+    m_required_calls.resolve();
     for(auto&& c: m_required_calls)
         make_sure_its_singular.insert(c->call_no());
 

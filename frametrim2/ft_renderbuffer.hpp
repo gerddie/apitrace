@@ -32,6 +32,7 @@ private:
     void pass_state_cache(unsigned object_id, PCallSet cache) override;
     void emit_dependend_caches(CallSet& list) const override;
 
+    unsigned m_creator_id;
     PCallSet m_creator_state;
 
     PTraceCall m_set_storage_call;

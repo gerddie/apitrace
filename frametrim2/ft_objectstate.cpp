@@ -42,11 +42,6 @@ void ObjectState::emit_calls_to_list(CallSet& list) const
     * gets used later) we need to make sure we only emit this series once,
     * otherwise we might end up with a stack overflow.
     */
-
-    if (m_glID == 11 && type() == bt_texture)
-        std::cerr << "Texture 11 emitting:" << m_emitting
-                  << " active:" << is_active() << "\n";
-
     if (!m_emitting && is_active()) {
         m_emitting = true;
 
@@ -78,10 +73,6 @@ void ObjectState::reset_callset()
 
 void ObjectState::flush_state_cache(ObjectState& fbo) const
 {
-    if (m_glID == 11 && type() == bt_texture)
-        std::cerr << "Texture 11 flush state cache with m_callset_dirty ="
-                  << m_callset_dirty << "\n";
-
     if (m_callset_dirty) {
         m_state_cache = std::make_shared<CallSet>();
         emit_calls_to_list(*m_state_cache);

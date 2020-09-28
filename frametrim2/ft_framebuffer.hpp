@@ -91,6 +91,7 @@ public:
                         unsigned layer, PTraceCall call) override;
 
 private:
+    void pass_state_cache(unsigned object_id, PCallSet cache) override;
     bool clear_all_buffers(unsigned mask) const override;
     void set_viewport_size(unsigned width, unsigned height) override;
     bool is_active() const override;

@@ -109,8 +109,10 @@ void CallSet::insert(PTraceCall call)
 
 void CallSet::insert(const CallSet& set)
 {
-    for(auto&& c : set)
+    for(auto&& c : set.m_calls)
         insert(c);
+    for(auto&& c : set.m_subsets)
+        insert(c.first, c.second);
 }
 
 void CallSet::insert(const StateCallMap& map)
@@ -135,6 +137,15 @@ bool CallSet::empty() const
     return m_calls.empty();
 }
 
+void CallSet::resolve()
+{
+    for(auto&& s: m_subsets)
+        if (s.second)
+            for (auto&& c: *s.second)
+                insert(c);
+    m_subsets.clear();
+}
+
 CallSet::const_iterator
 CallSet::begin() const
 {
@@ -145,6 +156,11 @@ CallSet::const_iterator
 CallSet::end() const
 {
     return m_calls.end();
+}
+
+void CallSet::insert(unsigned id, Pointer subset)
+{
+    m_subsets[id] = subset;
 }
 
 CallSetWithCycleCounter::CallSetWithCycleCounter():

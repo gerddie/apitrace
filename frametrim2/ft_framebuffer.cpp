@@ -261,6 +261,15 @@ bool DefaultFramebufferState::is_active() const
     return true;
 }
 
+void DefaultFramebufferState::pass_state_cache(unsigned object_id, PCallSet cache)
+{
+    if (cache) {
+        cache->resolve();
+        for (auto&& c: *cache)
+            append_call(c);
+    }
+}
+
 FramebufferState::FramebufferState(GLint glID, PTraceCall gen_call):
     GenObjectState(glID, gen_call),
     m_width(0),
@@ -347,8 +356,7 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
 void FramebufferState::emit_dependend_caches(CallSet& list) const
 {
     for(auto&& deps : m_dependend_states)
-        list.insert(*deps.second);
-
+        list.insert(deps.first, deps.second);
 }
 
 void FramebufferState::emit_attachment_calls_to_list(CallSet& list) const

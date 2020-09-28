@@ -68,6 +68,8 @@ struct CallHash {
 
 class CallSet {
 public:
+    using Pointer = std::shared_ptr<CallSet>;
+
     using const_iterator = std::unordered_set<PTraceCall, CallHash>::const_iterator;
 
     enum Flag {
@@ -86,6 +88,9 @@ public:
 
     void set(Flag f) {m_flags.set(f);}
     bool has(Flag f) {return m_flags.test(f);}
+
+    void resolve();
+    void insert(unsigned id, Pointer subset);
 protected:
     void insert_into_set(PTraceCall call) {m_calls.insert(call);}
 private:
@@ -93,6 +98,8 @@ private:
 
     std::unordered_set<PTraceCall, CallHash> m_calls;
     std::bitset<last_flag> m_flags;
+    std::unordered_map<unsigned, Pointer> m_subsets;
+
 };
 
 using PCallSet = std::shared_ptr<CallSet>;

@@ -44,10 +44,6 @@ TextureState::data(const trace::Call& call)
     unsigned level = call.arg(1).toUInt();
     assert(level < 16);
 
-    if (id() == 11) {
-        std::cerr << "Set Texture level " << level << " dimenstions\n";
-    }
-
     m_data_upload_set[level].clear();
     if (m_last_unit_call) {
         m_data_upload_set[level].insert(m_last_unit_call);
@@ -174,7 +170,7 @@ void TextureState::emit_dependend_caches(CallSet& list) const
 {
     for(auto&& cs: m_creator_states) {
         if (cs.second)
-            list.insert(*cs.second);
+            list.insert(cs.first, cs.second);
     }
 }
 

@@ -4,6 +4,7 @@ namespace frametrim {
 
 RenderBuffer::RenderBuffer(GLint glID, PTraceCall gen_call):
     SizedObjectState(glID, gen_call, renderbuffer),
+    m_creator_id(0),
     m_is_blit_source(false)
 {
 
@@ -57,14 +58,14 @@ bool RenderBuffer::is_active() const
 
 void RenderBuffer::pass_state_cache(unsigned object_id, PCallSet cache)
 {
-    (void)object_id;
+    m_creator_id = object_id;
     m_creator_state = cache;
 }
 
 void RenderBuffer::emit_dependend_caches(CallSet& list) const
 {
     if (m_creator_state)
-        list.insert(*m_creator_state);
+        list.insert(m_creator_id, m_creator_state);
 }
 
 PTraceCall

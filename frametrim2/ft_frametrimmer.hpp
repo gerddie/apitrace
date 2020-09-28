@@ -17,7 +17,7 @@ public:
 
     void finalize();
 
-    std::vector<unsigned> get_sorted_call_ids() const;
+    std::vector<unsigned> get_sorted_call_ids();
 private:
     struct FrameTrimmeImpl *impl;
 
