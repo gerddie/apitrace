@@ -43,6 +43,9 @@ public:
     }
 
     PTraceCall destroy(const trace::Call &call) {
+        if (call.args.size() < 2)
+            std::cerr << "call " << call.no << " " << call.name() << "will fail\n";
+
         const auto ids = (call.arg(1)).toArray();
         for (auto& v : ids->values) {
             auto state = this->get_by_id(v->toUInt());

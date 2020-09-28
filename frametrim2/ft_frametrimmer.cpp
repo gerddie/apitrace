@@ -465,7 +465,7 @@ FrameTrimmeImpl::register_buffer_calls()
 
 void FrameTrimmeImpl::register_draw_calls()
 {
-    MAP("glDrawArrays", DrawArrays);
+    MAP(glDrawArrays, DrawArrays);
     MAP(glDrawElements, DrawElements);
     MAP(glDrawRangeElements, DrawElements);
     MAP(glDrawRangeElementsBaseVertex, DrawElements);
@@ -481,6 +481,7 @@ FrameTrimmeImpl::register_program_calls()
 
     MAP_GENOBJ(glCompileShader, m_shaders, ShaderStateMap::data);
     MAP_GENOBJ(glCreateShader, m_shaders, ShaderStateMap::create);
+    MAP_GENOBJ(glDeleteShader, m_shaders, ShaderStateMap::destroy);
     MAP_GENOBJ(glShaderSource, m_shaders, ShaderStateMap::data);
     MAP_GENOBJ(glBindAttribLocation, m_programs,
                ProgramStateMap::bind_attr_location);
@@ -490,6 +491,7 @@ FrameTrimmeImpl::register_program_calls()
     MAP_GENOBJ(glBindFragDataLocation, m_programs, ProgramStateMap::data);
     MAP_GENOBJ(glLinkProgram, m_programs, ProgramStateMap::data);
     MAP_GENOBJ(glProgramBinary, m_programs, ProgramStateMap::data);
+    MAP_GENOBJ(glDeleteProgram, m_programs, ProgramStateMap::destroy);
     MAP_GENOBJ(glUniform, m_programs, ProgramStateMap::uniform);
     MAP_GENOBJ_DATAREF(glUseProgram, m_programs, ProgramStateMap::use,
                        m_fbo.current_framebuffer());
@@ -635,11 +637,6 @@ void FrameTrimmeImpl::register_ignore_history_calls()
      * TODO: Delete calls should probably really delete things */
     const std::vector<const char *> ignore_history_calls = {
         "glCheckFramebufferStatus",
-        "glDeleteBuffers",
-        "glDeleteProgram",
-        "glDeleteShader",
-        "glDeleteVertexArrays",
-        "glDetachShader",
         "glGetError",
         "glGetFloat",
         "glGetFramebufferAttachmentParameter",
@@ -670,7 +667,6 @@ void FrameTrimmeImpl::register_ignore_history_calls()
         "eglGetConfigs",
         "eglGetConfigAttrib",
         "eglQuerySurface",
-
      };
     auto ignore_history_func = bind(&FrameTrimmeImpl::ignore_history, this, _1);
     update_call_table(ignore_history_calls, ignore_history_func);

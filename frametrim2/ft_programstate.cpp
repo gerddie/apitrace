@@ -65,6 +65,12 @@ PTraceCall ShaderStateMap::create(const trace::Call& call)
     return shader->append_call(trace2call(call));
 }
 
+PTraceCall ShaderStateMap::destroy(const trace::Call& call)
+{
+    GLint id = call.arg(0).toUInt();
+    set(id, nullptr);
+    return trace2call(call);
+}
 
 PTraceCall ShaderStateMap::data(const trace::Call& call)
 {
@@ -131,7 +137,7 @@ ProgramStateMap::create(const trace::Call& call)
 PTraceCall
 ProgramStateMap::destroy(const trace::Call& call)
 {
-    this->clear(call.ret->toUInt());
+    this->clear(call.arg(0).toUInt());
     return trace2call(call);
 }
 

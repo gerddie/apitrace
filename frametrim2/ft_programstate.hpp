@@ -39,6 +39,7 @@ public:
     using TObjStateMap<ShaderState>::TObjStateMap;
 
     PTraceCall create(const trace::Call& call);
+    PTraceCall destroy(const trace::Call& call);
     PTraceCall data(const trace::Call& call);
 private:
     void do_emit_calls_to_list(CallSet& list) const override;
