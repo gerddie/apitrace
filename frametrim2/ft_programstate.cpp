@@ -86,6 +86,7 @@ ProgramState::ProgramState(unsigned id):
 void ProgramState::attach_shader(PShaderState shader)
 {
     m_shaders[shader->stage()] = shader;
+    dirty_cache();
 }
 
 PTraceCall

@@ -68,6 +68,7 @@ ObjectState::append_call(PTraceCall call)
 void ObjectState::reset_callset()
 {
     m_calls.clear();
+    dirty_cache();
 }
 
 void ObjectState::flush_state_cache(ObjectState& fbo) const
