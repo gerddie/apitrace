@@ -61,6 +61,7 @@ ObjectState::append_call(PTraceCall call)
 {
     m_callset_dirty = true;
     m_calls.insert(call);
+    dirty_cache();
     return call;
 }
 
@@ -76,7 +77,8 @@ void ObjectState::flush_state_cache(ObjectState& fbo) const
         emit_calls_to_list(*m_state_cache);
         m_callset_dirty = false;
     }
-    fbo.pass_state_cache(global_id(), m_state_cache);
+    if (!m_state_cache->empty())
+        fbo.pass_state_cache(global_id(), m_state_cache);
 }
 
 void ObjectState::pass_state_cache(unsigned object_id, PCallSet cache)
@@ -93,6 +95,7 @@ ObjectState::set_state_call(const trace::Call& call, unsigned nstate_id_params)
     auto c = std::make_shared<TraceCall>(call, nstate_id_params);
     m_state_calls[c->name()] = c;
     post_set_state_call(c);
+    dirty_cache();
     return c;
 }
 

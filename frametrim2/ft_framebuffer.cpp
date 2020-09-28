@@ -124,6 +124,7 @@ PTraceCall FramebufferState::blit(const trace::Call& call)
         m_draw_calls.insert(bind_call());
     }
     m_draw_calls.insert(c);
+    dirty_cache();
     return c;
 }
 
@@ -136,6 +137,7 @@ PTraceCall FramebufferState::draw_buffer(const trace::Call& call)
         assert(0);
     }
     m_drawbuffer_call->set_required_call(bind_call());
+    dirty_cache();
     return m_drawbuffer_call;
 }
 
@@ -148,7 +150,7 @@ PTraceCall FramebufferState::read_buffer(const trace::Call& call)
 
 void
 DefaultFramebufferState::attach(unsigned index, PSizedObjectState attachment,
-                    unsigned layer, PTraceCall call)
+                                unsigned layer, PTraceCall call)
 {
     (void)index;
     (void)attachment;
@@ -344,11 +346,6 @@ void FramebufferState::emit_attachment_calls_to_list(CallSet& list) const
     (void)list;
 }
 
-void FramebufferState::submit_cache() const
-{
-
-}
-
 void FBOState::attach(unsigned index, PSizedObjectState attachment,
                       unsigned layer, PTraceCall call)
 {
@@ -368,13 +365,21 @@ void FBOState::attach(unsigned index, PSizedObjectState attachment,
     dirty_cache();
 }
 
+void FBOState::post_unbind(const PTraceCall& call)
+{
+    (void)call;
+
+    for (auto&& a: m_attachments) {
+        if (a.second)
+            flush_state_cache(*a.second);
+    }
+}
+
 void FBOState::emit_attachment_calls_to_list(CallSet& list) const
 {
     for (auto&& a : m_attachments)
         if (a.second)
             a.second->emit_calls_to_list(list);
-
-    size_t s = list.size();
 
     for (auto&& a : m_attach_call) {
         if (a.second.first)
@@ -382,13 +387,6 @@ void FBOState::emit_attachment_calls_to_list(CallSet& list) const
         if (a.second.second)
             list.insert(a.second.second);
     }
-
-    if (id() == 70) {
-        std::cerr << "Emitted "
-                  << list.size() - s
-                  << " attach calls\n";
-    }
-
 }
 
 void FBOState::set_viewport_size(unsigned width, unsigned height)
@@ -418,14 +416,6 @@ bool FBOState::clear_all_buffers(unsigned mask) const
         }
     }
     return (attached_mask & ~mask) ? false : true;
-}
-
-void FBOState::submit_cache() const
-{
-    for (auto&& a: m_attachments) {
-        if (a.second)
-            flush_state_cache(*a.second);
-    }
 }
 
 }

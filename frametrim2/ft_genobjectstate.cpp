@@ -73,8 +73,12 @@ bool operator == (const SizedObjectState& lhs, const SizedObjectState& rhs)
 
 void SizedObjectState::emit_dependend_caches(CallSet& list) const
 {
-    if (m_creator_state)
+    if (m_creator_state) {
+        std::cerr << "Emit creator of " << global_id()
+                  << " with " << m_creator_state->size() << " calls\n";
+
         list.insert(*m_creator_state);
+    }
 }
 
 }
