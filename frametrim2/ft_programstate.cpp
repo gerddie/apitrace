@@ -217,6 +217,30 @@ LegacyProgramStateMap::program_string(const trace::Call& call)
     return shader->append_call(trace2call(call));
 }
 
+PTraceCall LegacyProgramStateMap::bind_shader(const trace::Call& call,
+                                              FramebufferState& fbo)
+{
+    auto target = call.arg(0).toUInt();
+    auto id = call.arg(1).toUInt();
+
+    PTraceCall c = trace2call(call);
+
+    if (id > 0 && !get_by_id(id, false)) {
+        // legacy shaders might be created on the fly when bound
+        auto shader= std::make_shared<ShaderState>(id, c);
+        set(id, shader);
+    }
+    bind_target(target, id, c);
+
+    auto shader = get_by_id(id, false);
+
+    if (shader)
+        shader->flush_state_cache(fbo);
+
+    return c;
+
+}
+
 void
 LegacyProgramStateMap::do_emit_calls_to_list(CallSet& list) const
 {

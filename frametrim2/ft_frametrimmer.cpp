@@ -382,8 +382,8 @@ void FrameTrimmeImpl::register_legacy_calls()
                LegacyProgramStateMap::generate);
     MAP_GENOBJ(glDeletePrograms, m_legacy_programs,
                LegacyProgramStateMap::destroy);
-    MAP_GENOBJ_DATA_DATAREF(glBindProgram, m_legacy_programs,
-               LegacyProgramStateMap::bind, 1, m_fbo.current_framebuffer());
+    MAP_GENOBJ_DATAREF(glBindProgram, m_legacy_programs,
+               LegacyProgramStateMap::bind_shader, m_fbo.current_framebuffer());
     MAP_GENOBJ(glProgramString, m_legacy_programs,
                LegacyProgramStateMap::program_string);
 

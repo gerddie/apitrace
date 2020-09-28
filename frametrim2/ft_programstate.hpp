@@ -97,6 +97,7 @@ public:
     using TGenObjStateMap<ShaderState>::TGenObjStateMap;
 
     PTraceCall program_string(const trace::Call& call);
+    PTraceCall bind_shader(const trace::Call& call, FramebufferState &fbo);
 
 private:
     void do_emit_calls_to_list(CallSet& list) const override;

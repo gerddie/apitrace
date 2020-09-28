@@ -94,13 +94,13 @@ public:
         m_emitting(false){
     }
 
-    typename T::Pointer get_by_id(uint64_t id) {
+    typename T::Pointer get_by_id(uint64_t id, bool required = true) {
         if (!id)
             return nullptr;
 
         auto iter = m_states.find(id);
         if (iter == m_states.end()) {
-            assert(0 && "Expected id not found \n");
+            assert(!required && "Expected id not found \n");
             return nullptr;
         }
         return iter->second;
