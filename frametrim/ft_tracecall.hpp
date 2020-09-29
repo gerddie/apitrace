@@ -111,11 +111,11 @@ class TraceDrawCall : public TraceCall {
 public:
     using TraceCall::TraceCall;
 
-    void insert(PCallSet depends);
+    void append_calset(PCallSet depends);
 private:
     void emit_required_callsets(CallSet& out_list) override;
 
-    PCallSet m_depends;
+    std::vector<PCallSet> m_depends;
 };
 
 class CallSetWithCycleCounter : public CallSet {

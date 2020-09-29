@@ -4,6 +4,7 @@
 #include "trace_parser.hpp"
 
 #include "ft_genobjectstate.hpp"
+#include "ft_programstate.hpp"
 #include "ft_vertexattribpointer.hpp"
 
 #include <memory>
@@ -22,7 +23,8 @@ public:
 
     PTraceCall clear(const trace::Call& call);
 
-    PTraceCall draw(const trace::Call& call, VertexAttribPointerMap& vap_map);
+    PTraceCall draw(const trace::Call& call, VertexAttribPointerMap& vap_map,
+                    PProgramState active_program);
 
     PTraceCall draw_buffer(const trace::Call& call);
 
@@ -113,7 +115,8 @@ public:
 
     PTraceCall clear(const trace::Call& call);
 
-    PTraceCall draw(const trace::Call& call, VertexAttribPointerMap &vap_map);
+    PTraceCall draw(const trace::Call& call, VertexAttribPointerMap &vap_map,
+                    PProgramState active_program);
 
     PTraceCall draw_buffer(const trace::Call& call);
 

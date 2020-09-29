@@ -86,6 +86,8 @@ public:
     PTraceCall uniform(const trace::Call& call);
     PTraceCall set_state(const trace::Call& call, unsigned addr_params);
 
+    PProgramState active_program() const;
+
 private:
     void do_emit_calls_to_list(CallSet& list) const override;
 

@@ -215,6 +215,11 @@ void ProgramStateMap::do_emit_calls_to_list(CallSet& list) const
         m_active_program->emit_calls_to_list(list);
 }
 
+PProgramState ProgramStateMap::active_program() const
+{
+    return m_active_program;
+}
+
 PTraceCall
 LegacyProgramStateMap::program_string(const trace::Call& call)
 {

@@ -1,5 +1,6 @@
 #include "ft_framebuffer.hpp"
 #include "ft_texturestate.hpp"
+#include "ft_programstate.hpp"
 #include "ft_renderbuffer.hpp"
 
 
@@ -27,9 +28,10 @@ PTraceCall FramebufferStateMap::clear(const trace::Call& call)
     return m_current_framebuffer->clear(call);
 }
 
-PTraceCall FramebufferStateMap::draw(const trace::Call& call, VertexAttribPointerMap& vap_map)
+PTraceCall FramebufferStateMap::draw(const trace::Call& call, VertexAttribPointerMap& vap_map,
+                                     PProgramState active_program)
 {
-    return m_current_framebuffer->draw(call, vap_map);
+    return m_current_framebuffer->draw(call, vap_map, active_program);
 }
 
 PTraceCall FramebufferStateMap::bind_fbo(const trace::Call& call,
@@ -327,10 +329,14 @@ PTraceCall FramebufferState::clear(const trace::Call& call)
 }
 
 PTraceCall FramebufferState::draw(const trace::Call& call,
-                                  VertexAttribPointerMap &vap_map)
+                                  VertexAttribPointerMap &vap_map,
+                                  PProgramState active_program)
 {
+
     auto c = std::make_shared<TraceDrawCall>(call);
-    c->insert(vap_map.state_cache());
+    c->append_calset(vap_map.state_cache());
+    if (active_program)
+        c->append_calset(active_program->get_state_cache());
     if (!m_draw_calls.has(CallSet::attach_calls)) {
         emit_attachment_calls_to_list(m_draw_calls);
         m_draw_calls.set(CallSet::attach_calls);

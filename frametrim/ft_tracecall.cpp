@@ -174,15 +174,15 @@ void CallSet::insert(unsigned id, Pointer subset)
     m_subsets[id] = subset;
 }
 
-void TraceDrawCall::insert(PCallSet depends)
+void TraceDrawCall::append_calset(PCallSet depends)
 {
-    m_depends = depends;
+    m_depends.push_back(depends);
 }
 
 void TraceDrawCall::emit_required_callsets(CallSet& out_list)
 {
-    if (m_depends)
-        out_list.insert(*m_depends);
+    for (auto&& d : m_depends)
+        out_list.insert(*d);
 }
 
 CallSetWithCycleCounter::CallSetWithCycleCounter():

@@ -812,7 +812,8 @@ FrameTrimmeImpl::DeleteLists(const trace::Call& call)
 
 PTraceCall FrameTrimmeImpl::DrawElements(const trace::Call& call)
 {
-    auto c = m_fbo.current_framebuffer().draw(call, m_vertex_attrib_pointers);
+    auto c = m_fbo.current_framebuffer().draw(call, m_vertex_attrib_pointers,
+                                              m_programs.active_program());
     auto ibo = m_buffers.bound_to(GL_ELEMENT_ARRAY_BUFFER);
     if (ibo) {
         if (m_recording_frame) {
@@ -826,7 +827,8 @@ PTraceCall FrameTrimmeImpl::DrawElements(const trace::Call& call)
 
 PTraceCall FrameTrimmeImpl::DrawArrays(const trace::Call& call)
 {
-    return m_fbo.current_framebuffer().draw(call, m_vertex_attrib_pointers);
+    return m_fbo.current_framebuffer().draw(call, m_vertex_attrib_pointers,
+                                            m_programs.active_program());
 }
 
 PTraceCall FrameTrimmeImpl::record_va_enable(const trace::Call& call,
