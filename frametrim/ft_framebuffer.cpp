@@ -27,9 +27,9 @@ PTraceCall FramebufferStateMap::clear(const trace::Call& call)
     return m_current_framebuffer->clear(call);
 }
 
-PTraceCall FramebufferStateMap::draw(const trace::Call& call)
+PTraceCall FramebufferStateMap::draw(const trace::Call& call, VertexAttribPointerMap& vap_map)
 {
-    return m_current_framebuffer->draw(call);
+    return m_current_framebuffer->draw(call, vap_map);
 }
 
 PTraceCall FramebufferStateMap::bind_fbo(const trace::Call& call,
@@ -326,9 +326,11 @@ PTraceCall FramebufferState::clear(const trace::Call& call)
     return c;
 }
 
-PTraceCall FramebufferState::draw(const trace::Call& call)
+PTraceCall FramebufferState::draw(const trace::Call& call,
+                                  VertexAttribPointerMap &vap_map)
 {
-    auto c = trace2call(call);
+    auto c = std::make_shared<TraceDrawCall>(call);
+    c->insert(vap_map.state_cache());
     if (!m_draw_calls.has(CallSet::attach_calls)) {
         emit_attachment_calls_to_list(m_draw_calls);
         m_draw_calls.set(CallSet::attach_calls);

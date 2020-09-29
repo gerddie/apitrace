@@ -18,6 +18,8 @@ public:
 
 private:
 
+    unsigned get_cache_id_helper() const override;
+
     ObjectType type() const override;
 
     bool is_active() const override;
@@ -40,12 +42,16 @@ using PVertexAttribPointer = VertexAttribPointer::Pointer;
 
 class VertexAttribPointerMap : public TObjStateMap<VertexAttribPointer> {
 public:
-
+    VertexAttribPointerMap();
     PTraceCall enable(const trace::Call& call, bool enable);
     PTraceCall set_data(const trace::Call& call, BufferStateMap& buffers);
+    PCallSet state_cache() const;
 private:
     PVertexAttribPointer get_or_create(const trace::Call& call);
     void do_emit_calls_to_list(CallSet& list) const override;
+
+    mutable bool m_state_cache_dirty;
+    mutable PCallSet m_state_cache;
 };
 
 }

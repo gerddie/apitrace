@@ -16,6 +16,8 @@ enum ECallFlags {
     tc_last
 };
 
+class CallSet;
+
 class TraceCall {
 public:
     using Pointer = std::shared_ptr<TraceCall>;
@@ -38,10 +40,12 @@ public:
 
     void set_required_call(Pointer call);
 
-    Pointer required_call() const { return m_required_call;}
+    void emit_required_calls(CallSet& out_list);
 private:
 
     static std::string name_with_paramsel(const trace::Call& call, unsigned nsel);
+
+    virtual void emit_required_callsets(CallSet& out_list);
 
     unsigned m_trace_call_no;
     unsigned m_recorded_at;
@@ -101,8 +105,18 @@ private:
     std::unordered_map<unsigned, Pointer> m_subsets;
 
 };
-
 using PCallSet = std::shared_ptr<CallSet>;
+
+class TraceDrawCall : public TraceCall {
+public:
+    using TraceCall::TraceCall;
+
+    void insert(PCallSet depends);
+private:
+    void emit_required_callsets(CallSet& out_list) override;
+
+    PCallSet m_depends;
+};
 
 class CallSetWithCycleCounter : public CallSet {
 public:

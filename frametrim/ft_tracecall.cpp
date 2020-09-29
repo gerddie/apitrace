@@ -90,9 +90,22 @@ void TraceCall::record_at(unsigned reference_call)
     m_recorded_at = reference_call;
 }
 
+void TraceCall::emit_required_calls(CallSet& out_list)
+{
+    if (m_required_call)
+        out_list.insert(m_required_call);
+
+    emit_required_callsets(out_list);
+}
+
 void TraceCall::set_required_call(Pointer call)
 {
     m_required_call = call;
+}
+
+void TraceCall::emit_required_callsets(CallSet& out_list)
+{
+    (void)out_list;
 }
 
 void CallSet::insert(PTraceCall call)
@@ -100,12 +113,8 @@ void CallSet::insert(PTraceCall call)
     if (!call)
         return;
     do_insert(call);
-    auto dep = call->required_call();
-    if (dep)
-        do_insert(dep);
+    call->emit_required_calls(*this);
 }
-
-
 
 void CallSet::insert(const CallSet& set)
 {
@@ -141,7 +150,6 @@ void CallSet::resolve()
 {
     for(auto&& [k, s]: m_subsets) {
         if (s) {
-            s->resolve();
             for (auto&& c: *s)
                 insert(c);
         }
@@ -164,6 +172,17 @@ CallSet::end() const
 void CallSet::insert(unsigned id, Pointer subset)
 {
     m_subsets[id] = subset;
+}
+
+void TraceDrawCall::insert(PCallSet depends)
+{
+    m_depends = depends;
+}
+
+void TraceDrawCall::emit_required_callsets(CallSet& out_list)
+{
+    if (m_depends)
+        out_list.insert(*m_depends);
 }
 
 CallSetWithCycleCounter::CallSetWithCycleCounter():

@@ -9,7 +9,8 @@ using std::stringstream;
 ObjectState::ObjectState(GLint glID, PTraceCall call):
     m_glID(glID),
     m_emitting(false),
-    m_callset_dirty(true)
+    m_callset_submit_fence(0),
+    m_callset_fence(1)
 {
     m_gen_calls.insert(call);
 }
@@ -17,7 +18,8 @@ ObjectState::ObjectState(GLint glID, PTraceCall call):
 ObjectState::ObjectState(GLint glID):
     m_glID(glID),
     m_emitting(false),
-    m_callset_dirty(true)
+    m_callset_submit_fence(0),
+    m_callset_fence(1)
 {
 }
 
@@ -34,6 +36,27 @@ unsigned ObjectState::id() const
 unsigned ObjectState::global_id() const
 {
     return type() + bt_last * id();
+}
+
+void ObjectState::dirty_cache()
+{
+    if (m_callset_fence <= m_callset_submit_fence)
+        m_callset_fence = m_callset_submit_fence + 1;
+}
+
+unsigned ObjectState::cache_id() const
+{
+    return (global_id() << 16) + get_cache_id_helper();
+}
+
+unsigned ObjectState::get_cache_id_helper() const
+{
+    return 0;
+}
+
+unsigned ObjectState::fence_id() const
+{
+    return m_callset_submit_fence;
 }
 
 void ObjectState::emit_calls_to_list(CallSet& list) const
@@ -59,7 +82,6 @@ void ObjectState::emit_calls_to_list(CallSet& list) const
 PTraceCall
 ObjectState::append_call(PTraceCall call)
 {
-    m_callset_dirty = true;
     m_calls.insert(call);
     dirty_cache();
     return call;
@@ -73,13 +95,19 @@ void ObjectState::reset_callset()
 
 void ObjectState::flush_state_cache(ObjectState& fbo) const
 {
-    if (m_callset_dirty) {
+    auto state_cache = get_state_cache();
+    if (!state_cache->empty())
+        fbo.pass_state_cache(cache_id(), state_cache);
+}
+
+PCallSet ObjectState::get_state_cache() const
+{
+    if (m_callset_fence > m_callset_submit_fence) {
         m_state_cache = std::make_shared<CallSet>();
         emit_calls_to_list(*m_state_cache);
-        m_callset_dirty = false;
+        m_callset_submit_fence = m_callset_fence;
     }
-    if (!m_state_cache->empty())
-        fbo.pass_state_cache(global_id(), m_state_cache);
+    return m_state_cache;
 }
 
 void ObjectState::pass_state_cache(unsigned object_id, PCallSet cache)
@@ -92,7 +120,6 @@ void ObjectState::pass_state_cache(unsigned object_id, PCallSet cache)
 PTraceCall
 ObjectState::set_state_call(const trace::Call& call, unsigned nstate_id_params)
 {
-    m_callset_dirty = true;
     auto c = std::make_shared<TraceCall>(call, nstate_id_params);
     m_state_calls[c->name()] = c;
     post_set_state_call(c);

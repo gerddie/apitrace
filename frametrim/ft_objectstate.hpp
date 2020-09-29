@@ -54,11 +54,20 @@ public:
 
     unsigned global_id() const;
 
+    unsigned cache_id() const;
+
+    PCallSet get_state_cache() const;
+
 protected:
     virtual void post_set_state_call(PTraceCall call) {(void)call;}
+
+    virtual unsigned get_cache_id_helper() const;
+
+    unsigned fence_id() const;
+
     void reset_callset();
 
-    void dirty_cache() {m_callset_dirty = true;}
+    void dirty_cache();
 
     virtual PTraceCall gen_call() const  {return nullptr; }
 
@@ -85,7 +94,8 @@ private:
     ObjectType m_type;
 
     mutable bool m_emitting;
-    mutable bool m_callset_dirty;
+    mutable unsigned m_callset_submit_fence;
+    mutable unsigned m_callset_fence;
     mutable PCallSet m_state_cache;
 };
 

@@ -26,6 +26,7 @@ VertexAttribPointer::set_data(const trace::Call &call, PBufferState buf)
     m_set_call = trace2call(call);
     if (buf)
         buf->flush_state_cache(*this);
+    dirty_cache();
     return m_set_call;
 }
 
@@ -37,6 +38,11 @@ ObjectType VertexAttribPointer::type() const
 bool VertexAttribPointer::is_active() const
 {
     return true;
+}
+
+unsigned VertexAttribPointer::get_cache_id_helper() const
+{
+    return fence_id();
 }
 
 void VertexAttribPointer::do_emit_calls_to_list(CallSet& list) const
@@ -64,10 +70,15 @@ void VertexAttribPointer::pass_state_cache(unsigned object_id, PCallSet cache)
     dirty_cache();
 }
 
+VertexAttribPointerMap::VertexAttribPointerMap():
+    m_state_cache_dirty(true)
+{
+}
 
 PTraceCall VertexAttribPointerMap::enable(const trace::Call& call, bool enable)
 {
     auto vap = get_or_create(call);
+    m_state_cache_dirty = true;
     return vap->enable(call, enable);
 }
 
@@ -76,6 +87,7 @@ PTraceCall VertexAttribPointerMap::set_data(const trace::Call& call, BufferState
 {
     auto vap = get_or_create(call);
     auto buf = buffers.bound_to(GL_ARRAY_BUFFER);
+    m_state_cache_dirty = true;
     return vap->set_data(call, buf);
 }
 
@@ -95,6 +107,16 @@ void VertexAttribPointerMap::do_emit_calls_to_list(CallSet& list) const
 {
     /* TODO> Why isn't this done in the base class */
     emit_all_states(list);
+}
+
+PCallSet VertexAttribPointerMap::state_cache() const
+{
+    if (m_state_cache_dirty) {
+        m_state_cache = std::make_shared<CallSet>();
+        emit_calls_to_list(*m_state_cache);
+        m_state_cache_dirty = false;
+    }
+    return m_state_cache;
 }
 
 }
