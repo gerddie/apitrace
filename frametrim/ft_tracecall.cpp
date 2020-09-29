@@ -139,10 +139,13 @@ bool CallSet::empty() const
 
 void CallSet::resolve()
 {
-    for(auto&& s: m_subsets)
-        if (s.second)
-            for (auto&& c: *s.second)
+    for(auto&& [k, s]: m_subsets) {
+        if (s) {
+            s->resolve();
+            for (auto&& c: *s)
                 insert(c);
+        }
+    }
     m_subsets.clear();
 }
 
