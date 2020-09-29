@@ -821,11 +821,8 @@ PTraceCall FrameTrimmeImpl::DrawElements(const trace::Call& call)
         }
         ibo->flush_state_cache(m_fbo.current_framebuffer());
     }
-    if (m_recording_frame) {
-        m_legacy_programs.emit_calls_to_list(m_required_calls);
-        m_vertex_attrib_pointers.emit_calls_to_list(m_required_calls);
-    }
 
+    m_vertex_attrib_pointers.flush_state_caches(m_fbo.current_framebuffer());
 
     return c;
 }
