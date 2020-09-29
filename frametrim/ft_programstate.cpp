@@ -1,5 +1,5 @@
 #include "ft_programstate.hpp"
-#include "ft_globalstate.hpp"
+#include "ft_framebuffer.hpp"
 
 #include <iostream>
 
@@ -8,18 +8,18 @@ namespace frametrim {
 using std::make_shared;
 
 ShaderState::ShaderState(unsigned id, unsigned stage):
-    ObjectWithBindState(id, nullptr),
+    ObjectWithBindState(id),
     m_stage(stage),
     m_attach_count(0)
 {
 }
 
-ShaderState::ShaderState(unsigned id, PCall call):
+ShaderState::ShaderState(unsigned id, PTraceCall call):
     ObjectWithBindState(id, call),
     m_stage(0),
     m_attach_count(0)
 {
-    append_call(trace2call(*call));
+    append_call(call);
 }
 
 void ShaderState::set_stage(unsigned stage)
@@ -56,20 +56,26 @@ bool ShaderState::is_active() const
     return bound() || is_attached();
 }
 
-void ShaderStateMap::create(PCall call)
+PTraceCall ShaderStateMap::create(const trace::Call& call)
 {
-    GLint shader_id = call->ret->toUInt();
-    GLint stage = call->arg(0).toUInt();
+    GLint shader_id = call.ret->toUInt();
+    GLint stage = call.arg(0).toUInt();
     auto shader = make_shared<ShaderState>(shader_id, stage);
-    shader->append_call(trace2call(*call));
     set(shader_id, shader);
+    return shader->append_call(trace2call(call));
 }
 
-
-void ShaderStateMap::data(PCall call)
+PTraceCall ShaderStateMap::destroy(const trace::Call& call)
 {
-    auto shader = get_by_id(call->arg(0).toUInt());
-    shader->append_call(trace2call(*call));
+    GLint id = call.arg(0).toUInt();
+    set(id, nullptr);
+    return trace2call(call);
+}
+
+PTraceCall ShaderStateMap::data(const trace::Call& call)
+{
+    auto shader = get_by_id(call.arg(0).toUInt());
+    return shader->append_call(trace2call(call));
 }
 
 void ShaderStateMap::do_emit_calls_to_list(CallSet& list) const
@@ -86,17 +92,23 @@ ProgramState::ProgramState(unsigned id):
 void ProgramState::attach_shader(PShaderState shader)
 {
     m_shaders[shader->stage()] = shader;
+    dirty_cache();
 }
 
-void ProgramState::set_uniform(PCall call)
+PTraceCall
+ProgramState::set_uniform(const trace::Call& call)
 {
-    m_uniforms[call->arg(0).toUInt()] = trace2call(*call);
+    dirty_cache();
+    m_uniforms[call.arg(0).toUInt()] = trace2call(call);
+    m_uniforms[call.arg(0).toUInt()]->set_required_call(m_last_bind);
+    return m_uniforms[call.arg(0).toUInt()];
 }
 
-void ProgramState::bind(PCall call)
+PTraceCall
+ProgramState::bind(const trace::Call& call)
 {
-    m_last_bind = trace2call(*call);
-    m_uniforms.clear();
+    m_last_bind = trace2call(call);
+    return m_last_bind;
 }
 
 void ProgramState::do_emit_calls_to_list(CallSet& list) const
@@ -113,22 +125,26 @@ void ProgramState::do_emit_calls_to_list(CallSet& list) const
 }
 
 
-void ProgramStateMap::create(PCall call)
+PTraceCall
+ProgramStateMap::create(const trace::Call& call)
 {
-    uint64_t id = call->ret->toUInt();
+    uint64_t id = call.ret->toUInt();
     auto program = make_shared<ProgramState>(id);
     this->set(id, program);
-    program->append_call(trace2call(*call));
+    return program->append_call(trace2call(call));
 }
 
-void ProgramStateMap::destroy(PCall call)
+PTraceCall
+ProgramStateMap::destroy(const trace::Call& call)
 {
-    this->clear(call->ret->toUInt());
+    this->clear(call.arg(0).toUInt());
+    return trace2call(call);
 }
 
-void ProgramStateMap::use(PCall call)
+PTraceCall
+ProgramStateMap::use(const trace::Call& call, FramebufferState& fbo)
 {
-    unsigned progid = call->arg(0).toUInt();
+    unsigned progid = call.arg(0).toUInt();
     bool new_program = false;
 
     if (!m_active_program ||
@@ -137,62 +153,60 @@ void ProgramStateMap::use(PCall call)
         new_program = true;
     }
 
-    if (m_active_program && new_program)
-        m_active_program->bind(call);
-
-    if (m_active_program) {
-        auto& gs = global_state();
-        if (gs.in_target_frame())
-            m_active_program->emit_calls_to_list(gs.global_callset());
-
-        auto draw_fb = gs.draw_framebuffer();
-        if (draw_fb)
-            m_active_program->emit_calls_to_list(draw_fb->dependent_calls());
+    if (m_active_program && new_program) {
+        m_active_program->bind(call);  
+        m_active_program->flush_state_cache(fbo);
     }
+    return trace2call(call);
 }
 
-void ProgramStateMap::set_state(PCall call, unsigned addr_params)
+PTraceCall
+ProgramStateMap::set_state(const trace::Call& call, unsigned addr_params)
 {
-    auto program = get_by_id(call->arg(0).toUInt());
+    auto program = get_by_id(call.arg(0).toUInt());
     if (!program) {
-        std::cerr << "No program found in call " << call->no
-                  << " target:" << call->arg(0).toUInt();
+        std::cerr << "No program found in call " << call.no
+                  << " target:" << call.arg(0).toUInt();
         assert(0);
     }
-    program->set_state_call(call, addr_params);
+    return program->set_state_call(call, addr_params);
 }
 
-void ProgramStateMap::attach_shader(PCall call, ShaderStateMap& shaders)
+PTraceCall
+ProgramStateMap::attach_shader(const trace::Call& call, ShaderStateMap& shaders)
 {
-    auto program = get_by_id(call->arg(0).toUInt());
+    auto program = get_by_id(call.arg(0).toUInt());
     assert(program);
 
-    auto shader = shaders.get_by_id(call->arg(1).toUInt());
+    auto shader = shaders.get_by_id(call.arg(1).toUInt());
     assert(shader);
 
     program->attach_shader(shader);
     shader->attach();
-    program->append_call(trace2call(*call));
+    return program->append_call(trace2call(call));
 }
 
-void ProgramStateMap::bind_attr_location(PCall call)
+PTraceCall
+ProgramStateMap::bind_attr_location(const trace::Call& call)
 {
-    GLint program_id = call->arg(0).toSInt();
+    GLint program_id = call.arg(0).toSInt();
     auto prog = get_by_id(program_id);
-    prog->append_call(trace2call(*call));
+    return prog->append_call(trace2call(call));
 }
 
-void ProgramStateMap::data(PCall call)
+PTraceCall
+ProgramStateMap::data(const trace::Call& call)
 {
-    auto prog = get_by_id(call->arg(0).toUInt());
+    auto prog = get_by_id(call.arg(0).toUInt());
     assert(prog);
-    prog->append_call(trace2call(*call));
+    return prog->append_call(trace2call(call));
 }
 
-void ProgramStateMap::uniform(PCall call)
+PTraceCall
+ProgramStateMap::uniform(const trace::Call& call)
 {
     assert(m_active_program);
-    m_active_program->set_uniform(call);
+    return m_active_program->set_uniform(call);
 }
 
 void ProgramStateMap::do_emit_calls_to_list(CallSet& list) const
@@ -201,14 +215,47 @@ void ProgramStateMap::do_emit_calls_to_list(CallSet& list) const
         m_active_program->emit_calls_to_list(list);
 }
 
-void LegacyProgramStateMap::program_string(PCall call)
+PTraceCall
+LegacyProgramStateMap::program_string(const trace::Call& call)
 {
     auto shader = bound_in_call(call);
     assert(shader);
-    shader->append_call(trace2call(*call));
+    return shader->append_call(trace2call(call));
 }
 
-void LegacyProgramStateMap::do_emit_calls_to_list(CallSet& list) const
+PTraceCall LegacyProgramStateMap::bind_shader(const trace::Call& call,
+                                              FramebufferState& fbo)
+{
+    auto target = call.arg(0).toUInt();
+    auto id = call.arg(1).toUInt();
+
+    PTraceCall c = trace2call(call);
+
+    if (id > 0 && !get_by_id(id, false)) {
+        // legacy shaders might be created on the fly when bound
+        auto shader= std::make_shared<ShaderState>(id, c);
+        set(id, shader);
+    }
+    bind_target(target, id, c);
+
+    auto shader = get_by_id(id, false);
+
+    if (shader)
+        shader->flush_state_cache(fbo);
+
+    return c;
+
+}
+
+PTraceCall LegacyProgramStateMap::program_parameter(const trace::Call& call)
+{
+    auto shader = bound_in_call(call);
+    assert(shader);
+    return shader->set_state_call(call, 2);
+}
+
+void
+LegacyProgramStateMap::do_emit_calls_to_list(CallSet& list) const
 {
     (void)list;
 }

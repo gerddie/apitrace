@@ -13,11 +13,12 @@ public:
 
     MatrixState(Pointer parent);
 
-    void select_matrixtype(PCall call);
+    PTraceCall select_matrixtype(const trace::Call& call);
 
-    void set_matrix(PCall call);
+    PTraceCall set_matrix(const trace::Call& call);
 
 private:
+    ObjectType type() const override {return bt_matrix;}
 
     void do_emit_calls_to_list(CallSet& list) const override;
 
@@ -33,13 +34,12 @@ class AllMatrisStates {
 public:
     AllMatrisStates();
 
-    void LoadIdentity(PCall call);
-    void LoadMatrix(PCall call);
-    void MatrixMode(PCall call);
-    void PopMatrix(PCall call);
-    void PushMatrix(PCall call);
-
-    void matrix_op(PCall call);
+    PTraceCall LoadIdentity(const trace::Call& call);
+    PTraceCall LoadMatrix(const trace::Call& call);
+    PTraceCall MatrixMode(const trace::Call& call);
+    PTraceCall PopMatrix(const trace::Call& call);
+    PTraceCall PushMatrix(const trace::Call& call);
+    PTraceCall matrix_op(const trace::Call& call);
 
     void emit_state_to_lists(CallSet& list) const;
 
@@ -52,7 +52,6 @@ private:
     PMatrixState m_current_matrix;
     std::stack<PMatrixState> *m_current_matrix_stack;
 };
-
 
 }
 

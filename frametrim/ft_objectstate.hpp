@@ -1,7 +1,6 @@
 #ifndef OBJECTSTATE_H
 #define OBJECTSTATE_H
 
-#include "ft_common.hpp"
 #include "ft_tracecall.hpp"
 
 #include <GL/gl.h>
@@ -14,19 +13,21 @@
 
 namespace frametrim {
 
-class GlobalState;
+class FramebufferState;
 
-struct pcall_less {
-    bool operator () (PCall lhs, PCall rhs)
-    {
-        return lhs->no < rhs->no;
-    }
-};
-
-struct call_hash {
-    std::size_t operator () (const PCall& call) const noexcept {
-        return std::hash<unsigned>{}(call->no);
-    }
+enum ObjectType {
+    bt_buffer,
+    bt_display_list,
+    bt_framebuffer,
+    bt_program,
+    bt_legacy_program,
+    bt_matrix,
+    bt_renderbuffer,
+    bt_shader,
+    bt_sampler,
+    bt_texture,
+    bt_vertex_array,
+    bt_last
 };
 
 class ObjectState
@@ -34,67 +35,74 @@ class ObjectState
 public:
     using Pointer = std::shared_ptr<ObjectState>;
 
-    ObjectState(GLint glID, PCall call);
+    ObjectState(GLint glID, PTraceCall call);
+
     ObjectState(GLint glID);
+
     virtual ~ObjectState();
 
     unsigned id() const;
 
-    //void append_gen_call(PCall call);
-
     void emit_calls_to_list(CallSet& list) const;
 
-    void append_call(PTraceCall call);
+    PTraceCall append_call(PTraceCall call);
 
-    void set_state_call(PCall call, unsigned state_id_params);
+    PTraceCall set_state_call(const trace::Call& call, unsigned state_id_params);
 
-    CallSet& dependent_calls();
+    void flush_state_cache(ObjectState& fbo) const;
+
+    unsigned global_id() const;
 
 protected:
-
+    virtual void post_set_state_call(PTraceCall call) {(void)call;}
     void reset_callset();
 
+    void dirty_cache() {m_callset_dirty = true;}
+
+    virtual PTraceCall gen_call() const  {return nullptr; }
+
 private:
+
+    virtual ObjectType type() const = 0;
 
     virtual bool is_active() const;
 
     virtual void do_emit_calls_to_list(CallSet& list) const;
 
+    virtual void pass_state_cache(unsigned object_id, PCallSet cache);
+
+    virtual void emit_dependend_caches(CallSet& list) const;
+
     GLint m_glID;
 
     CallSet m_gen_calls;
-
-    CallSet m_depenendet_calls;
 
     StateCallMap m_state_calls;
 
     CallSet m_calls;
 
+    ObjectType m_type;
+
     mutable bool m_emitting;
+    mutable bool m_callset_dirty;
+    mutable PCallSet m_state_cache;
 };
-
-using PObjectState=ObjectState::Pointer;
-
 
 template <typename T>
 class TObjStateMap {
 
 public:
-    TObjStateMap (GlobalState *gs):
-        m_global_state(gs),
+    TObjStateMap ():
         m_emitting(false){
     }
 
-    TObjStateMap() : TObjStateMap (nullptr) {
-
-    }
-
-    typename T::Pointer get_by_id(uint64_t id) {
-        assert(id > 0);
+    typename T::Pointer get_by_id(uint64_t id, bool required = true) {
+        if (!id)
+            return nullptr;
 
         auto iter = m_states.find(id);
         if (iter == m_states.end()) {
-            assert(0 && "Expected id not found \n");
+            assert(!required && "Expected id not found \n");
             return nullptr;
         }
         return iter->second;
@@ -117,11 +125,6 @@ public:
     }
 
 protected:
-    GlobalState& global_state() {
-        assert(m_global_state);
-        return *m_global_state;
-    }
-
     void emit_all_states(CallSet& list) const {
         for(auto& s: m_states)
             if (s.second)
@@ -133,7 +136,6 @@ private:
 
     std::unordered_map<unsigned, typename T::Pointer> m_states;
 
-    GlobalState *m_global_state;
     mutable bool m_emitting;
 
 };

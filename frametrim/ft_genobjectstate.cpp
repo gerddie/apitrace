@@ -4,19 +4,19 @@
 
 namespace frametrim {
 
-GenObjectState::GenObjectState(GLint glID, PCall gen_call):
+GenObjectState::GenObjectState(GLint glID, PTraceCall gen_call):
     ObjectWithBindState(glID, gen_call),
-    m_gen_call(trace2call(*gen_call))
+    m_gen_call(gen_call)
 {
-    assert(m_gen_call);
 }
 
 void GenObjectState::emit_gen_call(CallSet& list) const
 {
-    list.insert(m_gen_call);
+    if (m_gen_call)
+        list.insert(m_gen_call);
 }
 
-SizedObjectState::SizedObjectState(GLint glID, PCall gen_call, EAttachmentType at):
+SizedObjectState::SizedObjectState(GLint glID, PTraceCall gen_call, EAttachmentType at):
     GenObjectState(glID, gen_call),
     m_size(16), // this should be enough
     m_attachment_type(at),
@@ -58,6 +58,7 @@ void SizedObjectState::set_size(unsigned level, unsigned w, unsigned h)
     assert(level < m_size.size());
     m_size[level] = std::make_pair(w, h);
 }
+
 
 bool operator == (const SizedObjectState& lhs, const SizedObjectState& rhs)
 {

@@ -13,6 +13,7 @@ public:
     using GenObjectState::GenObjectState;
 
 private:
+    ObjectType type() const override {return bt_sampler;}
 
     void do_emit_calls_to_list(CallSet& list) const override;
 };
@@ -24,7 +25,7 @@ class SamplerStateMap : public TGenObjStateMap<SamplerState>
 public:
     using TGenObjStateMap<SamplerState>::TGenObjStateMap;
 
-    void set_state(PCall call, unsigned addr_params);
+    PTraceCall set_state(const trace::Call& call, unsigned addr_params);
 private:
 
     void do_emit_calls_to_list(CallSet& list) const override;

@@ -1,22 +1,24 @@
 #include "ft_objectstate.hpp"
+#include "ft_framebuffer.hpp"
 #include <sstream>
 
 namespace frametrim {
 
 using std::stringstream;
 
-ObjectState::ObjectState(GLint glID, PCall call):
+ObjectState::ObjectState(GLint glID, PTraceCall call):
     m_glID(glID),
-    m_emitting(false)
+    m_emitting(false),
+    m_callset_dirty(true)
 {
-    if (call)
-        m_gen_calls.insert(trace2call(*call));
+    m_gen_calls.insert(call);
 }
 
 ObjectState::ObjectState(GLint glID):
-    ObjectState(glID, nullptr)
+    m_glID(glID),
+    m_emitting(false),
+    m_callset_dirty(true)
 {
-
 }
 
 ObjectState::~ObjectState()
@@ -29,6 +31,11 @@ unsigned ObjectState::id() const
     return m_glID;
 }
 
+unsigned ObjectState::global_id() const
+{
+    return type() + bt_last * id();
+}
+
 void ObjectState::emit_calls_to_list(CallSet& list) const
 {
     /* Because of circular references (e.g. FBO and texture attachments that
@@ -39,44 +46,58 @@ void ObjectState::emit_calls_to_list(CallSet& list) const
         m_emitting = true;
 
         list.insert(m_gen_calls);
-        list.insert(m_depenendet_calls);
         list.insert(m_state_calls);
         list.insert(m_calls);
 
         do_emit_calls_to_list(list);
+        emit_dependend_caches(list);
 
         m_emitting = false;
     }
 }
 
-/*void ObjectState::append_gen_call(PCall call)
+PTraceCall
+ObjectState::append_call(PTraceCall call)
 {
-    m_gen_calls.insert(call);
-}*/
-
-void ObjectState::append_call(PTraceCall call)
-{
+    m_callset_dirty = true;
     m_calls.insert(call);
+    dirty_cache();
+    return call;
 }
 
 void ObjectState::reset_callset()
 {
     m_calls.clear();
+    dirty_cache();
 }
 
-CallSet& ObjectState::dependent_calls()
+void ObjectState::flush_state_cache(ObjectState& fbo) const
 {
-    return m_depenendet_calls;
+    if (m_callset_dirty) {
+        m_state_cache = std::make_shared<CallSet>();
+        emit_calls_to_list(*m_state_cache);
+        m_callset_dirty = false;
+    }
+    if (!m_state_cache->empty())
+        fbo.pass_state_cache(global_id(), m_state_cache);
 }
 
-void ObjectState::set_state_call(PCall call, unsigned nstate_id_params)
+void ObjectState::pass_state_cache(unsigned object_id, PCallSet cache)
 {
-    stringstream state_call_name;
-    state_call_name << call->name();
-    for(unsigned i = 0; i < nstate_id_params; ++i)
-        state_call_name << "_" << call->arg(i).toUInt();
+    (void)object_id;
+    (void)cache;
+    assert(0 && "object type doesn't support dependend states");
+}
 
-    m_state_calls[state_call_name.str()] = std::make_shared<TraceCall>(*call);
+PTraceCall
+ObjectState::set_state_call(const trace::Call& call, unsigned nstate_id_params)
+{
+    m_callset_dirty = true;
+    auto c = std::make_shared<TraceCall>(call, nstate_id_params);
+    m_state_calls[c->name()] = c;
+    post_set_state_call(c);
+    dirty_cache();
+    return c;
 }
 
 bool ObjectState::is_active() const
@@ -85,6 +106,11 @@ bool ObjectState::is_active() const
 }
 
 void ObjectState::do_emit_calls_to_list(CallSet &list) const
+{
+    (void)list;
+}
+
+void ObjectState::emit_dependend_caches(CallSet& list) const
 {
     (void)list;
 }

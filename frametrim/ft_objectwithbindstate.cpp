@@ -2,25 +2,40 @@
 
 namespace frametrim {
 
-ObjectWithBindState::ObjectWithBindState(GLint glID, PCall call):
+ObjectWithBindState::ObjectWithBindState(GLint glID,
+                                         PTraceCall call):
     ObjectState(glID, call),
-    m_bound(false)
+    m_bound(false),
+    m_bound_dirty(false)
 {
 }
 
-void ObjectWithBindState::bind(PCall call)
+ObjectWithBindState::ObjectWithBindState(GLint glID):
+    ObjectState(glID),
+    m_bound(false),
+    m_bound_dirty(false)
 {
-    m_bind_call = trace2call(*call);
+}
+
+void ObjectWithBindState::bind(PTraceCall call)
+{
+    m_bind_call = call;
     m_bound = true;
+    m_bound_dirty = true;
+    dirty_cache();
+    post_bind(m_bind_call);
 
-    post_bind(call);
+    auto gen = gen_call();
+    if (call && gen)
+        call->set_required_call(gen);
 }
 
-void ObjectWithBindState::unbind(PCall call)
+void ObjectWithBindState::unbind(PTraceCall call)
 {
-    m_bind_call = trace2call(*call);
+    dirty_cache();
+    m_bind_call = call;
     m_bound = false;
-    post_unbind(call);
+    post_unbind(m_bind_call);
 }
 
 bool ObjectWithBindState::bound() const
@@ -37,18 +52,29 @@ void ObjectWithBindState::emit_bind(CallSet& out_list) const
                   << id() << " but don't have one\n";
 }
 
+void ObjectWithBindState::post_set_state_call(PTraceCall call)
+{
+    if (m_bind_call)
+        call->set_required_call(m_bind_call);
+}
+
+void ObjectWithBindState::do_emit_calls_to_list(CallSet &list) const
+{
+    list.insert(m_bind_call);
+}
+
 bool ObjectWithBindState::is_active() const
 {
     return bound();
 }
 
-void ObjectWithBindState::post_bind(PCall call)
+void ObjectWithBindState::post_bind(const PTraceCall& call)
 {
     (void)call;
     // pseudoabstract method
 }
 
-void ObjectWithBindState::post_unbind(PCall call)
+void ObjectWithBindState::post_unbind(const PTraceCall& call)
 {
     (void)call;
     // pseudoabstract method

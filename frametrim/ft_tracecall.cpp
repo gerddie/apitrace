@@ -39,7 +39,7 @@ protected:
 
 namespace frametrim {
 
-TraceCall::TraceCall(const trace::Call &call, const std::string& name):
+TraceCall::TraceCall(const trace::Call& call, const std::string& name):
     m_trace_call_no(call.no),
     m_recorded_at(0),
     m_name(name)
@@ -55,9 +55,29 @@ TraceCall::TraceCall(const trace::Call &call, const std::string& name):
     m_name_with_params = s.str();
 }
 
+TraceCall::TraceCall(const trace::Call& call, unsigned nsel):
+    TraceCall(call, name_with_paramsel(call, nsel))
+{
+
+}
+
 TraceCall::TraceCall(const trace::Call& call):
     TraceCall(call, call.name())
 {
+}
+
+std::string
+TraceCall::name_with_paramsel(const trace::Call &call, unsigned nsel)
+{
+    std::stringstream s;
+    s << call.name();
+
+    trace::StreamVisitor sv(s);
+    for(unsigned i = 0; i < nsel; ++i ) {
+        s << "_";
+        call.args[i].value->visit(sv);
+    }
+    return s.str();
 }
 
 bool TraceCall::is_recorded_at(unsigned reference_call) const
@@ -70,17 +90,29 @@ void TraceCall::record_at(unsigned reference_call)
     m_recorded_at = reference_call;
 }
 
+void TraceCall::set_required_call(Pointer call)
+{
+    m_required_call = call;
+}
+
 void CallSet::insert(PTraceCall call)
 {
     if (!call)
         return;
     do_insert(call);
+    auto dep = call->required_call();
+    if (dep)
+        do_insert(dep);
 }
+
+
 
 void CallSet::insert(const CallSet& set)
 {
-    for(auto&& c : set)
+    for(auto&& c : set.m_calls)
         insert(c);
+    for(auto&& c : set.m_subsets)
+        insert(c.first, c.second);
 }
 
 void CallSet::insert(const StateCallMap& map)
@@ -97,11 +129,21 @@ void CallSet::do_insert(PTraceCall call)
 void CallSet::clear()
 {
     m_calls.clear();
+    m_flags.reset();
 }
 
 bool CallSet::empty() const
 {
     return m_calls.empty();
+}
+
+void CallSet::resolve()
+{
+    for(auto&& s: m_subsets)
+        if (s.second)
+            for (auto&& c: *s.second)
+                insert(c);
+    m_subsets.clear();
 }
 
 CallSet::const_iterator
@@ -114,6 +156,11 @@ CallSet::const_iterator
 CallSet::end() const
 {
     return m_calls.end();
+}
+
+void CallSet::insert(unsigned id, Pointer subset)
+{
+    m_subsets[id] = subset;
 }
 
 CallSetWithCycleCounter::CallSetWithCycleCounter():

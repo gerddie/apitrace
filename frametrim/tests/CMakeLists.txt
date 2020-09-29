@@ -1,7 +1,7 @@
 
 MACRO(TRACE_TEST name frame orig_img)
   
-  ADD_TEST(NAME ${name} COMMAND
+  ADD_TEST(NAME ${name}-${frame} COMMAND
     /bin/bash ${CMAKE_CURRENT_SOURCE_DIR}/compare-trace.sh
     ${CMAKE_BINARY_DIR}
     ${CMAKE_CURRENT_SOURCE_DIR}
@@ -18,10 +18,13 @@ TRACE_TEST(basic_shading 732 29443)
 TRACE_TEST(transparency 289 19547)
 TRACE_TEST(2dfonts 369 28885)
 TRACE_TEST(normal_mapping 302 378970)
-TRACE_TEST(render_to_texture 425, 29227)
+TRACE_TEST(render_to_texture 425 29227)
 TRACE_TEST(rotations 68 103311)
 TRACE_TEST(shadowmaps 560 42910)
-TRACE_TEST(sauerbraten 1342 2630043)
+TRACE_TEST(fbo-render 3 20278)
+TRACE_TEST(fbo-render 50 176281)
+#Disable for now
+#TRACE_TEST(sauerbraten 913 1061896)
 
 MACRO(TRACE_RTEST name frame orig_img)
   ADD_TEST(NAME ${name}_reverse COMMAND
