@@ -36,13 +36,15 @@ ObjectType VertexAttribPointer::type() const
 
 bool VertexAttribPointer::is_active() const
 {
-    return m_enabled;
+    return true;
 }
 
 void VertexAttribPointer::do_emit_calls_to_list(CallSet& list) const
 {
-    list.insert(m_enable_call);
-    if (m_enabled && m_set_call) {
+    if (m_enable_call)
+        list.insert(m_enable_call);
+
+    if (m_set_call) {
         /* Enable can be called before setting the actual pointer,
          * so we might have to skip the set call */
         list.insert(m_set_call);
