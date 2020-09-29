@@ -27,6 +27,7 @@ enum ObjectType {
     bt_sampler,
     bt_texture,
     bt_vertex_array,
+    bt_vertex_pointer,
     bt_last
 };
 

@@ -28,6 +28,7 @@ add_executable(glxtrim
    ft_samplerstate.cpp
    ft_texturestate.cpp
    ft_tracecall.cpp
+   ft_vertexattribpointer.cpp
    )
 
 target_link_libraries (glxtrim
