@@ -173,8 +173,9 @@ void DefaultFramebufferState::set_viewport_size(unsigned width, unsigned height)
 bool DefaultFramebufferState::clear_all_buffers(unsigned mask) const
 {
     /* TODO: acquire the actual buffers from the creation call */
-    if (mask & GL_COLOR_BUFFER_BIT &&
-        mask & GL_DEPTH_BUFFER_BIT)
+    /* We assume that clearing the depth buffer means that the draw
+     * will overwrite the whole output */
+    if (mask & GL_DEPTH_BUFFER_BIT)
         return true;
     return false;
 }
@@ -263,6 +264,7 @@ bool DefaultFramebufferState::is_active() const
 
 void DefaultFramebufferState::pass_state_cache(unsigned object_id, PCallSet cache)
 {
+    (void)object_id;
     if (cache) {
         cache->resolve();
         for (auto&& c: *cache)
@@ -440,7 +442,7 @@ bool FBOState::clear_all_buffers(unsigned mask) const
             }
         }
     }
-    return (attached_mask & ~mask) ? false : true;
+    return (attached_mask & ~(mask | GL_COLOR_BUFFER_BIT)) ? false : true;
 }
 
 }
