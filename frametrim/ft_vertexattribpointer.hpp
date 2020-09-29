@@ -24,9 +24,16 @@ private:
 
     void do_emit_calls_to_list(CallSet& list) const override;
 
-    PBufferState m_buf;
+    void pass_state_cache(unsigned object_id, PCallSet cache) override;
+
+    void emit_dependend_caches(CallSet& list) const override;
+
     PTraceCall m_set_call;
     PTraceCall m_enable_call;
+
+    unsigned m_buffer_id;
+    PCallSet m_buffer_state;
+
     bool m_enabled;
 };
 using PVertexAttribPointer = VertexAttribPointer::Pointer;

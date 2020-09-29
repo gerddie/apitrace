@@ -10,6 +10,7 @@
 #include "ft_displaylists.hpp"
 #include "ft_renderbuffer.hpp"
 #include "ft_samplerstate.hpp"
+#include "ft_vertexattribpointer.hpp"
 
 #include <unordered_set>
 #include <algorithm>
@@ -125,6 +126,8 @@ struct FrameTrimmeImpl {
     std::unordered_map<GLint, bool> m_va_is_enabled;
     TGenObjStateMap<VertexArray> m_vertex_arrays;
     std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
+
+    VertexAttribPointerMap m_vertex_attrib_pointers;
 
     bool m_recording_frame;
 
@@ -246,6 +249,8 @@ void FrameTrimmeImpl::start_target_frame()
     m_vertex_arrays.emit_calls_to_list(m_required_calls);
 
     m_legacy_programs.emit_calls_to_list(m_required_calls);
+
+    m_vertex_attrib_pointers.emit_calls_to_list(m_required_calls);
 
     for (auto&& va: m_va_is_enabled) {
         if (!va.second)
@@ -690,10 +695,13 @@ FrameTrimmeImpl::register_va_calls()
                             TGenObjStateMap<VertexArray>::bind, 0,
                             m_fbo.current_framebuffer());
 
-    MAP_DATA2(glDisableVertexAttribArray, record_va_enable, false, pt_va);
-    MAP_DATA2(glEnableVertexAttribArray, record_va_enable, true, pt_va);
+    MAP_GENOBJ_DATA(glDisableVertexAttribArray, m_vertex_attrib_pointers,
+                    VertexAttribPointerMap::enable, false);
+    MAP_GENOBJ_DATA(glEnableVertexAttribArray, m_vertex_attrib_pointers,
+                    VertexAttribPointerMap::enable, true);
+    MAP_GENOBJ_DATAREF(glVertexAttribPointer, m_vertex_attrib_pointers,
+                       VertexAttribPointerMap::set_data, m_buffers);
 
-    MAP_DATA(glVertexAttribPointer, AttribPointer, pt_va);
     MAP_DATA(glVertexPointer, AttribPointer, pt_vertex);
     MAP_DATA(glTexCoordPointer, AttribPointer, pt_texcoord);
 
@@ -813,8 +821,10 @@ PTraceCall FrameTrimmeImpl::DrawElements(const trace::Call& call)
         }
         ibo->flush_state_cache(m_fbo.current_framebuffer());
     }
-    if (m_recording_frame)
+    if (m_recording_frame) {
         m_legacy_programs.emit_calls_to_list(m_required_calls);
+        m_vertex_attrib_pointers.emit_calls_to_list(m_required_calls);
+    }
 
 
     return c;
