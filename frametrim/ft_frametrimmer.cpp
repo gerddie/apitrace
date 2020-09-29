@@ -32,7 +32,7 @@ using std::make_shared;
 using ft_callback = std::function<PTraceCall(const trace::Call&)>;
 
 struct string_part_less {
-    bool operator () (const char *lhs, const char *rhs)
+    bool operator () (const char *lhs, const char *rhs) const
     {
         int len = std::min(strlen(lhs), strlen(rhs));
         return strncmp(lhs, rhs, len) < 0;

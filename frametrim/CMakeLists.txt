@@ -31,6 +31,8 @@ add_executable(glxtrim
    ft_vertexattribpointer.cpp
    )
 
+set_target_properties(glxtrim PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+
 target_link_libraries (glxtrim
     retrace_common
     glretrace_common
