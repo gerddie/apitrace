@@ -125,6 +125,13 @@ public:
         m_emitting = false;
     }
 
+    void flush_state_caches(ObjectState& fbo) const {
+        for (auto&& [key, state]: m_states) {
+            if (state)
+                state->flush_state_cache(fbo);
+        }
+    }
+
 protected:
     void emit_all_states(CallSet& list) const {
         for(auto& s: m_states)
