@@ -181,8 +181,10 @@ void TraceDrawCall::append_calset(PCallSet depends)
 
 void TraceDrawCall::emit_required_callsets(CallSet& out_list)
 {
-    for (auto&& d : m_depends)
-        out_list.insert(*d);
+    for (auto&& d : m_depends) {
+        if (d)
+            out_list.insert(*d);
+    }
 }
 
 CallSetWithCycleCounter::CallSetWithCycleCounter():

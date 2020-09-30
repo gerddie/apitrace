@@ -44,6 +44,11 @@ void ObjectState::dirty_cache()
         m_callset_fence = m_callset_submit_fence + 1;
 }
 
+bool ObjectState::state_cache_dirty() const
+{
+    return m_callset_fence > m_callset_submit_fence;
+}
+
 unsigned ObjectState::cache_id() const
 {
     return (global_id() << 16) + get_cache_id_helper();

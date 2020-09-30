@@ -58,6 +58,8 @@ public:
 
     PCallSet get_state_cache() const;
 
+    bool state_cache_dirty() const;
+
 protected:
     virtual void post_set_state_call(PTraceCall call) {(void)call;}
 
@@ -139,6 +141,25 @@ public:
         }
     }
 
+    PCallSet get_state_caches() const {
+        bool dirty_cache = false;
+        for (auto&& [key, state]: m_states) {
+            if (state && state->state_cache_dirty()) {
+                dirty_cache = true;
+                break;
+            }
+        }
+
+        if (dirty_cache || !m_state_cache) {
+            m_state_cache = std::make_shared<CallSet>();
+            for (auto&& [key, state]: m_states) {
+                if (state)
+                    m_state_cache->insert(key, state->get_state_cache());
+            }
+        }
+        return m_state_cache;
+    }
+
 protected:
     void emit_all_states(CallSet& list) const {
         for(auto& s: m_states)
@@ -152,6 +173,7 @@ private:
     std::unordered_map<unsigned, typename T::Pointer> m_states;
 
     mutable bool m_emitting;
+    mutable PCallSet m_state_cache;
 
 };
 

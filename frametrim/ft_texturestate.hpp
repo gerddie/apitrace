@@ -69,6 +69,7 @@ public:
     PTraceCall bind_multitex(const trace::Call& call);
 
     PTraceCall set_state(const trace::Call& call, unsigned nparam_sel);
+
 private:
 
     void post_bind(unsigned target, PTextureState obj) override;

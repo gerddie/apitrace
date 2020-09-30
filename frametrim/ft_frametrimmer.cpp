@@ -96,6 +96,8 @@ struct FrameTrimmeImpl {
     PTraceCall todo(const trace::Call& call);
     PTraceCall ignore_history(const trace::Call& call);
 
+    void update_state_cache();
+
     void finalize();
 
     FramebufferState::Pointer m_current_draw_buffer;
@@ -131,6 +133,7 @@ struct FrameTrimmeImpl {
 
     bool m_recording_frame;
 
+    PCallSet m_state_cache;
 
 };
 
@@ -812,8 +815,7 @@ FrameTrimmeImpl::DeleteLists(const trace::Call& call)
 
 PTraceCall FrameTrimmeImpl::DrawElements(const trace::Call& call)
 {
-    auto c = m_fbo.current_framebuffer().draw(call, m_vertex_attrib_pointers,
-                                              m_programs.active_program());
+    auto c = m_fbo.current_framebuffer().draw(call, m_state_cache);
     auto ibo = m_buffers.bound_to(GL_ELEMENT_ARRAY_BUFFER);
     if (ibo) {
         if (m_recording_frame) {
@@ -827,8 +829,18 @@ PTraceCall FrameTrimmeImpl::DrawElements(const trace::Call& call)
 
 PTraceCall FrameTrimmeImpl::DrawArrays(const trace::Call& call)
 {
-    return m_fbo.current_framebuffer().draw(call, m_vertex_attrib_pointers,
-                                            m_programs.active_program());
+    return m_fbo.current_framebuffer().draw(call, m_state_cache);
+}
+
+void FrameTrimmeImpl::update_state_cache()
+{
+    m_state_cache->insert(bt_texture, m_textures.get_state_caches());
+    m_state_cache->insert(bt_vertex_pointer, m_vertex_attrib_pointers.get_state_caches());
+    m_state_cache->insert(bt_buffer, m_buffers.get_state_caches());
+    if (m_programs.active_program())
+        m_state_cache->insert(bt_program, m_programs.active_program()->get_state_cache());
+
+
 }
 
 PTraceCall FrameTrimmeImpl::record_va_enable(const trace::Call& call,

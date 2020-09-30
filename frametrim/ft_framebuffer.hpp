@@ -23,8 +23,7 @@ public:
 
     PTraceCall clear(const trace::Call& call);
 
-    PTraceCall draw(const trace::Call& call, VertexAttribPointerMap& vap_map,
-                    PProgramState active_program);
+    PTraceCall draw(const trace::Call& call, PCallSet state_cache);
 
     PTraceCall draw_buffer(const trace::Call& call);
 
@@ -115,8 +114,7 @@ public:
 
     PTraceCall clear(const trace::Call& call);
 
-    PTraceCall draw(const trace::Call& call, VertexAttribPointerMap &vap_map,
-                    PProgramState active_program);
+    PTraceCall draw(const trace::Call& call, PCallSet state_cache);
 
     PTraceCall draw_buffer(const trace::Call& call);
 
