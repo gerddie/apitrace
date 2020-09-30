@@ -332,7 +332,7 @@ PTraceCall FramebufferState::draw(const trace::Call& call,
 {
 
     auto c = std::make_shared<TraceDrawCall>(call);
-    c->append_calset(state_cache);
+    c->append_callset(state_cache);
 
     if (!m_draw_calls.has(CallSet::attach_calls)) {
         emit_attachment_calls_to_list(m_draw_calls);

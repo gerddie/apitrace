@@ -174,7 +174,7 @@ void CallSet::insert(unsigned id, Pointer subset)
     m_subsets[id] = subset;
 }
 
-void TraceDrawCall::append_calset(PCallSet depends)
+void TraceDrawCall::append_callset(PCallSet depends)
 {
     m_depends.push_back(depends);
 }

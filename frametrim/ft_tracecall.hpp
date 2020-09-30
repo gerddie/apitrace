@@ -111,7 +111,7 @@ class TraceDrawCall : public TraceCall {
 public:
     using TraceCall::TraceCall;
 
-    void append_calset(PCallSet depends);
+    void append_callset(PCallSet depends);
 private:
     void emit_required_callsets(CallSet& out_list) override;
 
