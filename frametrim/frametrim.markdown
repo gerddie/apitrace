@@ -48,15 +48,22 @@ The following types of calls need to be considered:
 
 ## Currently known problems with v2
 
-* Trimming HL2 with the exit dialog the text is not retained
 * In the HL2 startup all text is missing
+
 * in CIV5 the terrain tiles are not retained and some icons are not drawn
   correctly
+
 * Sauerbraten has some incorrect geometry
+
 * Portal2 has some geometry missing
 
+* GolfWithYourFriends uses GL_COPY_WRITE_BUFFER, but apparently only to
+  map the buffer and write data to it, and not for its actual purpouse
+  (glCopyBufferSubData)
+  - it also uses glVertexAttrib4fv
+  - the VertexAttribPointer calls are broken after trimming
 
+## Notes for optimization
 
-
-
-
+* when mapping with GL_MAP_INVALIDATE_BUFFER_BIT we can drop earlier mapping
+  or subdata calls
