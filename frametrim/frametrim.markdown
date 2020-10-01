@@ -43,14 +43,17 @@ The following types of calls need to be considered:
   one can throw away old ftaw calls
 * in the start screen sauerbraten only updates part of the screen, so one
   must keep all the calls.
+* Blender 2.79 copies from the default framebuffer (backbuffer), so trimming
+  this is likely hopeless.
 
 ## Currently known problems with v2
 
 * Trimming HL2 with the exit dialog the text is not retained
-* in CIV5 one framebuffer setup is not correct, and this is likely
-  the reason for incorrect drawing of the tiles
+* In the HL2 startup all text is missing
+* in CIV5 the terrain tiles are not retained and some icons are not drawn
+  correctly
 * Sauerbraten has some incorrect geometry
-
+* Portal2 has some geometry missing
 
 
 
