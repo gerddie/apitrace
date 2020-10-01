@@ -131,6 +131,7 @@ public:
             return;
         m_emitting = true;
         do_emit_calls_to_list(list);
+        emit_unbind_calls(list);
         m_emitting = false;
     }
 
@@ -169,6 +170,7 @@ protected:
 
 private:
     virtual void do_emit_calls_to_list(CallSet& list) const = 0;
+    virtual void emit_unbind_calls(CallSet& list) const {(void) list;}
 
     std::unordered_map<unsigned, typename T::Pointer> m_states;
 

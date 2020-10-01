@@ -56,6 +56,7 @@ public:
                 obj->bind(call);
                 m_bound_objects[target] = obj;
                 post_bind(target, m_bound_objects[target]);
+                m_unbind_calls[target] = nullptr;
             }
         } else {
             post_bind(target, nullptr);
@@ -64,6 +65,7 @@ public:
                 post_unbind(target, call);
             }
             m_bound_objects[target] = nullptr;
+            m_unbind_calls[target] = call;
         }
     }
 
@@ -112,6 +114,13 @@ private:
         (void)call;
     }
 
+    void emit_unbind_calls(CallSet& list) const override {
+        for (auto&& [key, call] : m_unbind_calls) {
+            if (call)
+                list.insert(call);
+        }
+    }
+
     void do_emit_calls_to_list(CallSet& list) const override {
         for (auto& obj: m_bound_objects) {
             if (obj.second)
@@ -128,6 +137,7 @@ private:
     }
 
     std::unordered_map<unsigned, typename T::Pointer> m_bound_objects;
+    std::unordered_map<unsigned, PTraceCall> m_unbind_calls;
 };
 
 }
