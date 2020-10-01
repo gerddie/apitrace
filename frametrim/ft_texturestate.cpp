@@ -9,6 +9,19 @@ namespace frametrim {
 
 using std::stringstream;
 
+enum TexTypes {
+    gl_texture_1d,
+    gl_texture_2d,
+    gl_texture_3d,
+    gl_texture_cube,
+    gl_texture_1d_array,
+    gl_texture_2d_array,
+    gl_texture_cube_array,
+    gl_texture_2dms,
+    gl_texture_2dms_array,
+    gl_texture_last
+};
+
 TextureState::TextureState(GLint glID, PTraceCall gen_call):
     SizedObjectState(glID, gen_call, texture),
     m_last_bind_call_dirty(true),
@@ -296,7 +309,6 @@ unsigned TextureStateMap::compose_target_id_with_unit(unsigned target,
                                                       unsigned unit) const
 
 {
-
     switch (target) {
     case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
     case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
@@ -304,21 +316,42 @@ unsigned TextureStateMap::compose_target_id_with_unit(unsigned target,
     case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
     case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
     case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
-        target = GL_TEXTURE_CUBE_MAP;
+    case GL_TEXTURE_CUBE_MAP:
+        target = gl_texture_cube;
         break;
     case GL_PROXY_TEXTURE_1D:
-        target = GL_TEXTURE_1D;
+    case GL_TEXTURE_1D:
+        target = gl_texture_1d;
         break;
     case GL_PROXY_TEXTURE_2D:
-        target = GL_TEXTURE_2D;
+    case GL_TEXTURE_2D:
+        target = gl_texture_2d;
         break;
     case GL_PROXY_TEXTURE_3D:
-        target = GL_TEXTURE_3D;
+    case GL_TEXTURE_3D:
+        target = gl_texture_3d;
+        break;
+    case GL_TEXTURE_CUBE_MAP_ARRAY:
+        target = gl_texture_cube_array;
+        break;
+    case GL_TEXTURE_1D_ARRAY:
+        target = gl_texture_1d_array;
+        break;
+    case GL_TEXTURE_2D_ARRAY:
+        target = gl_texture_2d;
+        break;
+    case GL_TEXTURE_2D_MULTISAMPLE:
+        target = gl_texture_2dms;
+        break;
+    case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
+        target = gl_texture_2dms_array;
         break;
     default:
+        assert(0);
         ;
     }
-    return (target << 8) | unit;
+
+    return target + unit * gl_texture_last;
 }
 
 }
