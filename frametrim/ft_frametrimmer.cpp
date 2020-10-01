@@ -599,9 +599,7 @@ FrameTrimmeImpl::register_state_calls()
         "glSampleCoverage",
         "glShadeModel",
         "glScissor",
-        "glStencilFuncSeparate",
         "glStencilMask",
-        "glStencilOpSeparate",
         "glXSwapBuffers",
         "eglSwapBuffers",
         "glFinish",
@@ -621,6 +619,8 @@ FrameTrimmeImpl::register_state_calls()
         "glLight",
         "glPixelStorei",
         "glPixelTransfer",
+        "glStencilOpSeparate",
+        "glStencilFuncSeparate",
         "glVertexAttribDivisor",
     };
     update_call_table(state_calls_1, state_call_1_func);
