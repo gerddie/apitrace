@@ -528,9 +528,11 @@ void FrameTrimmeImpl::register_texture_calls()
     MAP_GENOBJ(glTexImage1D, m_textures, TextureStateMap::set_data);
     MAP_GENOBJ(glTexImage2D, m_textures, TextureStateMap::set_data);
     MAP_GENOBJ(glTexStorage2D, m_textures, TextureStateMap::storage);
+    MAP_GENOBJ(glTexStorage3D, m_textures, TextureStateMap::storage);
     MAP_GENOBJ(glTexImage3D, m_textures, TextureStateMap::set_data);
     MAP_GENOBJ(glTexSubImage1D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ(glTexSubImage2D, m_textures, TextureStateMap::set_sub_data);
+    MAP_GENOBJ(glCompressedTexSubImage2D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ(glTexSubImage3D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ_DATA(glTexParameter, m_textures, TextureStateMap::set_state, 2);
 
