@@ -157,6 +157,18 @@ void CallSet::resolve()
     m_subsets.clear();
 }
 
+void CallSet::deep_resolve()
+{
+    for(auto&& [k, s]: m_subsets) {
+        if (s) {
+            s->deep_resolve();
+            for (auto&& c: *s)
+                insert(c);
+        }
+    }
+    m_subsets.clear();
+}
+
 CallSet::const_iterator
 CallSet::begin() const
 {

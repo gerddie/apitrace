@@ -94,6 +94,7 @@ public:
     bool has(Flag f) {return m_flags.test(f);}
 
     void resolve();
+    void deep_resolve();
     void insert(unsigned id, Pointer subset);
 protected:
     void insert_into_set(PTraceCall call) {m_calls.insert(call);}

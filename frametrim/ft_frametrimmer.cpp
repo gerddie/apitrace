@@ -276,6 +276,8 @@ void FrameTrimmeImpl::start_target_frame()
     }
     for (auto&& va: m_va_enables)
         m_required_calls.insert(va.second);
+
+    m_required_calls.resolve();
 }
 
 void FrameTrimmeImpl::finalize()

@@ -185,8 +185,9 @@ void TextureState::pass_state_cache(unsigned object_id, PCallSet cache)
 void TextureState::emit_dependend_caches(CallSet& list) const
 {
     for(auto&& cs: m_creator_states) {
-        if (cs.second)
+        if (cs.second) {
             list.insert(cs.first, cs.second);
+        }
     }
 }
 
