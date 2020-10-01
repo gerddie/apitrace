@@ -10,6 +10,7 @@ namespace frametrim {
 using std::stringstream;
 
 enum TexTypes {
+    gl_texture_buffer,
     gl_texture_1d,
     gl_texture_2d,
     gl_texture_3d,
@@ -338,7 +339,7 @@ unsigned TextureStateMap::compose_target_id_with_unit(unsigned target,
         target = gl_texture_1d_array;
         break;
     case GL_TEXTURE_2D_ARRAY:
-        target = gl_texture_2d;
+        target = gl_texture_2d_array;
         break;
     case GL_TEXTURE_2D_MULTISAMPLE:
         target = gl_texture_2dms;
@@ -346,7 +347,11 @@ unsigned TextureStateMap::compose_target_id_with_unit(unsigned target,
     case GL_TEXTURE_2D_MULTISAMPLE_ARRAY:
         target = gl_texture_2dms_array;
         break;
+    case GL_TEXTURE_BUFFER:
+        target = gl_texture_buffer;
+        break;
     default:
+        std::cerr << "target=" << target << "not supported\n";
         assert(0);
         ;
     }
