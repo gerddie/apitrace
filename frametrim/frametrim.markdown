@@ -51,7 +51,7 @@ The following types of calls need to be considered:
 * In the HL2 startup all text is missing
 
 * in CIV5 the terrain tiles are not retained and some icons are not drawn
-  correctly
+  correctly, this is probably a texture attachement problem.
 
 * Sauerbraten has some incorrect geometry
 
