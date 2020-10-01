@@ -31,6 +31,25 @@ enum ObjectType {
     bt_last
 };
 
+enum EStateCaches {
+    sc_vertex_attr_pointer,
+    sc_va_enables,
+    sc_states,
+    sc_enables,
+    sc_matrix_states,
+    sc_legacy_programs,
+    sc_programs,
+    sc_textures,
+    sc_fbo,
+    sc_buffers,
+    sc_shaders,
+    sc_renderbuffers,
+    sc_samplers,
+    sc_vertex_arrays,
+    sc_vertex_attrib_pointers,
+    sc_last
+};
+
 class ObjectState
 {
 public:

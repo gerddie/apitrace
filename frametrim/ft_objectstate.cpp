@@ -35,7 +35,7 @@ unsigned ObjectState::id() const
 
 unsigned ObjectState::global_id() const
 {
-    return type() + bt_last * id();
+    return type() + bt_last * id() + sc_last;
 }
 
 void ObjectState::dirty_cache()

@@ -50,6 +50,8 @@ struct FrameTrimmeImpl {
         pt_last
     };
 
+
+
     FrameTrimmeImpl();
     void call(const trace::Call& call, bool in_target_frame);
     void start_target_frame();
@@ -96,11 +98,16 @@ struct FrameTrimmeImpl {
     PTraceCall todo(const trace::Call& call);
     PTraceCall ignore_history(const trace::Call& call);
 
-    void update_state_cache();
+    PTraceCall bind_fbo(const trace::Call& call);
+
+    void send_state_cache_to(FramebufferState &fbo);
+
+    void update_state_caches();
 
     void finalize();
 
-    FramebufferState::Pointer m_current_draw_buffer;
+    template <typename Map>
+    void make_state_cache_from_map(EStateCaches cache_id, Map m);
 
     using CallTable = std::multimap<const char *, ft_callback, string_part_less>;
     CallTable m_call_table;
@@ -111,9 +118,6 @@ struct FrameTrimmeImpl {
     std::unordered_map<unsigned, DisplayLists::Pointer> m_display_lists;
     DisplayLists::Pointer m_active_display_list;
 
-    std::map<std::string, PTraceCall> m_state_calls;
-    std::map<unsigned, PTraceCall> m_enables;
-
     AllMatrisStates m_matrix_states;
     LegacyProgramStateMap m_legacy_programs;
     ProgramStateMap m_programs;
@@ -123,18 +127,21 @@ struct FrameTrimmeImpl {
     ShaderStateMap m_shaders;
     RenderbufferMap m_renderbuffers;
     SamplerStateMap m_samplers;
-
-    std::unordered_map<GLint, PTraceCall> m_va_enables;
-    std::unordered_map<GLint, bool> m_va_is_enabled;
     TGenObjStateMap<VertexArray> m_vertex_arrays;
-    std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
-
     VertexAttribPointerMap m_vertex_attrib_pointers;
+
+    std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
+    std::unordered_map<GLint, PTraceCall> m_va_enables;
+    std::map<std::string, PTraceCall> m_state_calls;
+    std::map<unsigned, PTraceCall> m_enables;
+
+    std::unordered_map<GLint, bool> m_va_is_enabled;
 
     bool m_recording_frame;
 
-    PCallSet m_state_cache;
-
+    std::unordered_map<EStateCaches, PCallSet> m_state_caches;
+    std::bitset<sc_last> m_state_caches_dirty;
+    FramebufferState& m_current_draw_buffer;
 };
 
 FrameTrimmer::FrameTrimmer()
@@ -165,7 +172,9 @@ void FrameTrimmer::finalize()
 }
 
 FrameTrimmeImpl::FrameTrimmeImpl():
-    m_recording_frame(false)
+    m_recording_frame(false),
+    m_state_caches(sc_last),
+    m_current_draw_buffer(m_fbo.current_framebuffer())
 {
     register_state_calls();
     register_legacy_calls();
@@ -226,6 +235,9 @@ FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
         if (!c)
             c = trace2call(call);
         m_required_calls.insert(c);
+
+        if (m_current_draw_buffer.id() > 0)
+            m_current_draw_buffer.draw(c);
     }
 }
 
@@ -323,6 +335,8 @@ FrameTrimmeImpl::record_state_call(const trace::Call& call,
     if (m_active_display_list)
         m_active_display_list->append_call(c);
 
+    m_state_caches_dirty.set(sc_states);
+
     return c;
 }
 
@@ -331,6 +345,7 @@ FrameTrimmeImpl::record_enable(const trace::Call& call)
 {
     unsigned value = call.arg(0).toUInt();
     m_enables[value] = trace2call(call);
+    m_state_caches_dirty.set(sc_enables);
     return m_enables[value];
 }
 
@@ -817,7 +832,7 @@ FrameTrimmeImpl::DeleteLists(const trace::Call& call)
 
 PTraceCall FrameTrimmeImpl::DrawElements(const trace::Call& call)
 {
-    auto c = m_fbo.current_framebuffer().draw(call, m_state_cache);
+    auto c = trace2call(call);
     auto ibo = m_buffers.bound_to(GL_ELEMENT_ARRAY_BUFFER);
     if (ibo) {
         if (m_recording_frame) {
@@ -831,17 +846,65 @@ PTraceCall FrameTrimmeImpl::DrawElements(const trace::Call& call)
 
 PTraceCall FrameTrimmeImpl::DrawArrays(const trace::Call& call)
 {
-    return m_fbo.current_framebuffer().draw(call, m_state_cache);
+    return trace2call(call);
 }
 
-void FrameTrimmeImpl::update_state_cache()
+void FrameTrimmeImpl::send_state_cache_to(FramebufferState& fbo)
 {
-    m_state_cache->insert(bt_texture, m_textures.get_state_caches());
-    m_state_cache->insert(bt_vertex_pointer, m_vertex_attrib_pointers.get_state_caches());
-    m_state_cache->insert(bt_buffer, m_buffers.get_state_caches());
-    if (m_programs.active_program())
-        m_state_cache->insert(bt_program, m_programs.active_program()->get_state_cache());
+    update_state_caches();
+    for (auto&& [key, sc] : m_state_caches) {
+        assert(sc);
+        fbo.set_dependend_state_cache(key, sc);
+    }
+}
 
+PTraceCall FrameTrimmeImpl::bind_fbo(const trace::Call& call)
+{
+    auto c = m_fbo.bind_fbo(call, m_recording_frame);
+    m_current_draw_buffer = m_fbo.current_framebuffer();
+    send_state_cache_to(m_current_draw_buffer);
+    return c;
+}
+
+template <typename Map>
+void FrameTrimmeImpl::make_state_cache_from_map(EStateCaches cache_id, Map map)
+{
+    if (m_state_caches_dirty.test(cache_id) ||
+        !m_state_caches[cache_id]) {
+        PCallSet calls = make_shared<CallSet>();
+        for (auto&& [key, state] : map)
+            calls->insert(state);
+        m_state_caches[cache_id] = calls;
+        m_state_caches_dirty.flip(cache_id);
+    }
+}
+
+void FrameTrimmeImpl::update_state_caches()
+{
+    if (m_state_caches_dirty.test(sc_vertex_attr_pointer) ||
+        !m_state_caches[sc_vertex_attr_pointer]) {
+        PCallSet calls = make_shared<CallSet>();
+        for (auto&& [key, state] : m_vertex_attr_pointer) {
+            if (state)
+                calls->insert(key, state->get_state_cache());
+        }
+        m_state_caches[sc_vertex_attr_pointer] = calls;
+        m_state_caches_dirty.flip(sc_vertex_attr_pointer);
+    }
+    make_state_cache_from_map(sc_states, m_state_calls);
+    make_state_cache_from_map(sc_enables, m_enables);
+    make_state_cache_from_map(sc_va_enables, m_va_enables);
+    //m_state_caches[sc_matrix_states] = m_matrix_states.get_state_caches(); // not implemented
+    m_state_caches[sc_legacy_programs] = m_legacy_programs.get_state_caches();
+    m_state_caches[sc_programs] = m_programs.get_state_caches();
+    m_state_caches[sc_textures] = m_textures.get_state_caches();
+    //m_state_caches[sc_fbo] = m_fbo.get_state_caches(); // not used here
+    m_state_caches[sc_buffers] = m_buffers.get_state_caches();
+    m_state_caches[sc_shaders] = m_shaders.get_state_caches();
+    m_state_caches[sc_renderbuffers]= m_renderbuffers.get_state_caches();
+    m_state_caches[sc_samplers] = m_samplers.get_state_caches();
+    m_state_caches[sc_vertex_arrays] = m_vertex_arrays.get_state_caches();
+    m_state_caches[sc_vertex_attrib_pointers] = m_vertex_attrib_pointers.get_state_caches();
 
 }
 
@@ -852,6 +915,7 @@ PTraceCall FrameTrimmeImpl::record_va_enable(const trace::Call& call,
                                   (unsigned)type;
     m_va_enables[id] = trace2call(call);
     m_va_is_enabled[id] = enable;
+    m_state_caches_dirty.set(sc_va_enables);
     return m_va_enables[id];
 }
 
@@ -876,11 +940,20 @@ PTraceCall FrameTrimmeImpl::AttribPointer(const trace::Call& call, PointerType t
 {
     auto buf = m_buffers.bound_to(GL_ARRAY_BUFFER);
     PTraceCall c = trace2call(call);
+    unsigned id = type == pt_va ? call.arg(0).toUInt() * pt_last + type:
+                                  (unsigned)type;
     if (buf) {
         c = buf->use(call);
-        unsigned id = type == pt_va ? call.arg(0).toUInt() * pt_last + type:
-                                      (unsigned)type;
-        m_vertex_attr_pointer[id] = buf;
+
+        if (m_vertex_attr_pointer[id] && m_vertex_attr_pointer[id]->id() != buf->id()) {
+            m_vertex_attr_pointer[id] = buf;
+            m_state_caches_dirty.set(sc_va_enables);
+        }
+    } else {
+        if (m_vertex_attr_pointer[id]) {
+            m_vertex_attr_pointer[id] = nullptr;
+            m_state_caches_dirty.set(sc_va_enables);
+        }
     }
     return c;
 }

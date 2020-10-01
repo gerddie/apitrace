@@ -28,11 +28,6 @@ PTraceCall FramebufferStateMap::clear(const trace::Call& call)
     return m_current_framebuffer->clear(call);
 }
 
-PTraceCall FramebufferStateMap::draw(const trace::Call& call, PCallSet state_cache)
-{
-    return m_current_framebuffer->draw(call, state_cache);
-}
-
 PTraceCall FramebufferStateMap::bind_fbo(const trace::Call& call,
                                          bool recording)
 {
@@ -327,20 +322,14 @@ PTraceCall FramebufferState::clear(const trace::Call& call)
     return c;
 }
 
-PTraceCall FramebufferState::draw(const trace::Call& call,
-                                  PCallSet state_cache)
+void FramebufferState::draw(PTraceCall call)
 {
-
-    auto c = std::make_shared<TraceDrawCall>(call);
-    c->append_callset(state_cache);
-
     if (!m_draw_calls.has(CallSet::attach_calls)) {
         emit_attachment_calls_to_list(m_draw_calls);
         m_draw_calls.set(CallSet::attach_calls);
     }
-    m_draw_calls.insert(c);
+    m_draw_calls.insert(call);
     dirty_cache();
-    return c;
 }
 
 void FramebufferState::do_emit_calls_to_list(CallSet& list) const
@@ -358,6 +347,11 @@ void FramebufferState::do_emit_calls_to_list(CallSet& list) const
 
     if (m_drawbuffer_call)
         list.insert(m_drawbuffer_call);
+}
+
+void FramebufferState::set_dependend_state_cache(unsigned key, PCallSet sc)
+{
+    m_dependend_states[key] = sc;
 }
 
 void FramebufferState::emit_dependend_caches(CallSet& list) const

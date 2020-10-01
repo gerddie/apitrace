@@ -23,7 +23,7 @@ public:
 
     PTraceCall clear(const trace::Call& call);
 
-    PTraceCall draw(const trace::Call& call, PCallSet state_cache);
+    void draw(PTraceCall call);
 
     PTraceCall draw_buffer(const trace::Call& call);
 
@@ -33,6 +33,8 @@ public:
                         unsigned layer, PTraceCall call) = 0;
 
     PTraceCall blit(const trace::Call& call);
+
+    void set_dependend_state_cache(unsigned key, PCallSet sc);
 
 protected:
     void set_size(unsigned width, unsigned height);
@@ -113,8 +115,6 @@ public:
     PTraceCall viewport(const trace::Call& call);
 
     PTraceCall clear(const trace::Call& call);
-
-    PTraceCall draw(const trace::Call& call, PCallSet state_cache);
 
     PTraceCall draw_buffer(const trace::Call& call);
 
