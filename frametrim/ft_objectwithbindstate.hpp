@@ -41,23 +41,20 @@ public:
     void bind_target(unsigned target, unsigned id, PTraceCall call) {
 
         if (id > 0) {
-            if (!m_bound_objects[target] ||
-                m_bound_objects[target]->id() != id) {
+            if (m_bound_objects[target] &&
+                m_bound_objects[target]->id() != id)
+                m_bound_objects[target]->unbind(call);
 
-                if (m_bound_objects[target])
-                    m_bound_objects[target]->unbind(call);
-
-                auto obj = this->get_by_id(id);
-                if (!obj) {
-                    std::cerr << "Object " << id << " not found while binding\n";
-                    return;
-                }
-
-                obj->bind(call);
-                m_bound_objects[target] = obj;
-                post_bind(target, m_bound_objects[target]);
-                m_unbind_calls[target] = nullptr;
+            auto obj = this->get_by_id(id);
+            if (!obj) {
+                std::cerr << "Object " << id << " not found while binding\n";
+                return;
             }
+
+            obj->bind(call);
+            m_bound_objects[target] = obj;
+            post_bind(target, m_bound_objects[target]);
+            m_unbind_calls[target] = nullptr;
         } else {
             post_bind(target, nullptr);
             if (m_bound_objects[target])  {

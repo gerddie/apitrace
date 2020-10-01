@@ -64,10 +64,8 @@ TextureState::data(const trace::Call& call)
         m_last_unit_call_dirty = false;
     }
 
-    if (m_last_bind_call_dirty) {
-        emit_bind(m_data_upload_set[level]);
-        m_last_bind_call_dirty = false;
-    }
+    emit_bind(m_data_upload_set[level]);
+    m_last_bind_call_dirty = false;
 
     auto c = trace2call(call);
     m_data_upload_set[level].insert(c);
@@ -167,6 +165,10 @@ void TextureState::do_emit_calls_to_list(CallSet& list) const
         if (f.second)
             f.second->emit_calls_to_list(list);
     }
+    if (m_last_bind_call_dirty)
+        list.insert(bind_call());
+    if (m_last_unit_call_dirty)
+        list.insert(m_last_unit_call);
 }
 
 bool TextureState::is_active() const
