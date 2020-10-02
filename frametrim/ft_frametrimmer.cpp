@@ -142,6 +142,7 @@ struct FrameTrimmeImpl {
     std::unordered_map<EStateCaches, PCallSet> m_state_caches;
     std::bitset<sc_last> m_state_caches_dirty;
     FramebufferState& m_current_draw_buffer;
+    PTraceCall m_last_swap;
 };
 
 FrameTrimmer::FrameTrimmer()
@@ -234,7 +235,11 @@ FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
     if (in_target_frame) {
         if (!c)
             c = trace2call(call);
-        m_required_calls.insert(c);
+
+        if (c->name() != "glXSwapBuffers")
+            m_required_calls.insert(c);
+        else
+            m_last_swap = c;
 
         if (m_current_draw_buffer.id() > 0)
             m_current_draw_buffer.draw(c);
@@ -283,6 +288,10 @@ void FrameTrimmeImpl::start_target_frame()
 void FrameTrimmeImpl::finalize()
 {
     m_fbo.emit_calls_to_list(m_required_calls);
+
+
+    if (m_last_swap)
+        m_required_calls.insert(m_last_swap);
 }
 
 void FrameTrimmeImpl::end_target_frame()
