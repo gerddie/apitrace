@@ -185,10 +185,10 @@ int main(int argc, char **argv)
         }
     }
 
-    if (options.frames.getFirst() != options.frames.getLast())  {
+    /*if (options.frames.getFirst() != options.frames.getLast())  {
         std::cerr << "error: Must give exactly one frame\n";
         return 1;
-    }
+    }*/
 
     if (optind >= argc) {
         std::cerr << "error: apitrace trim requires a trace file as an argument.\n";
