@@ -597,7 +597,6 @@ FrameTrimmeImpl::register_state_calls()
         "glDepthMask",
         "glDepthRange",
         "glFlush",
-        "glFenceSync",
         "glFrontFace",
         "glFrustum",
         "glLineStipple",
@@ -650,9 +649,9 @@ FrameTrimmeImpl::register_state_calls()
     MAP(glEnable, record_enable);
 
     MAP_GENOBJ(glFenceSync, m_sync_objects, SyncObjectMap::create);
-    MAP_GENOBJ(glWaitSync, m_sync_objects, SyncObjectMap::wait);
-    MAP_GENOBJ(glClientWaitSync, m_sync_objects, SyncObjectMap::wait);
-    MAP_GENOBJ(glDeleteSync, m_sync_objects, SyncObjectMap::destroy);
+    MAP_GENOBJ(glWaitSync, m_sync_objects, SyncObjectMap::wait_or_destroy);
+    MAP_GENOBJ(glClientWaitSync, m_sync_objects, SyncObjectMap::wait_or_destroy);
+    MAP_GENOBJ(glDeleteSync, m_sync_objects, SyncObjectMap::wait_or_destroy);
 }
 
 void FrameTrimmeImpl::register_required_calls()

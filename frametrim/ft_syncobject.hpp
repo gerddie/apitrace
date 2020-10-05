@@ -17,9 +17,7 @@ class SyncObjectMap : public TObjStateMap<ObjectState> {
 
 public:
     PTraceCall create(const trace::Call& call);
-    PTraceCall wait(const trace::Call& call);
-    PTraceCall destroy(const trace::Call& call);
-
+    PTraceCall wait_or_destroy(const trace::Call& call);
 private:
     void do_emit_calls_to_list(CallSet& list) const override;
 };
