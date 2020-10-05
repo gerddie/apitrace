@@ -25,6 +25,7 @@ enum ObjectType {
     bt_renderbuffer,
     bt_shader,
     bt_sampler,
+    bt_sync_object,
     bt_texture,
     bt_vertex_array,
     bt_vertex_pointer,
@@ -45,6 +46,7 @@ enum EStateCaches {
     sc_shaders,
     sc_renderbuffers,
     sc_samplers,
+    sc_sync_object,
     sc_vertex_arrays,
     sc_vertex_attrib_pointers,
     sc_last
@@ -66,6 +68,7 @@ public:
     void emit_calls_to_list(CallSet& list) const;
 
     PTraceCall append_call(PTraceCall call);
+    PTraceCall append_call(const trace::Call& call);
 
     PTraceCall set_state_call(const trace::Call& call, unsigned state_id_params);
 

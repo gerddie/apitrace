@@ -92,6 +92,12 @@ ObjectState::append_call(PTraceCall call)
     return call;
 }
 
+PTraceCall
+ObjectState::append_call(const trace::Call& call)
+{
+    return append_call(trace2call(call));
+}
+
 void ObjectState::reset_callset()
 {
     m_calls.clear();

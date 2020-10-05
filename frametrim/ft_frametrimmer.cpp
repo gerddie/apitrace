@@ -10,6 +10,7 @@
 #include "ft_displaylists.hpp"
 #include "ft_renderbuffer.hpp"
 #include "ft_samplerstate.hpp"
+#include "ft_syncobject.hpp"
 #include "ft_vertexattribpointer.hpp"
 
 #include <unordered_set>
@@ -129,6 +130,7 @@ struct FrameTrimmeImpl {
     SamplerStateMap m_samplers;
     TGenObjStateMap<VertexArray> m_vertex_arrays;
     VertexAttribPointerMap m_vertex_attrib_pointers;
+    SyncObjectMap m_sync_objects;
 
     std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
     std::unordered_map<GLint, PTraceCall> m_va_enables;
@@ -646,6 +648,11 @@ FrameTrimmeImpl::register_state_calls()
 
     MAP(glDisable, record_enable);
     MAP(glEnable, record_enable);
+
+    MAP_GENOBJ(glFenceSync, m_sync_objects, SyncObjectMap::create);
+    MAP_GENOBJ(glWaitSync, m_sync_objects, SyncObjectMap::wait);
+    MAP_GENOBJ(glClientWaitSync, m_sync_objects, SyncObjectMap::wait);
+    MAP_GENOBJ(glDeleteSync, m_sync_objects, SyncObjectMap::destroy);
 }
 
 void FrameTrimmeImpl::register_required_calls()
@@ -914,9 +921,9 @@ void FrameTrimmeImpl::update_state_caches()
     m_state_caches[sc_shaders] = m_shaders.get_state_caches();
     m_state_caches[sc_renderbuffers]= m_renderbuffers.get_state_caches();
     m_state_caches[sc_samplers] = m_samplers.get_state_caches();
+    m_state_caches[sc_sync_object] = m_sync_objects.get_state_caches();
     m_state_caches[sc_vertex_arrays] = m_vertex_arrays.get_state_caches();
     m_state_caches[sc_vertex_attrib_pointers] = m_vertex_attrib_pointers.get_state_caches();
-
 }
 
 PTraceCall FrameTrimmeImpl::record_va_enable(const trace::Call& call,
