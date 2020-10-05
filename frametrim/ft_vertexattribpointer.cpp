@@ -24,8 +24,10 @@ PTraceCall
 VertexAttribPointer::set_data(const trace::Call &call, PBufferState buf)
 {
     m_set_call = trace2call(call);
-    if (buf)
+    if (buf) {
+        m_set_call->set_required_call(buf->bind_call());
         buf->flush_state_cache(*this);
+    }
     dirty_cache();
     return m_set_call;
 }
