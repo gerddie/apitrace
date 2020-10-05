@@ -144,7 +144,7 @@ struct FrameTrimmeImpl {
     std::unordered_map<EStateCaches, PCallSet> m_state_caches;
     std::bitset<sc_last> m_state_caches_dirty;
     FramebufferState& m_current_draw_buffer;
-    PTraceCall m_last_swap;
+    std::pair<PTraceCall,PTraceCall> m_last_swaps;
 };
 
 FrameTrimmer::FrameTrimmer()
@@ -237,14 +237,19 @@ FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
     if (in_target_frame) {
         if (!c)
             c = trace2call(call);
-
-        if (c->name() != "glXSwapBuffers")
+        if (!(call.flags & trace::CALL_FLAG_END_FRAME))
             m_required_calls.insert(c);
-        else
-            m_last_swap = c;
+        else {
+            if (m_last_swaps.second)
+                m_last_swaps.first = m_last_swaps.second;
+            m_last_swaps.second = c;
+        }
 
         if (m_current_draw_buffer.id() > 0)
             m_current_draw_buffer.draw(c);
+    } else {
+        if (call.flags & trace::CALL_FLAG_END_FRAME)
+            m_last_swaps.first = trace2call(call);
     }
 }
 
@@ -291,9 +296,11 @@ void FrameTrimmeImpl::finalize()
 {
     m_fbo.emit_calls_to_list(m_required_calls);
 
+    if (m_last_swaps.first)
+        m_required_calls.insert(m_last_swaps.first);
 
-    if (m_last_swap)
-        m_required_calls.insert(m_last_swap);
+    if (m_last_swaps.second)
+        m_required_calls.insert(m_last_swaps.second);
 }
 
 void FrameTrimmeImpl::end_target_frame()
@@ -612,8 +619,6 @@ FrameTrimmeImpl::register_state_calls()
         "glShadeModel",
         "glScissor",
         "glStencilMask",
-        "glXSwapBuffers",
-        "eglSwapBuffers",
         "glFinish",
     };
 
