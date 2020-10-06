@@ -99,9 +99,13 @@ PTraceCall
 ProgramState::set_uniform(const trace::Call& call)
 {
     dirty_cache();
-    m_uniforms[call.arg(0).toUInt()] = trace2call(call);
-    m_uniforms[call.arg(0).toUInt()]->set_required_call(m_last_bind);
-    return m_uniforms[call.arg(0).toUInt()];
+    int loc = call.arg(0).toSInt();
+    auto c = trace2call(call);
+    if (loc >= 0) {
+        m_uniforms[loc] = c;
+        m_uniforms[loc]->set_required_call(m_last_bind);
+    }
+    return c;
 }
 
 PTraceCall

@@ -51,19 +51,31 @@ The following types of calls need to be considered:
 * In the HL2 startup all text is missing
 
 * in CIV5 the terrain tiles are not retained and some icons are not drawn
-  correctly, this is probably a texture attachement problem.
+  correctly, this is probably a texture attachement problem. One can work
+  around this by selecting a series of frames. The current implementation
+  will put all calls of a continuous series of frames in to the setup frame
+  extept the calls from the last frame of such a series, this will go
+  into an extra frame
 
 * Sauerbraten has some incorrect geometry
 
-* Portal2 has some geometry missing
+* Portal2 has some geometry missing, but this can also be fixed like Civ5
+  by specifying a range of frames including the setup frame that can be
+  identified by using qapitrace. Setup frames usually ha a significant larger
+  number of calls like other frames.
 
 * GolfWithYourFriends uses GL_COPY_WRITE_BUFFER, but apparently only to
   map the buffer and write data to it, and not for its actual purpouse
   (glCopyBufferSubData)
-  - it also uses glVertexAttrib4fv
-  - the VertexAttribPointer calls are broken after trimming
 
 ## Notes for optimization
 
 * when mapping with GL_MAP_INVALIDATE_BUFFER_BIT we can drop earlier mapping
   or subdata calls
+
+## TODO
+
+* glBundBufferRange
+* glVertexAttrib[1-4].*
+* glCopyTexSubImage2D
+
