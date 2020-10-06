@@ -279,6 +279,8 @@ void FrameTrimmeImpl::start_target_frame()
 
     m_vertex_attrib_pointers.emit_calls_to_list(m_required_calls);
 
+    m_sync_objects.emit_calls_to_list(m_required_calls);
+
     for (auto&& va: m_va_is_enabled) {
         if (!va.second)
             continue;
@@ -509,6 +511,7 @@ FrameTrimmeImpl::register_buffer_calls()
     MAP_GENOBJ(glMapBuffer, m_buffers, BufferStateMap::map);
     MAP_GENOBJ(glMapBufferRange, m_buffers, BufferStateMap::map_range);
     MAP_GENOBJ(memcpy, m_buffers, BufferStateMap::memcpy);
+    MAP_GENOBJ(glFlushMappedBufferRange, m_buffers, BufferStateMap::flush);
     MAP_GENOBJ(glUnmapBuffer, m_buffers, BufferStateMap::unmap);
 }
 

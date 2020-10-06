@@ -29,7 +29,11 @@ SyncObjectMap::create(const trace::Call& call)
 PTraceCall
 SyncObjectMap::wait_or_destroy(const trace::Call& call)
 {
-    auto fence = get_by_id(call.arg(0).toUInt(), false);
+    auto id = call.arg(0).toUInt();
+    if (!id)
+        return trace2call(call);
+
+    auto fence = get_by_id(id, false);
 
     if (!fence) {
         std::cerr << call.no << " " << call.name() << ": no fence object "

@@ -68,6 +68,7 @@ struct BufferStateImpl {
     PTraceCall use(const trace::Call& call);
     void emit_calls_to_list(CallSet& list) const;
     CallSet clean_bind_calls() const;
+    PTraceCall flush(const trace::Call& call);
 };
 
 
@@ -84,6 +85,7 @@ FORWARD_CALL(map)
 FORWARD_CALL(map_range)
 FORWARD_CALL(memcopy)
 FORWARD_CALL(unmap)
+FORWARD_CALL(flush)
 
 void BufferState::post_bind(const PTraceCall& call)
 {    
@@ -195,6 +197,13 @@ BufferStateImpl::add_sub_range(uint64_t start, uint64_t end, PTraceCall call, bo
     } while (b != m_sub_buffers.begin());
     m_owner->dirty_cache();
     return call;
+}
+
+PTraceCall BufferStateImpl::flush(const trace::Call& call)
+{
+    auto c = trace2call(call);
+    m_data_upload_set.insert(c);
+    return c;
 }
 
 PTraceCall BufferStateImpl::use(const trace::Call& call)
@@ -405,6 +414,21 @@ PTraceCall BufferStateMap::map(const trace::Call& call)
     }
     return c;
 }
+
+PTraceCall BufferStateMap::flush(const trace::Call& call)
+{
+    unsigned target = call.arg(0).toUInt();
+    auto buf = bound_to(target);
+    PTraceCall c = trace2call(call);
+    if (buf) {
+        m_mapped_buffers[target][buf->id()] = buf;
+        c = buf->flush(call);
+    } else {
+        std::cerr << "Error: no buffer mapped at " << target << " when flushing\n";
+    }
+    return c;
+}
+
 
 PTraceCall BufferStateMap::map_range(const trace::Call& call)
 {

@@ -22,7 +22,7 @@ public:
     PTraceCall memcopy(const trace::Call& call);
     PTraceCall unmap(const trace::Call& call);
     bool in_mapped_range(uint64_t address) const;
-
+    PTraceCall flush(const trace::Call& call);
     PTraceCall use(const trace::Call& call);
 
 private:
@@ -48,7 +48,7 @@ class BufferStateMap : public TGenObjStateMap<BufferState> {
     PTraceCall map_range(const trace::Call& call);
     PTraceCall memcpy(const trace::Call& call);
     PTraceCall unmap(const trace::Call& call);
-
+    PTraceCall flush(const trace::Call& call);
 private:
     using BufferMap = std::unordered_map<GLint, PBufferState>;
 
