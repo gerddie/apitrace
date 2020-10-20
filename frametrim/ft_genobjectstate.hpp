@@ -46,16 +46,17 @@ public:
         if (call.args.size() < 2)
             std::cerr << "call " << call.no << " " << call.name() << "will fail\n";
 
+        auto c = trace2call(call);
         const auto ids = (call.arg(1)).toArray();
         for (auto& v : ids->values) {
             auto state = this->get_by_id(v->toUInt());
             /* We erase the state here, but it might be referenced
              * elsewhere, so we have to record the call with the state */
             if (state)
-                state->append_call(trace2call(call));
+                state->append_call(c);
             this->clear(v->toUInt());
         }
-        return trace2call(call);
+        return c;
     }
 private:
     void do_emit_calls_to_list(CallSet& list) const override {
