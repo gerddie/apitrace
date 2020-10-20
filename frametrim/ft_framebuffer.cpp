@@ -119,6 +119,12 @@ PTraceCall FramebufferState::blit(const trace::Call& call)
         m_draw_calls.clear();
         m_draw_calls.insert(bind_call());
     }
+
+    if (!m_draw_calls.has(CallSet::attach_calls)) {
+        emit_attachment_calls_to_list(m_draw_calls);
+        m_draw_calls.set(CallSet::attach_calls);
+    }
+
     m_draw_calls.insert(c);
     dirty_cache();
     return c;
