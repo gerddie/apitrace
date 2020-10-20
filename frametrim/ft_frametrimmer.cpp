@@ -695,6 +695,8 @@ void FrameTrimmeImpl::register_ignore_history_calls()
      * TODO: Delete calls should probably really delete things */
     const std::vector<const char *> ignore_history_calls = {
         "glCheckFramebufferStatus",
+        "glGetActiveUniform",
+        "glGetBoolean",
         "glGetError",
         "glGetFloat",
         "glGetFramebufferAttachmentParameter",
@@ -706,6 +708,7 @@ void FrameTrimmeImpl::register_ignore_history_calls()
         "glGetString",
         "glGetTexLevelParameter",
         "glGetTexImage",
+        "glGetUniform",
         "glIsEnabled",
         "glReadPixels",
         "glXGetClientString",
