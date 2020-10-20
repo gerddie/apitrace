@@ -247,7 +247,8 @@ FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
             m_last_swaps.second = c;
         }
 
-        if (m_current_draw_buffer.id() > 0)
+        if (m_current_draw_buffer.id() > 0 &&
+            !c->test_flag(tc_skip_record_in_fbo))
             m_current_draw_buffer.draw(c);
     } else {
         if (call.flags & trace::CALL_FLAG_END_FRAME)
