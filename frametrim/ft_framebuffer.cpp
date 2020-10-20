@@ -133,6 +133,8 @@ PTraceCall FramebufferState::draw_buffer(const trace::Call& call)
         assert(0);
     }
     m_drawbuffer_call->set_required_call(bind_call());
+
+
     dirty_cache();
     return m_drawbuffer_call;
 }
@@ -143,7 +145,7 @@ PTraceCall FramebufferState::read_buffer(const trace::Call& call)
 
     auto required_call = readbuffer_call(call.arg(0).toUInt());
 
-    m_readbuffer_call->set_required_call(bind_call());
+    m_readbuffer_call->set_required_call(required_call);
     return m_readbuffer_call;
 }
 
@@ -252,7 +254,7 @@ PTraceCall FramebufferStateMap::draw_buffer(const trace::Call& call)
 
 PTraceCall FramebufferStateMap::read_buffer(const trace::Call& call)
 {
-    return m_read_buffer->draw_buffer(call);
+    return m_read_buffer->read_buffer(call);
 }
 
 DefaultFramebufferState::DefaultFramebufferState():
