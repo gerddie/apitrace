@@ -50,6 +50,7 @@ private:
 
     void pass_state_cache(unsigned object_id, PCallSet cache) override;
     void emit_dependend_caches(CallSet& list) const override;
+    virtual PTraceCall readbuffer_call(unsigned attach_id);
 
     unsigned m_width;
     unsigned m_height;
@@ -82,9 +83,10 @@ private:
     void emit_attachment_calls_to_list(CallSet& list) const override;
     bool clear_all_buffers(unsigned mask) const override;
     void post_unbind(const PTraceCall& call) override;
+    PTraceCall readbuffer_call(unsigned attach_id) override;
 
     std::unordered_map<unsigned, SizedObjectState::Pointer> m_attachments;
-    std::unordered_map<unsigned, std::pair<PTraceCall, PTraceCall>> m_attach_call;
+    std::unordered_map<unsigned, PTraceCall> m_attach_call;
 };
 
 class DefaultFramebufferState : public FramebufferState {

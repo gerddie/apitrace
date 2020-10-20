@@ -140,8 +140,17 @@ PTraceCall FramebufferState::draw_buffer(const trace::Call& call)
 PTraceCall FramebufferState::read_buffer(const trace::Call& call)
 {
     m_readbuffer_call = trace2call(call);
+
+    auto required_call = readbuffer_call(call.arg(0).toUInt());
+
     m_readbuffer_call->set_required_call(bind_call());
     return m_readbuffer_call;
+}
+
+PTraceCall FramebufferState::readbuffer_call(unsigned attach_id)
+{
+    (void)attach_id;
+    return bind_call();
 }
 
 void
@@ -376,7 +385,8 @@ void FBOState::attach(unsigned index, PSizedObjectState attachment,
         flush_state_cache(*m_attachments[index]);
         m_attachments[index]->unattach();
     }
-    m_attach_call[index] = std::make_pair(bind_call(), call);
+    call->set_required_call(bind_call());
+    m_attach_call[index] = call;
 
     if (attachment) {
         attachment->flush_state_cache(*this);
@@ -408,10 +418,10 @@ void FBOState::emit_attachment_calls_to_list(CallSet& list) const
             a.second->emit_calls_to_list(list);
 
     for (auto&& a : m_attach_call) {
-        if (a.second.first)
-            list.insert(a.second.first);
-        if (a.second.second)
-            list.insert(a.second.second);
+        if (a.second) {
+            a.second->emit_required_calls(list);
+            list.insert(a.second);
+        }
     }
 }
 
@@ -442,6 +452,11 @@ bool FBOState::clear_all_buffers(unsigned mask) const
         }
     }
     return (attached_mask & ~(mask | GL_COLOR_BUFFER_BIT)) ? false : true;
+}
+
+PTraceCall FBOState::readbuffer_call(unsigned attach_id)
+{
+    return m_attach_call[attach_id];
 }
 
 }
