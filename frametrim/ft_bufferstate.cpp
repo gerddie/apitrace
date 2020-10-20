@@ -261,15 +261,22 @@ CallSet BufferStateImpl::clean_bind_calls() const
             retval.insert(b);
     }
 
-    for(auto&& b : m_map_calls) {
-        if (b->call_no() >= first_needed_map_call_no){
+    unsigned last_unmap_call = 0;
+
+    for(auto&& b : m_unmap_calls) {
+        if (b->call_no() > first_needed_map_call_no) {
             retval.insert(b);
+            if (last_unmap_call < b->call_no())
+                last_unmap_call = b->call_no();
         }
     }
 
-    for(auto&& b : m_unmap_calls) {
-        if (b->call_no() > first_needed_map_call_no)
+    for(auto&& b : m_map_calls) {
+        if (b->call_no() >= first_needed_map_call_no &&
+            (last_unmap_call > b->call_no() ||
+             b->test_flag(tc_persistent_mapping))) {
             retval.insert(b);
+        }
     }
 
     return retval;
@@ -282,9 +289,14 @@ PTraceCall BufferStateImpl::map(const trace::Call& call)
         m_last_bind_call_dirty = false;
     }
 
+    auto c = trace2call(call);
+
+    if (call.arg(3).toUInt() & GL_MAP_PERSISTENT_BIT )
+        c->set_flag(tc_persistent_mapping);
+
     m_mapping.range_begin = m_mapping.buffer_base = call.ret->toUInt();
     m_mapping.range_end = m_mapping.range_begin + call.arg(0).toUInt();
-    auto c = trace2call(call);
+
     m_map_calls.push_back(c);
     m_owner->dirty_cache();
     return c;
