@@ -49,6 +49,7 @@ enum EStateCaches {
     sc_sync_object,
     sc_vertex_arrays,
     sc_vertex_attrib_pointers,
+    sc_vertex_attribs,
     sc_last
 };
 

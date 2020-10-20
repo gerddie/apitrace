@@ -95,6 +95,7 @@ struct FrameTrimmeImpl {
     PTraceCall AttribPointer(const trace::Call& call, PointerType type);
     PTraceCall DrawElements(const trace::Call& call);
     PTraceCall DrawArrays(const trace::Call& call);
+    PTraceCall VertexAttrib(const trace::Call& call);
 
     PTraceCall todo(const trace::Call& call);
     PTraceCall ignore_history(const trace::Call& call);
@@ -134,6 +135,7 @@ struct FrameTrimmeImpl {
 
     std::unordered_map<GLint, PBufferState> m_vertex_attr_pointer;
     std::unordered_map<GLint, PTraceCall> m_va_enables;
+    std::unordered_map<GLint, PTraceCall> m_vertex_attribs;
     std::map<std::string, PTraceCall> m_state_calls;
     std::map<unsigned, PTraceCall> m_enables;
 
@@ -749,6 +751,16 @@ FrameTrimmeImpl::register_va_calls()
 
     MAP_DATA(glVertexPointer, AttribPointer, pt_vertex);
     MAP_DATA(glTexCoordPointer, AttribPointer, pt_texcoord);
+    MAP(glVertexAttrib1, VertexAttrib);
+    MAP(glVertexAttrib2, VertexAttrib);
+    MAP(glVertexAttrib3, VertexAttrib);
+    MAP(glVertexAttrib4, VertexAttrib);
+    MAP(glVertexAttribI, VertexAttrib);
+    MAP(glVertexAttribL, VertexAttrib);
+    MAP(glVertexAttribP1, VertexAttrib);
+    MAP(glVertexAttribP2, VertexAttrib);
+    MAP(glVertexAttribP3, VertexAttrib);
+    MAP(glVertexAttribP4, VertexAttrib);
 
     MAP_DATA(glDisableClientState, record_client_state_enable, false);
     MAP_DATA(glEnableClientState, record_client_state_enable, true);
@@ -931,6 +943,16 @@ void FrameTrimmeImpl::update_state_caches()
     m_state_caches[sc_sync_object] = m_sync_objects.get_state_caches();
     m_state_caches[sc_vertex_arrays] = m_vertex_arrays.get_state_caches();
     m_state_caches[sc_vertex_attrib_pointers] = m_vertex_attrib_pointers.get_state_caches();
+
+    if (m_state_caches_dirty.test(sc_vertex_attribs) ||
+        !m_state_caches[sc_vertex_attribs]) {
+        PCallSet calls = make_shared<CallSet>();
+        for (auto&& [key, call] : m_vertex_attribs) {
+            if (call)
+                calls->insert(call);
+        }
+        m_state_caches[sc_vertex_attribs] = calls;
+    }
 }
 
 PTraceCall FrameTrimmeImpl::record_va_enable(const trace::Call& call,
@@ -980,6 +1002,14 @@ PTraceCall FrameTrimmeImpl::AttribPointer(const trace::Call& call, PointerType t
             m_state_caches_dirty.set(sc_va_enables);
         }
     }
+    return c;
+}
+
+PTraceCall FrameTrimmeImpl::VertexAttrib(const trace::Call& call)
+{
+    PTraceCall c = trace2call(call);
+    m_vertex_attribs[call.arg(0).toUInt()] = c;
+    m_state_caches_dirty.set(sc_vertex_attribs);
     return c;
 }
 
