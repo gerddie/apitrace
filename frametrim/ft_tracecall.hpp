@@ -13,6 +13,8 @@ namespace frametrim {
 
 enum ECallFlags {
     tc_required,
+    tc_persistent_mapping,
+    tc_skip_record_in_fbo,
     tc_last
 };
 
