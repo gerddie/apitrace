@@ -294,6 +294,9 @@ void FrameTrimmeImpl::start_target_frame()
     for (auto&& va: m_va_enables)
         m_required_calls.insert(va.second);
 
+    for (auto&& [key, va]: m_vertex_attribs)
+        m_required_calls.insert(va);
+
     m_required_calls.resolve();
 }
 
@@ -935,6 +938,8 @@ void FrameTrimmeImpl::update_state_caches()
     make_state_cache_from_map(sc_states, m_state_calls);
     make_state_cache_from_map(sc_enables, m_enables);
     make_state_cache_from_map(sc_va_enables, m_va_enables);
+    make_state_cache_from_map(sc_vertex_attribs, m_vertex_attribs);
+
     //m_state_caches[sc_matrix_states] = m_matrix_states.get_state_caches(); // not implemented
     m_state_caches[sc_legacy_programs] = m_legacy_programs.get_state_caches();
     m_state_caches[sc_programs] = m_programs.get_state_caches();
@@ -947,16 +952,6 @@ void FrameTrimmeImpl::update_state_caches()
     m_state_caches[sc_sync_object] = m_sync_objects.get_state_caches();
     m_state_caches[sc_vertex_arrays] = m_vertex_arrays.get_state_caches();
     m_state_caches[sc_vertex_attrib_pointers] = m_vertex_attrib_pointers.get_state_caches();
-
-    if (m_state_caches_dirty.test(sc_vertex_attribs) ||
-        !m_state_caches[sc_vertex_attribs]) {
-        PCallSet calls = make_shared<CallSet>();
-        for (auto&& [key, call] : m_vertex_attribs) {
-            if (call)
-                calls->insert(call);
-        }
-        m_state_caches[sc_vertex_attribs] = calls;
-    }
 }
 
 PTraceCall FrameTrimmeImpl::record_va_enable(const trace::Call& call,
