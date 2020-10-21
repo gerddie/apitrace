@@ -113,7 +113,6 @@ PTraceCall
 TextureState::sub_data(const trace::Call& call)
 {
     unsigned level = get_level_with_face_index(call);
-    assert(level < 16);
 
     /* Not exhaustive */
     if (!strcmp(call.name(), "glTexImage2D"))
