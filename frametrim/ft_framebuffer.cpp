@@ -87,6 +87,17 @@ void FramebufferStateMap::post_unbind(unsigned target,
     m_default_framebuffer->bind(call);
 }
 
+void FramebufferStateMap::do_emit_calls_to_list(CallSet& list) const
+{
+    m_default_framebuffer->emit_calls_to_list(list);
+    if (m_current_framebuffer->id())
+        m_current_framebuffer->emit_calls_to_list(list);
+
+    if (m_read_buffer->id() &&
+        (m_read_buffer->id() != m_current_framebuffer->id()))
+        m_read_buffer->emit_calls_to_list(list);
+}
+
 void FramebufferState::set_size(unsigned width, unsigned height)
 {
     m_width = width;
@@ -153,6 +164,11 @@ PTraceCall FramebufferState::read_buffer(const trace::Call& call)
 
     m_readbuffer_call->set_required_call(required_call);
     return m_readbuffer_call;
+}
+
+void FramebufferState::post_bind(const PTraceCall &call)
+{
+    m_bind_dirty = true;
 }
 
 PTraceCall FramebufferState::readbuffer_call(unsigned attach_id)
@@ -292,7 +308,8 @@ FramebufferState::FramebufferState(GLint glID, PTraceCall gen_call):
     m_viewport_x(0),
     m_viewport_y(0),
     m_viewport_width(0),
-    m_viewport_height(0)
+    m_viewport_height(0),
+    m_bind_dirty(false)
 {
 }
 
@@ -308,9 +325,14 @@ PTraceCall FramebufferState::viewport(const trace::Call& call)
     /* There may be cases where the viewport is not full sized and
      * we have to track more than one call */
     auto c = trace2call(call);
-    if (m_viewport_calls.empty()|| (*m_viewport_calls.rbegin())->name_with_params() !=
-        c->name_with_params())
+    if (m_viewport_calls.empty() || (*m_viewport_calls.rbegin())->name_with_params() !=
+        c->name_with_params() || m_bind_dirty) {
+
+        if (m_bind_dirty)
+            m_viewport_calls.push_back(bind_call());
         m_viewport_calls.push_back(c);
+        m_bind_dirty = false;
+    }
 
     dirty_cache();
     return c;

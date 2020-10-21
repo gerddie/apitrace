@@ -52,6 +52,8 @@ private:
     void emit_dependend_caches(CallSet& list) const override;
     virtual PTraceCall readbuffer_call(unsigned attach_id);
 
+    void post_bind(const PTraceCall& call) override;
+
     unsigned m_width;
     unsigned m_height;
 
@@ -64,6 +66,7 @@ private:
     PTraceCall m_drawbuffer_call;
     PTraceCall m_readbuffer_call;
     CallSet m_draw_calls;
+    bool m_bind_dirty;
 
     std::unordered_map<unsigned, PCallSet> m_dependend_states;
 };
@@ -142,6 +145,8 @@ private:
 
     void post_bind(unsigned target, FramebufferState::Pointer fbo) override;
     void post_unbind(unsigned target, PTraceCall call) override;
+
+    void do_emit_calls_to_list(CallSet& list) const override;
 
     FramebufferState::Pointer
     bound_to_call_target(const trace::Call& call) const;
