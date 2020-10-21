@@ -168,6 +168,7 @@ PTraceCall FramebufferState::read_buffer(const trace::Call& call)
 
 void FramebufferState::post_bind(const PTraceCall &call)
 {
+    (void)call;
     m_bind_dirty = true;
 }
 
