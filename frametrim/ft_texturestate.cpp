@@ -25,6 +25,7 @@ enum TexTypes {
 
 TextureState::TextureState(GLint glID, PTraceCall gen_call):
     SizedObjectState(glID, gen_call, texture),
+    m_last_unit_call_dirty(true),
     m_last_bind_call_dirty(true),
     m_attach_count(0)
 {
@@ -55,8 +56,8 @@ void TextureState::post_unbind(const PTraceCall& call)
 PTraceCall
 TextureState::data(const trace::Call& call)
 {
-    unsigned level = call.arg(1).toUInt();
-    assert(level < 16);
+    unsigned sized_level = call.arg(1).toUInt();
+    unsigned level = get_level_with_face_index(call);
 
     m_data_upload_set[level].clear();
     if (m_last_unit_call) {
@@ -71,13 +72,14 @@ TextureState::data(const trace::Call& call)
     m_data_upload_set[level].insert(c);
 
     if (!strcmp(call.name(), "glTexImage2D") ||
+        !strcmp(call.name(), "glCompressedTexImage2D") ||
             !strcmp(call.name(), "glTexImage3D")) {
         auto w = call.arg(3).toUInt();
         auto h = call.arg(4).toUInt();
-        set_size(level, w, h);
+        set_size(sized_level, w, h);
     } else if (!strcmp(call.name(), "glTexImage1D")) {
         auto w = call.arg(3).toUInt();
-        set_size(level, w, 1);
+        set_size(sized_level, w, 1);
     }
     dirty_cache();
     return c;
@@ -85,8 +87,8 @@ TextureState::data(const trace::Call& call)
 
 PTraceCall TextureState::storage(const trace::Call& call)
 {
+    unsigned layers = call.arg(0).toUInt() == GL_TEXTURE_CUBE_MAP ? 6 : 1;
     unsigned levels = call.arg(1).toUInt();
-
     unsigned w0 = call.arg(3).toUInt();
 
     unsigned h0 = strcmp(call.name(), "glTexStorage1D") ?
@@ -100,7 +102,8 @@ PTraceCall TextureState::storage(const trace::Call& call)
         unsigned w = w0 >> l;
         unsigned h = h0 >> l;
         set_size(l, std::max(w, 1u), std::max(h, 1u));
-        m_data_upload_set[l].insert(c);
+        for (unsigned i = 0; i < layers; ++i)
+            m_data_upload_set[layers * l + i].insert(c);
     }
     dirty_cache();
     return c;
@@ -109,7 +112,7 @@ PTraceCall TextureState::storage(const trace::Call& call)
 PTraceCall
 TextureState::sub_data(const trace::Call& call)
 {
-    unsigned level = call.arg(1).toUInt();
+    unsigned level = get_level_with_face_index(call);
     assert(level < 16);
 
     /* Not exhaustive */
@@ -145,6 +148,36 @@ TextureState::copy_sub_data(const trace::Call& call,
     return c;
 }
 
+unsigned TextureState::get_level_with_face_index(const trace::Call& call)
+{
+    unsigned level = call.arg(1).toUInt();
+    unsigned scale = 1;
+    unsigned shift = 0;
+    switch (call.arg(0).toUInt()) {
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_X:
+        ++shift;
+        /* fallthrough */
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_Y:
+        ++shift;
+        /* fallthrough */
+    case GL_TEXTURE_CUBE_MAP_POSITIVE_Z:
+        ++shift;
+        /* fallthrough */
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_X:
+        ++shift;
+        /* fallthrough */
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Y:
+        ++shift;
+        /* fallthrough */
+    case GL_TEXTURE_CUBE_MAP_NEGATIVE_Z:
+        scale = 6;
+    default:
+        ;
+    }
+    level = scale * level + shift;
+    return level;
+}
+
 void TextureState::rendertarget_of(unsigned layer,
                                    FramebufferState::Pointer fbo)
 {
@@ -156,8 +189,8 @@ void TextureState::rendertarget_of(unsigned layer,
 void TextureState::do_emit_calls_to_list(CallSet& list) const
 {
     emit_gen_call(list);
-    for(unsigned i = 0; i < 16; ++i) {
-        list.insert(m_data_upload_set[i]);
+    for(auto&& [layer, data]: m_data_upload_set) {
+        list.insert(data);
     }
     list.insert(m_data_use_set);
 

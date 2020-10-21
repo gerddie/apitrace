@@ -26,6 +26,8 @@ public:
                          FramebufferState::Pointer fbo);
 
 private:
+    unsigned get_level_with_face_index(const trace::Call& call);
+
     bool is_active() const override;
 
     ObjectType type() const override {return bt_texture;}
@@ -38,7 +40,7 @@ private:
     bool  m_last_unit_call_dirty;
     PTraceCall m_last_unit_call;
     bool  m_last_bind_call_dirty;
-    CallSet m_data_upload_set[16];
+    std::unordered_map<unsigned, CallSet> m_data_upload_set;
     CallSet m_data_use_set;
     int m_attach_count;
     std::unordered_map<unsigned, FramebufferState::Pointer> m_fbo;
