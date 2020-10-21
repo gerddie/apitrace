@@ -54,7 +54,7 @@ public:
             obj->bind(call);
             m_bound_objects[target] = obj;
             post_bind(target, m_bound_objects[target]);
-            m_unbind_calls[target] = nullptr;
+            m_unbind_calls.erase(target);
         } else {
             post_bind(target, nullptr);
             if (m_bound_objects[target])  {
