@@ -265,8 +265,6 @@ void TextureStateMap::post_unbind(unsigned target, PTraceCall call)
 
 }
 
-}
-
 PTraceCall
 TextureStateMap::set_data(const trace::Call& call)
 {
