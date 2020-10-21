@@ -75,7 +75,6 @@ The following types of calls need to be considered:
 
 ## TODO
 
-* glBundBufferRange
-* glVertexAttrib[1-4].*
+* glBindBufferRange
 * glCopyTexSubImage2D
 
