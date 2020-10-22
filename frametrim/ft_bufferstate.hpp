@@ -50,6 +50,8 @@ class BufferStateMap : public TGenObjStateMap<BufferState> {
     PTraceCall unmap(const trace::Call& call);
     PTraceCall flush(const trace::Call& call);
 private:
+    unsigned target_id_from_call(const trace::Call& call) const override;
+
     using BufferMap = std::unordered_map<GLint, PBufferState>;
 
     std::unordered_map<GLint, BufferMap> m_mapped_buffers;

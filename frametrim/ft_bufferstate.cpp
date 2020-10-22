@@ -1,5 +1,6 @@
 #include "ft_bufferstate.hpp"
 #include <limits>
+#include <cstring>
 
 #include <GL/gl.h>
 #include <GL/glext.h>
@@ -405,19 +406,19 @@ PTraceCall BufferStateMap::data(const trace::Call& call)
 {
     assert((call.arg(0).toUInt() != GL_PIXEL_UNPACK_BUFFER) &&
            "Copying texture data from a buffer is not yet implemented");
-    bound_to(call.arg(0).toUInt())->data(call);
+    bound_to(target_id_from_call(call))->data(call);
     return trace2call(call);
 }
 
 PTraceCall BufferStateMap::sub_data(const trace::Call& call)
 {
-    bound_to(call.arg(0).toUInt())->append_data(call);
+    bound_to(target_id_from_call(call))->append_data(call);
     return trace2call(call);
 }
 
 PTraceCall BufferStateMap::map(const trace::Call& call)
 {
-    unsigned target = call.arg(0).toUInt();
+    unsigned target = target_id_from_call(call);
     auto buf = bound_to(target);
     PTraceCall c = trace2call(call);
     if (buf) {
@@ -429,7 +430,7 @@ PTraceCall BufferStateMap::map(const trace::Call& call)
 
 PTraceCall BufferStateMap::flush(const trace::Call& call)
 {
-    unsigned target = call.arg(0).toUInt();
+    unsigned target = target_id_from_call(call);
     auto buf = bound_to(target);
     PTraceCall c = trace2call(call);
     if (buf) {
@@ -444,7 +445,7 @@ PTraceCall BufferStateMap::flush(const trace::Call& call)
 
 PTraceCall BufferStateMap::map_range(const trace::Call& call)
 {
-    unsigned target = call.arg(0).toUInt();
+    unsigned target = target_id_from_call(call);
     auto buf = bound_to(target);
     PTraceCall c = trace2call(call);
     if (buf) {
@@ -472,7 +473,7 @@ BufferStateMap::memcpy(const trace::Call& call)
 PTraceCall
 BufferStateMap::unmap(const trace::Call& call)
 {
-    unsigned target = call.arg(0).toUInt();
+    unsigned target = target_id_from_call(call);
     auto buf = bound_to(target);
     auto c = trace2call(call);
     if (buf) {
@@ -481,6 +482,48 @@ BufferStateMap::unmap(const trace::Call& call)
         mapped.erase(buf->id());
     }
     return c;
+}
+
+unsigned BufferStateMap::target_id_from_call(const trace::Call& call) const
+{
+    unsigned target = call.arg(0).toUInt();
+    unsigned index = 0;
+
+    if (!strcmp(call.name(), "glBindBufferRange")) {
+        index = call.arg(1).toUInt();
+    }
+    switch (target) {
+    case GL_ARRAY_BUFFER:
+        return 1;
+    case GL_ATOMIC_COUNTER_BUFFER:
+        return 2 + 16 * index;
+    case GL_COPY_READ_BUFFER:
+        return 3;
+    case GL_COPY_WRITE_BUFFER:
+        return 4;
+    case GL_DISPATCH_INDIRECT_BUFFER:
+        return 5;
+    case GL_DRAW_INDIRECT_BUFFER:
+        return 6;
+    case GL_ELEMENT_ARRAY_BUFFER:
+        return 7;
+    case GL_PIXEL_PACK_BUFFER:
+        return 8;
+    case GL_PIXEL_UNPACK_BUFFER:
+        return 9;
+    case GL_QUERY_BUFFER:
+        return 10;
+    case GL_SHADER_STORAGE_BUFFER:
+        return 11 + 16 * index;
+    case GL_TEXTURE_BUFFER:
+        return 12;
+    case GL_TRANSFORM_FEEDBACK_BUFFER:
+        return 13  + 16 * index;
+    case GL_UNIFORM_BUFFER:
+        return 14 + 16 * index;
+    }
+    assert(0 && "Unknown buffer binding target");
+    return 0;
 }
 
 }

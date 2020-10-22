@@ -507,6 +507,8 @@ FrameTrimmeImpl::register_buffer_calls()
     MAP_GENOBJ_DATA_DATAREF(glBindBuffer, m_buffers, BufferStateMap::bind, 1,
                             m_fbo.current_framebuffer());
 
+    MAP_GENOBJ_DATA_DATAREF(glBindBufferRange, m_buffers, BufferStateMap::bind, 2,
+                            m_fbo.current_framebuffer());
     /* This will need a bit more to be handled correctly */
     MAP_GENOBJ_DATA_DATAREF(glBindBufferBase, m_buffers, BufferStateMap::bind, 2,
                             m_fbo.current_framebuffer());
