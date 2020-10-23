@@ -43,6 +43,7 @@ PTraceCall FramebufferStateMap::bind_fbo(const trace::Call& call,
     if (target == GL_FRAMEBUFFER ||
         target == GL_READ_FRAMEBUFFER) {
         bind_target(GL_READ_FRAMEBUFFER, id, c);
+        m_read_buffer->set_readbuffer_bind_call(c);
     }
 
     if (recording && m_current_framebuffer->id() > 0)
@@ -84,7 +85,7 @@ void FramebufferStateMap::post_unbind(unsigned target,
         target == GL_READ_FRAMEBUFFER) {
         m_read_buffer = m_default_framebuffer;
     }
-    m_default_framebuffer->bind(call);
+    m_default_framebuffer->bind(target, call);
 }
 
 void FramebufferStateMap::do_emit_calls_to_list(CallSet& list) const
@@ -156,18 +157,22 @@ PTraceCall FramebufferState::draw_buffer(const trace::Call& call)
     return m_drawbuffer_call;
 }
 
+void FramebufferState::set_readbuffer_bind_call(PTraceCall call)
+{
+    m_bind_as_readbuffer_call = call;
+}
+
+
 PTraceCall FramebufferState::read_buffer(const trace::Call& call)
 {
     m_readbuffer_call = trace2call(call);
-
-    auto required_call = readbuffer_call(call.arg(0).toUInt());
-
-    m_readbuffer_call->set_required_call(required_call);
+    m_readbuffer_call->set_required_call(m_bind_as_readbuffer_call);
     return m_readbuffer_call;
 }
 
-void FramebufferState::post_bind(const PTraceCall &call)
+void FramebufferState::post_bind(unsigned target, const PTraceCall &call)
 {
+    (void)target;
     (void)call;
     m_bind_dirty = true;
 }

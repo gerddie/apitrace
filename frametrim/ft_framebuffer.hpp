@@ -36,6 +36,8 @@ public:
 
     void set_dependend_state_cache(unsigned key, PCallSet sc);
 
+    void set_readbuffer_bind_call(PTraceCall call);
+
 protected:
     void set_size(unsigned width, unsigned height);
 
@@ -52,7 +54,7 @@ private:
     void emit_dependend_caches(CallSet& list) const override;
     virtual PTraceCall readbuffer_call(unsigned attach_id);
 
-    void post_bind(const PTraceCall& call) override;
+    void post_bind(unsigned target, const PTraceCall& call) override;
 
     unsigned m_width;
     unsigned m_height;
@@ -65,6 +67,7 @@ private:
     std::vector<PTraceCall> m_viewport_calls;
     PTraceCall m_drawbuffer_call;
     PTraceCall m_readbuffer_call;
+    PTraceCall m_bind_as_readbuffer_call;
     CallSet m_draw_calls;
     bool m_bind_dirty;
 

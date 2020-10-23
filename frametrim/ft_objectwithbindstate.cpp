@@ -17,13 +17,13 @@ ObjectWithBindState::ObjectWithBindState(GLint glID):
 {
 }
 
-void ObjectWithBindState::bind(PTraceCall call)
+void ObjectWithBindState::bind(unsigned target, PTraceCall call)
 {
     m_bind_call = call;
     m_bound = true;
     m_bound_dirty = true;
     dirty_cache();
-    post_bind(m_bind_call);
+    post_bind(target, m_bind_call);
 
     auto gen = gen_call();
     if (call && gen)
@@ -68,8 +68,9 @@ bool ObjectWithBindState::is_active() const
     return bound();
 }
 
-void ObjectWithBindState::post_bind(const PTraceCall& call)
+void ObjectWithBindState::post_bind(unsigned target, const PTraceCall& call)
 {
+    (void)target;
     (void)call;
     // pseudoabstract method
 }

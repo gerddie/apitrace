@@ -13,7 +13,7 @@ public:
     ObjectWithBindState(GLint glID, PTraceCall call);
     ObjectWithBindState(GLint glID);
 
-    void bind(PTraceCall call);
+    void bind(unsigned target, PTraceCall call);
     void unbind(PTraceCall call);
     bool bound() const;
 
@@ -23,7 +23,7 @@ protected:
 
 private:
     bool is_active() const override;
-    virtual void post_bind(const PTraceCall& call);
+    virtual void post_bind(unsigned target, const PTraceCall& call);
     virtual void post_unbind(const PTraceCall& call);
     void do_emit_calls_to_list(CallSet &list) const override;
     void post_set_state_call(PTraceCall call) override;
@@ -51,7 +51,7 @@ public:
                 return;
             }
 
-            obj->bind(call);
+            obj->bind(target, call);
             m_bound_objects[target] = obj;
             post_bind(target, m_bound_objects[target]);
             m_unbind_calls.erase(target);

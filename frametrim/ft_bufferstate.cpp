@@ -53,9 +53,11 @@ struct BufferStateImpl {
     std::vector<PTraceCall> m_map_calls;
     std::vector<PTraceCall> m_unmap_calls;
 
+    std::unordered_map<unsigned, PTraceCall> m_last_bind_calls;
+
     BufferStateImpl(BufferState *owner);
 
-    void post_bind(const PTraceCall& call);
+    void post_bind(unsigned target, const PTraceCall& call);
     void post_unbind(const PTraceCall& call);
     PTraceCall data(const trace::Call& call);
     PTraceCall append_data(const trace::Call& call);
@@ -70,6 +72,8 @@ struct BufferStateImpl {
     void emit_calls_to_list(CallSet& list) const;
     CallSet clean_bind_calls() const;
     PTraceCall flush(const trace::Call& call);
+
+    PTraceCall bind_target_call(unsigned target) const;
 };
 
 
@@ -88,9 +92,9 @@ FORWARD_CALL(memcopy)
 FORWARD_CALL(unmap)
 FORWARD_CALL(flush)
 
-void BufferState::post_bind(const PTraceCall& call)
+void BufferState::post_bind(unsigned target, const PTraceCall& call)
 {    
-    impl->post_bind(call);
+    impl->post_bind(target, call);
 }
 
 void BufferState::post_unbind(const PTraceCall& call)
@@ -101,6 +105,12 @@ void BufferState::post_unbind(const PTraceCall& call)
 bool BufferState::in_mapped_range(uint64_t address) const
 {
     return impl->m_mapping.contains(address);
+}
+
+PTraceCall BufferState::bind_target_call(unsigned target) const
+{
+    unsigned real_target = BufferStateMap::composed_target_id(target, 0);
+    return impl->m_last_bind_calls[real_target];
 }
 
 void BufferState::do_emit_calls_to_list(CallSet& list) const
@@ -130,10 +140,11 @@ BufferStateImpl::BufferStateImpl(BufferState *owner):
 
 }
 
-void BufferStateImpl::post_bind(const PTraceCall& call)
+void BufferStateImpl::post_bind(unsigned target, const PTraceCall& call)
 {
     (void)call;
     m_last_bind_call_dirty = true;
+    m_last_bind_calls[target] = call;
 }
 
 void BufferStateImpl::post_unbind(const PTraceCall& call)
@@ -484,14 +495,8 @@ BufferStateMap::unmap(const trace::Call& call)
     return c;
 }
 
-unsigned BufferStateMap::target_id_from_call(const trace::Call& call) const
+unsigned BufferStateMap::composed_target_id(unsigned target, unsigned index)
 {
-    unsigned target = call.arg(0).toUInt();
-    unsigned index = 0;
-
-    if (!strcmp(call.name(), "glBindBufferRange")) {
-        index = call.arg(1).toUInt();
-    }
     switch (target) {
     case GL_ARRAY_BUFFER:
         return 1;
@@ -524,6 +529,17 @@ unsigned BufferStateMap::target_id_from_call(const trace::Call& call) const
     }
     assert(0 && "Unknown buffer binding target");
     return 0;
+}
+
+unsigned BufferStateMap::target_id_from_call(const trace::Call& call) const
+{
+    unsigned target = call.arg(0).toUInt();
+    unsigned index = 0;
+
+    if (!strcmp(call.name(), "glBindBufferRange")) {
+        index = call.arg(1).toUInt();
+    }
+    return composed_target_id(target, index);
 }
 
 }

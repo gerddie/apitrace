@@ -162,8 +162,10 @@ void CallSet::deep_resolve()
     for(auto&& [k, s]: m_subsets) {
         if (s) {
             s->deep_resolve();
-            for (auto&& c: *s)
+            for (auto&& c: *s) {
                 insert(c);
+                c->emit_required_calls(*this);
+            }
         }
     }
     m_subsets.clear();

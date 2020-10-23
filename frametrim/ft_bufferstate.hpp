@@ -25,9 +25,11 @@ public:
     PTraceCall flush(const trace::Call& call);
     PTraceCall use(const trace::Call& call);
 
+    PTraceCall bind_target_call(unsigned target) const;
+
 private:
     ObjectType type() const override {return bt_buffer;}
-    void post_bind(const PTraceCall& call) override;
+    void post_bind(unsigned target, const PTraceCall& call) override;
     void post_unbind(const PTraceCall& call) override;
     void do_emit_calls_to_list(CallSet& list) const override;
 
@@ -49,8 +51,11 @@ class BufferStateMap : public TGenObjStateMap<BufferState> {
     PTraceCall memcpy(const trace::Call& call);
     PTraceCall unmap(const trace::Call& call);
     PTraceCall flush(const trace::Call& call);
+
+    static unsigned composed_target_id(unsigned target, unsigned index);
 private:
     unsigned target_id_from_call(const trace::Call& call) const override;
+
 
     using BufferMap = std::unordered_map<GLint, PBufferState>;
 

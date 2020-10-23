@@ -323,7 +323,7 @@ FrameTrimmeImpl::get_sorted_call_ids()
 {
     std::unordered_set<unsigned> make_sure_its_singular;
 
-    m_required_calls.resolve();
+    m_required_calls.deep_resolve();
     for(auto&& c: m_required_calls)
         make_sure_its_singular.insert(c->call_no());
 
@@ -708,14 +708,18 @@ void FrameTrimmeImpl::register_ignore_history_calls()
         "glGetFramebufferAttachmentParameter",
         "glGetInfoLog",
         "glGetInteger",
+        "glGetObjectLabelEXT",
         "glGetObjectParameter",
         "glGetProgram",
         "glGetShader",
         "glGetString",
         "glGetTexLevelParameter",
+        "glGetTexParameter",
         "glGetTexImage",
         "glGetUniform",
+        "glLabelObjectEXT",
         "glIsEnabled",
+        "glIsVertexArray",
         "glReadPixels",
         "glXGetClientString",
         "glXGetCurrentContext",
@@ -879,14 +883,18 @@ FrameTrimmeImpl::DeleteLists(const trace::Call& call)
 PTraceCall FrameTrimmeImpl::DrawElements(const trace::Call& call)
 {
     auto c = trace2call(call);
-    auto ibo = m_buffers.bound_to(GL_ELEMENT_ARRAY_BUFFER);
+    auto ibo = m_buffers.bound_to(m_buffers.composed_target_id(GL_ELEMENT_ARRAY_BUFFER, 0));
     if (ibo) {
         if (m_recording_frame) {
             c = ibo->use(call);
             ibo->emit_calls_to_list(m_required_calls);
         }
         ibo->flush_state_cache(m_fbo.current_framebuffer());
+        auto bind_call = ibo->bind_target_call(GL_ELEMENT_ARRAY_BUFFER);
+        c->set_required_call(bind_call);
     }
+    m_vertex_attrib_pointers.flush_state_caches(m_fbo.current_framebuffer());
+
     return c;
 }
 
@@ -986,7 +994,8 @@ FrameTrimmeImpl::record_client_state_enable(const trace::Call& call,
 
 PTraceCall FrameTrimmeImpl::AttribPointer(const trace::Call& call, PointerType type)
 {
-    auto buf = m_buffers.bound_to(GL_ARRAY_BUFFER);
+    auto target = m_buffers.composed_target_id(GL_ARRAY_BUFFER, 0);
+    auto buf = m_buffers.bound_to(target);
     PTraceCall c = trace2call(call);
     unsigned id = type == pt_va ? call.arg(0).toUInt() * pt_last + type:
                                   (unsigned)type;

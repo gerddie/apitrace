@@ -25,8 +25,17 @@ VertexAttribPointer::set_data(const trace::Call &call, PBufferState buf)
 {
     m_set_call = trace2call(call);
     if (buf) {
-        m_set_call->set_required_call(buf->bind_call());
+        auto bind_call = buf->bind_target_call(GL_ARRAY_BUFFER);
+        m_set_call->set_required_call(bind_call);
         buf->flush_state_cache(*this);
+    } else {
+        auto offset = (uint64_t)call.arg(5).toPointer();
+        if (offset && offset < 1000) {
+            std::cerr << "\nW: Call:" << call.no << ": "
+                      << call.name() << " suspicious, pointer argument seems "
+                                        "to be an offset ("
+                      << offset << ") but no buffer bound\n";
+        }
     }
     dirty_cache();
     return m_set_call;
@@ -88,7 +97,8 @@ PTraceCall VertexAttribPointerMap::enable(const trace::Call& call, bool enable)
 PTraceCall VertexAttribPointerMap::set_data(const trace::Call& call, BufferStateMap& buffers)
 {
     auto vap = get_or_create(call);
-    auto buf = buffers.bound_to(GL_ARRAY_BUFFER);
+    unsigned target = buffers.composed_target_id(GL_ARRAY_BUFFER, 0);
+    auto buf = buffers.bound_to(target);
     m_state_cache_dirty = true;
     return vap->set_data(call, buf);
 }

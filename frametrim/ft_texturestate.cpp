@@ -41,8 +41,9 @@ void TextureState::bind_unit(PTraceCall unit)
         m_last_unit_call = unit;
 }
 
-void TextureState::post_bind(const PTraceCall& call)
+void TextureState::post_bind(unsigned target, const PTraceCall& call)
 {
+    (void)target;
     (void)call;
     m_last_bind_call_dirty = true;
 }

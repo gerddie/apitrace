@@ -14,7 +14,7 @@ public:
     TextureState(GLint glID, PTraceCall gen_call);
 
     void bind_unit(PTraceCall unit);
-    void post_bind(const PTraceCall& unit) override;
+    void post_bind(unsigned target, const PTraceCall& unit) override;
     void post_unbind(const PTraceCall& unit) override;
 
     PTraceCall data(const trace::Call& call);
