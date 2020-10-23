@@ -40,12 +40,15 @@
 #include <limits.h> // for CHAR_MAX
 #include <getopt.h>
 #include <memory>
+#include <queue>
 
 using namespace frametrim;
 
 struct trim_options {
     /* Frames to be included in trace. */
     trace::CallSet frames;
+
+    unsigned top_frame_call_counts;
 
     /* Output filename */
     std::string output;
@@ -61,7 +64,7 @@ usage(void)
             << synopsis << "\n"
                            "\n"
                            "    -h, --help               Show detailed help for trim options and exit\n"
-                           "        --frame=FRAME        Frame the trace should be reduced to.\n"
+                           "        --frames=FRAME        Frame the trace should be reduced to.\n"
                            "    -o, --output=TRACE_FILE  Output trace file\n"
                ;
 }
@@ -72,11 +75,17 @@ enum {
 };
 
 const static char *
-shortOptions = "aho:x";
+shortOptions = "tho:x";
+
+bool operator < (std::pair<unsigned, unsigned>& lhs, std::pair<unsigned, unsigned>& rhs)
+{
+    return lhs.first < rhs.first;
+}
 
 const static struct option
         longOptions[] = {
 {"help", no_argument, 0, 'h'},
+{"top-calls-per-frame", required_argument, 0, 't'},
 {"frames", required_argument, 0, FRAMES_OPT},
 {"output", required_argument, 0, 'o'},
 {0, 0, 0, 0}
@@ -109,6 +118,12 @@ static int trim_to_frame(const char *filename,
     frame = 0;
     uint64_t callid = 0;
     std::unique_ptr<trace::Call> call(p.parse_call());
+    std::priority_queue<std::pair<unsigned, unsigned>> calls_in_frame;
+
+    unsigned ncalls = 0;
+    unsigned ncalls2 = 0;
+
+    unsigned calls_in_this_frame = 0;
     while (call) {
         /* There's no use doing any work past the last call and frame
         * requested by the user. */
@@ -119,6 +134,12 @@ static int trim_to_frame(const char *filename,
         trimmer.call(*call, options.frames.contains(frame, call->flags));
 
         if (call->flags & trace::CALL_FLAG_END_FRAME) {
+            if (options.top_frame_call_counts > 0) {
+                ncalls += calls_in_this_frame;
+                ncalls2 += calls_in_this_frame * calls_in_this_frame;
+                calls_in_frame.push(std::make_pair(calls_in_this_frame, frame));
+            }
+            calls_in_this_frame = 0;
             frame++;
         }
 
@@ -127,6 +148,7 @@ static int trim_to_frame(const char *filename,
             std::cerr << "\rScanning frame:" << frame << " call:" << call->no;
 
         call.reset(p.parse_call());
+        ++calls_in_this_frame;
     }
     trimmer.finalize();
     std::cerr << "\rDone trimming frames     \n";
@@ -155,6 +177,16 @@ static int trim_to_frame(const char *filename,
         ++callid_itr;
     }
 
+    if (options.top_frame_call_counts) {
+        unsigned count = options.top_frame_call_counts;
+        std::cerr << "Calls per frame:\n";
+        while (count-- && !calls_in_frame.empty()) {
+            auto fc = calls_in_frame.top();
+            calls_in_frame.pop();
+            std::cerr << "  Frame[" << fc.second << "] = " << fc.first << "\n";
+        }
+    }
+
     return 0;
 }
 
@@ -165,6 +197,7 @@ int main(int argc, char **argv)
 {
     struct trim_options options;
     options.frames = trace::CallSet(trace::FREQUENCY_NONE);
+    options.top_frame_call_counts = false;
 
     int opt;
     while ((opt = getopt_long(argc, argv, shortOptions, longOptions, NULL)) != -1) {
@@ -177,6 +210,10 @@ int main(int argc, char **argv)
             break;
         case 'o':
             options.output = optarg;
+            break;
+        case 't':
+            std::cerr << "optarg='" << optarg << "'\n";
+            options.top_frame_call_counts = atoi(optarg);
             break;
         default:
             std::cerr << "error: unexpected option `" << (char)opt << "`\n";
