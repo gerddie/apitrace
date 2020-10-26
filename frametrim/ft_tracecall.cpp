@@ -92,8 +92,10 @@ void TraceCall::record_at(unsigned reference_call)
 
 void TraceCall::emit_required_calls(CallSet& out_list)
 {
-    if (m_required_call)
+    if (m_required_call) {
         out_list.insert(m_required_call);
+        m_required_call->emit_required_calls(out_list);
+    }
 
     emit_required_callsets(out_list);
 }
