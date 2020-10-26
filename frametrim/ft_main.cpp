@@ -211,8 +211,6 @@ static int trim_to_frame(const char *filename,
 }
 
 
-
-
 int main(int argc, char **argv)
 {
     struct trim_options options;
