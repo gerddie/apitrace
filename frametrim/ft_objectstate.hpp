@@ -32,6 +32,7 @@ enum ObjectType {
     bt_last
 };
 
+
 enum EStateCaches {
     sc_vertex_attr_pointer,
     sc_va_enables,
@@ -83,6 +84,7 @@ public:
 
     bool state_cache_dirty() const;
 
+    const char *type_name() const;
 protected:
     virtual void post_set_state_call(PTraceCall call) {(void)call;}
 

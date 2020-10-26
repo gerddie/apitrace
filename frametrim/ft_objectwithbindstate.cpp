@@ -47,8 +47,9 @@ void ObjectWithBindState::emit_bind(CallSet& out_list) const
 {
     if (m_bind_call)
         out_list.insert(m_bind_call);
-    else
+    else if (id())
         std::cerr << "Want to emit bind call for "
+                  << type_name() << ":"
                   << id() << " but don't have one\n";
 }
 

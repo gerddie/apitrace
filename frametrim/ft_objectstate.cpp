@@ -33,6 +33,28 @@ unsigned ObjectState::id() const
     return m_glID;
 }
 
+const char *
+ObjectState::type_name() const
+{
+    const char *typenames[bt_last] = {
+        "Buffer",
+        "Displaylist",
+        "Framebuffer",
+        "Program",
+        "Legacyprogram",
+        "Matrix",
+        "Renderbuffer",
+        "Shader",
+        "Sampler",
+        "SyncObject",
+        "Texture",
+        "VertexArray",
+        "VertexPointer"
+    };
+
+    return type() < bt_last ? typenames[type()] : "Unknown";
+}
+
 unsigned ObjectState::global_id() const
 {
     return type() + bt_last * id() + sc_last;
