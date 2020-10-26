@@ -239,6 +239,7 @@ FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
     if (in_target_frame) {
         if (!c)
             c = trace2call(call);
+
         if (!(call.flags & trace::CALL_FLAG_END_FRAME))
             m_required_calls.insert(c);
         else {
@@ -247,10 +248,11 @@ FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
             m_last_swaps.second = c;
         }
 
+    } else {
         if (m_current_draw_buffer.id() > 0 &&
             !c->test_flag(tc_skip_record_in_fbo))
             m_current_draw_buffer.draw(c);
-    } else {
+
         if (call.flags & trace::CALL_FLAG_END_FRAME)
             m_last_swaps.first = trace2call(call);
     }
