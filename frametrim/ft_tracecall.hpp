@@ -99,13 +99,14 @@ public:
     void deep_resolve();
     void insert(unsigned id, Pointer subset);
 protected:
-    void insert_into_set(PTraceCall call) {m_calls.insert(call);}
+    void insert_into_set(PTraceCall call);
 private:
     virtual void do_insert(PTraceCall call);
 
     std::unordered_set<PTraceCall, CallHash> m_calls;
     std::bitset<last_flag> m_flags;
     std::unordered_map<unsigned, Pointer> m_subsets;
+    unsigned m_last_call_no;
 
 };
 using PCallSet = std::shared_ptr<CallSet>;

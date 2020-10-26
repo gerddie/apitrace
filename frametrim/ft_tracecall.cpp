@@ -110,6 +110,12 @@ void TraceCall::emit_required_callsets(CallSet& out_list)
     (void)out_list;
 }
 
+CallSet::CallSet():
+    m_last_call_no(0)
+{
+
+}
+
 void CallSet::insert(PTraceCall call)
 {
     if (!call)
@@ -135,6 +141,14 @@ void CallSet::insert(const StateCallMap& map)
 void CallSet::do_insert(PTraceCall call)
 {
     insert_into_set(call);
+}
+
+void CallSet::insert_into_set(PTraceCall call)
+{
+    if (m_last_call_no < call->call_no())
+        m_last_call_no = call->call_no();
+
+    m_calls.insert(call);
 }
 
 void CallSet::clear()
@@ -187,7 +201,11 @@ CallSet::end() const
 
 void CallSet::insert(unsigned id, Pointer subset)
 {
+    assert(subset);
     m_subsets[id] = subset;
+
+    if (m_last_call_no > subset->m_last_call_no)
+        m_last_call_no = subset->m_last_call_no;
 }
 
 void TraceDrawCall::append_callset(PCallSet depends)
