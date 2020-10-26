@@ -43,6 +43,8 @@ public:
     void set_required_call(Pointer call);
 
     void emit_required_calls(CallSet& out_list);
+
+    void resolve_required_calls_to_bitmap(std::vector<bool>& call_bitmap);
 private:
 
     static std::string name_with_paramsel(const trace::Call& call, unsigned nsel);
@@ -83,6 +85,8 @@ public:
         last_flag
     };
 
+    CallSet();
+
     void insert(PTraceCall call);
     void insert(const CallSet& set);
     void insert(const StateCallMap& map);
@@ -94,6 +98,8 @@ public:
 
     void set(Flag f) {m_flags.set(f);}
     bool has(Flag f) {return m_flags.test(f);}
+
+    void resolve_to_bitmap(std::vector<bool>& call_bitmap);
 
     void resolve();
     void deep_resolve();
@@ -115,7 +121,7 @@ class TraceDrawCall : public TraceCall {
 public:
     using TraceCall::TraceCall;
 
-    void append_callset(PCallSet depends);
+    void append_callset(PCallSet depends) __attribute__((deprecated));
 private:
     void emit_required_callsets(CallSet& out_list) override;
 

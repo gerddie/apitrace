@@ -100,6 +100,16 @@ void TraceCall::emit_required_calls(CallSet& out_list)
     emit_required_callsets(out_list);
 }
 
+void TraceCall::resolve_required_calls_to_bitmap(std::vector<bool>& call_bitmap)
+{
+    if (m_required_call) {
+        call_bitmap[m_required_call->call_no()] = true;
+        m_required_call->resolve_required_calls_to_bitmap(call_bitmap);
+    }
+
+
+}
+
 void TraceCall::set_required_call(Pointer call)
 {
     m_required_call = call;
@@ -171,6 +181,21 @@ void CallSet::resolve()
         }
     }
     m_subsets.clear();
+}
+
+void CallSet::resolve_to_bitmap(std::vector<bool>& call_bitmap)
+{
+    if (call_bitmap.size() < m_last_call_no)
+        call_bitmap.resize(m_last_call_no + 1);
+
+    for(auto&& [k, s]: m_subsets) {
+        if (s)
+            s->resolve_to_bitmap(call_bitmap);
+    }
+    for(auto&& c : m_calls) {
+        call_bitmap[c->call_no()] = true;
+        c->resolve_required_calls_to_bitmap(call_bitmap);
+    }
 }
 
 void CallSet::deep_resolve()
