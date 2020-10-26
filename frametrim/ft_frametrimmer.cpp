@@ -54,7 +54,7 @@ struct FrameTrimmeImpl {
 
 
     FrameTrimmeImpl();
-    void call(const trace::Call& call, bool in_target_frame);
+    void call(const trace::Call& call, Frametype frametype);
     void start_target_frame();
     void end_target_frame();
 
@@ -146,7 +146,7 @@ struct FrameTrimmeImpl {
     std::unordered_map<EStateCaches, PCallSet> m_state_caches;
     std::bitset<sc_last> m_state_caches_dirty;
     FramebufferState& m_current_draw_buffer;
-    std::pair<PTraceCall,PTraceCall> m_last_swaps;
+    PTraceCall m_last_swap;
 };
 
 FrameTrimmer::FrameTrimmer()
@@ -160,9 +160,9 @@ FrameTrimmer::~FrameTrimmer()
 }
 
 void
-FrameTrimmer::call(const trace::Call& call, bool in_target_frame)
+FrameTrimmer::call(const trace::Call& call, Frametype target_frame_type)
 {
-    impl->call(call, in_target_frame);
+    impl->call(call, target_frame_type);
 }
 
 std::vector<unsigned>
@@ -195,15 +195,15 @@ FrameTrimmeImpl::FrameTrimmeImpl():
 }
 
 void
-FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
+FrameTrimmeImpl::call(const trace::Call& call, Frametype frametype)
 {
     const char *call_name = call.name();
 
     PTraceCall c;
 
-    if (!m_recording_frame && in_target_frame)
+    if (!m_recording_frame && (frametype != ft_none))
         start_target_frame();
-    if (m_recording_frame && !in_target_frame)
+    if (m_recording_frame && (frametype == ft_none))
         end_target_frame();
 
     auto cb_range = m_call_table.equal_range(call.name());
@@ -240,24 +240,26 @@ FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
     if (!c)
         c = trace2call(call);
 
-    if (in_target_frame) {
-
-        if (!(call.flags & trace::CALL_FLAG_END_FRAME)) {
-            m_required_calls.insert(c);
-            c->set_flag(tc_required);
-        } else {
-            if (m_last_swaps.second)
-                m_last_swaps.first = m_last_swaps.second;
-            m_last_swaps.second = c;
-        }
-
-    } else {
+    if (frametype == ft_none) {
         if (m_current_draw_buffer.id() > 0 &&
             !c->test_flag(tc_skip_record_in_fbo))
             m_current_draw_buffer.draw(c);
 
         if (call.flags & trace::CALL_FLAG_END_FRAME)
-            m_last_swaps.first = trace2call(call);
+            m_last_swap = trace2call(call);
+    } else {
+        if (!c)
+            c = trace2call(call);
+
+        if (!(call.flags & trace::CALL_FLAG_END_FRAME))
+            m_required_calls.insert(c);
+        else {
+            if (frametype == ft_retain_frame) {
+                m_required_calls.insert(c);
+                m_last_swap = nullptr;
+            } else
+                m_last_swap = c;
+        }
     }
 }
 
@@ -309,11 +311,8 @@ void FrameTrimmeImpl::finalize()
 {
     m_fbo.emit_calls_to_list(m_required_calls);
 
-    if (m_last_swaps.first)
-        m_required_calls.insert(m_last_swaps.first);
-
-    if (m_last_swaps.second)
-        m_required_calls.insert(m_last_swaps.second);
+    if (m_last_swap)
+        m_required_calls.insert(m_last_swap);
 }
 
 void FrameTrimmeImpl::end_target_frame()

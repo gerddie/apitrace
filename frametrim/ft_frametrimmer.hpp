@@ -7,13 +7,19 @@
 
 namespace frametrim {
 
+enum Frametype {
+    ft_none = 0,
+    ft_key_frame = 1,
+    ft_retain_frame = 2
+};
+
 class FrameTrimmer
 {
 public:
     FrameTrimmer();
     ~FrameTrimmer();
 
-    void call(const trace::Call& call, bool in_target_frame);
+    void call(const trace::Call& call, Frametype target_frame_type);
 
     void finalize();
 

@@ -46,6 +46,9 @@ using namespace frametrim;
 
 struct trim_options {
     /* Frames to be included in trace. */
+    trace::CallSet keyframes;
+
+    /* Frames to keep replayable */
     trace::CallSet frames;
 
     unsigned top_frame_call_counts;
@@ -71,7 +74,8 @@ usage(void)
 
 
 enum {
-    FRAMES_OPT = CHAR_MAX + 1
+    FRAMES_OPT = CHAR_MAX + 1,
+    KEYFRAMES_OPT = CHAR_MAX + 2
 };
 
 const static char *
@@ -87,6 +91,7 @@ const static struct option
 {"help", no_argument, 0, 'h'},
 {"top-calls-per-frame", required_argument, 0, 't'},
 {"frames", required_argument, 0, FRAMES_OPT},
+{"keyframes", required_argument, 0, KEYFRAMES_OPT},
 {"output", required_argument, 0, 'o'},
 {0, 0, 0, 0}
 };
@@ -100,6 +105,15 @@ static int trim_to_frame(const char *filename,
 
     if (!p.open(filename)) {
         std::cerr << "error: failed to open " << filename << "\n";
+        return 1;
+    }
+
+    if (options.frames.getLast() < options.keyframes.getLast() &&
+        !options.keyframes.empty()) {
+        std::cerr << "error: last frame to keep ("
+                  << options.frames.getLast()
+                  << ") must be larger than last key frame"
+                  << options.keyframes.getLast() << "\n";
         return 1;
     }
 
@@ -131,7 +145,13 @@ static int trim_to_frame(const char *filename,
             break;
         }
 
-        trimmer.call(*call, options.frames.contains(frame, call->flags));
+        Frametype ft = ft_none;
+        if (options.keyframes.contains(frame, call->flags))
+            ft = ft_key_frame;
+        if (options.frames.contains(frame, call->flags))
+            ft = ft_retain_frame;
+
+        trimmer.call(*call, ft);
 
         if (call->flags & trace::CALL_FLAG_END_FRAME) {
             if (options.top_frame_call_counts > 0) {
@@ -200,13 +220,16 @@ int main(int argc, char **argv)
     options.top_frame_call_counts = false;
 
     int opt;
-    while ((opt = getopt_long(argc, argv, shortOptions, longOptions, NULL)) != -1) {
+    while ((opt = getopt_long(argc, argv, shortOptions, longOptions, nullptr)) != -1) {
         switch (opt) {
         case 'h':
             usage();
             return 0;
         case FRAMES_OPT:
             options.frames.merge(optarg);
+            break;
+        case KEYFRAMES_OPT:
+            options.keyframes.merge(optarg);
             break;
         case 'o':
             options.output = optarg;
