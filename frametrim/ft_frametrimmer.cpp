@@ -240,9 +240,10 @@ FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
         if (!c)
             c = trace2call(call);
 
-        if (!(call.flags & trace::CALL_FLAG_END_FRAME))
+        if (!(call.flags & trace::CALL_FLAG_END_FRAME)) {
+            c->set_flag(tc_required);
             m_required_calls.insert(c);
-        else {
+        } else {
             if (m_last_swaps.second)
                 m_last_swaps.first = m_last_swaps.second;
             m_last_swaps.second = c;

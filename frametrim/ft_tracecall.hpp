@@ -113,7 +113,6 @@ private:
     std::bitset<last_flag> m_flags;
     std::unordered_map<unsigned, Pointer> m_subsets;
     unsigned m_last_call_no;
-
 };
 using PCallSet = std::shared_ptr<CallSet>;
 

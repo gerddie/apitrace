@@ -29,6 +29,7 @@ add_executable(glxtrim
    ft_syncobject.cpp
    ft_texturestate.cpp
    ft_tracecall.cpp
+   ft_traceoptions.cpp
    ft_vertexattribpointer.cpp
    )
 
