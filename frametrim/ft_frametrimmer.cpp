@@ -177,6 +177,7 @@ void FrameTrimmer::finalize()
 }
 
 FrameTrimmeImpl::FrameTrimmeImpl():
+    m_required_calls(true),
     m_recording_frame(false),
     m_state_caches(sc_last),
     m_current_draw_buffer(m_fbo.current_framebuffer())
@@ -236,13 +237,14 @@ FrameTrimmeImpl::call(const trace::Call& call, bool in_target_frame)
         }
     }
 
+    if (!c)
+        c = trace2call(call);
+
     if (in_target_frame) {
-        if (!c)
-            c = trace2call(call);
 
         if (!(call.flags & trace::CALL_FLAG_END_FRAME)) {
-            c->set_flag(tc_required);
             m_required_calls.insert(c);
+            c->set_flag(tc_required);
         } else {
             if (m_last_swaps.second)
                 m_last_swaps.first = m_last_swaps.second;
@@ -470,8 +472,7 @@ void FrameTrimmeImpl::register_framebuffer_calls()
 
     MAP_GENOBJ(glGenFramebuffer, m_fbo, FramebufferStateMap::generate);
     MAP_GENOBJ(glDeleteFramebuffers, m_fbo, FramebufferStateMap::destroy);
-    MAP_GENOBJ_DATAREF(glBindFramebuffer, m_fbo, FramebufferStateMap::bind_fbo,
-                       m_recording_frame);
+    MAP(glBindFramebuffer, bind_fbo);
     MAP_GENOBJ(glViewport, m_fbo, FramebufferStateMap::viewport);
 
     MAP_GENOBJ(glBlitFramebuffer, m_fbo, FramebufferStateMap::blit);

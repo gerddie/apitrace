@@ -120,8 +120,9 @@ void TraceCall::emit_required_callsets(CallSet& out_list)
     (void)out_list;
 }
 
-CallSet::CallSet():
-    m_last_call_no(0)
+CallSet::CallSet(bool is_final):
+    m_last_call_no(0),
+    m_is_final_callset(is_final)
 {
 
 }
@@ -158,7 +159,11 @@ void CallSet::insert_into_set(PTraceCall call)
     if (m_last_call_no < call->call_no())
         m_last_call_no = call->call_no();
 
-    m_calls.insert(call);
+    if (!call->test_flag(tc_required)) {
+        m_calls.insert(call);
+        if (m_is_final_callset)
+            call->set_flag(tc_required);
+    }
 }
 
 void CallSet::clear()

@@ -85,7 +85,7 @@ public:
         last_flag
     };
 
-    CallSet();
+    CallSet(bool is_final = false);
 
     void insert(PTraceCall call);
     void insert(const CallSet& set);
@@ -113,6 +113,7 @@ private:
     std::bitset<last_flag> m_flags;
     std::unordered_map<unsigned, Pointer> m_subsets;
     unsigned m_last_call_no;
+    bool m_is_final_callset;
 };
 using PCallSet = std::shared_ptr<CallSet>;
 
