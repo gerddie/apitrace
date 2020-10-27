@@ -346,7 +346,11 @@ PTraceCall FramebufferState::viewport(const trace::Call& call)
 
 PTraceCall FramebufferState::clear(const trace::Call& call)
 {
-    assert(id() == 0 || (m_width > 0 &&  m_height > 0));
+    if (id() != 0 && (m_width == 0 ||  m_height == 0)) {
+        std::cerr << "Call " << call.no << ": Try to clear a sizeless fbo "
+                  << id() << "\n";
+        assert(0);
+    }
 
     if (m_width == m_viewport_width &&
         m_height == m_viewport_height &&

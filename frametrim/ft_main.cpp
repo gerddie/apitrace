@@ -165,7 +165,9 @@ static int trim_to_frame(const char *filename,
 
         callid++;
         if (!(callid & 0xff))
-            std::cerr << "\rScanning frame:" << frame << " call:" << call->no;
+            std::cerr << "\rScanning frame:" << frame
+                      << " type:" << ft
+                      << " call:" << call->no;
 
         call.reset(p.parse_call());
         ++calls_in_this_frame;

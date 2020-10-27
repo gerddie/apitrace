@@ -225,7 +225,7 @@ FrameTrimmeImpl::call(const trace::Call& call, Frametype frametype)
             ++i;
         }
 
-        //std::cerr << "Handle " << call->name() << " as " << cb->first << "\n";
+        //  std::cerr << "Handle " << call.name() << " as " << cb->first << "\n";
         c = cb->second(call);
     } else {
         /* This should be some debug output only, because we might
@@ -242,18 +242,16 @@ FrameTrimmeImpl::call(const trace::Call& call, Frametype frametype)
 
     if (frametype == ft_none) {
         if (m_current_draw_buffer.id() > 0 &&
-            !c->test_flag(tc_skip_record_in_fbo))
+            !c->test_flag(tc_skip_record_in_fbo) &&
+            !(call.flags & trace::CALL_FLAG_END_FRAME))
             m_current_draw_buffer.draw(c);
 
         if (call.flags & trace::CALL_FLAG_END_FRAME)
-            m_last_swap = trace2call(call);
+            m_last_swap = c;
     } else {
-        if (!c)
-            c = trace2call(call);
-
-        if (!(call.flags & trace::CALL_FLAG_END_FRAME))
+        if (!(call.flags & trace::CALL_FLAG_END_FRAME)) {
             m_required_calls.insert(c);
-        else {
+        } else {
             if (frametype == ft_retain_frame) {
                 m_required_calls.insert(c);
                 m_last_swap = nullptr;
