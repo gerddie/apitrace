@@ -254,7 +254,10 @@ FrameTrimmeImpl::call(const trace::Call& call, Frametype frametype)
         } else {
             if (frametype == ft_retain_frame) {
                 m_required_calls.insert(c);
-                m_last_swap = nullptr;
+                if (m_last_swap) {
+                    m_required_calls.insert(m_last_swap);
+                    m_last_swap = nullptr;
+                }
             } else
                 m_last_swap = c;
         }

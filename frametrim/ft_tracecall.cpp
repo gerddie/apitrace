@@ -214,8 +214,18 @@ void CallSet::resolve_to_bitmap(std::vector<bool>& call_bitmap)
 
 void CallSet::deep_resolve()
 {
+    static unsigned callsets = 0;
+
+    if (!callsets)
+        callsets = m_next_callset_id;
+
     if (m_deep_resolve)
         return;
+
+    if (!(callsets & 0xff))
+        std::clog << "Resolve callsets " << callsets << " to go      \r";
+    --callsets;
+
     m_deep_resolve = true;
     for(auto&& [k, s]: m_subsets) {
         if (s) {
@@ -227,7 +237,6 @@ void CallSet::deep_resolve()
         }
     }
     m_subsets.clear();
-    m_deep_resolve = false;
 }
 
 CallSet::const_iterator

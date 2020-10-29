@@ -173,7 +173,7 @@ static int trim_to_frame(const char *filename,
         ++calls_in_this_frame;
     }
     trimmer.finalize();
-    std::cerr << "\rDone trimming frames     \n";
+    std::cerr << "\nDone scanning frames\n";
 
     trace::Writer writer;
     if (!writer.open(out_filename.c_str(), p.getVersion(), p.getProperties())) {
@@ -182,6 +182,7 @@ static int trim_to_frame(const char *filename,
     }
 
     auto call_ids = trimmer.get_sorted_call_ids();
+    std::cerr << "Write output file\n";
 
     p.close();
     p.open(filename);
