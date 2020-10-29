@@ -123,12 +123,16 @@ void TraceCall::emit_required_callsets(CallSet& out_list)
 CallSet::CallSet(bool is_final):
     m_last_call_no(0),
     m_is_final_callset(is_final),
-    m_callset_id(m_next_callset_id++)
+    m_callset_id(m_next_callset_id++),
+    m_deep_resolve(false)
 {
 
 }
 
-
+void CallSet::update_id()
+{
+    m_callset_id = m_next_callset_id++;
+}
 
 unsigned CallSet::m_next_callset_id = 1;
 
@@ -210,6 +214,9 @@ void CallSet::resolve_to_bitmap(std::vector<bool>& call_bitmap)
 
 void CallSet::deep_resolve()
 {
+    if (m_deep_resolve)
+        return;
+    m_deep_resolve = true;
     for(auto&& [k, s]: m_subsets) {
         if (s) {
             s->deep_resolve();
@@ -220,6 +227,7 @@ void CallSet::deep_resolve()
         }
     }
     m_subsets.clear();
+    m_deep_resolve = false;
 }
 
 CallSet::const_iterator
@@ -237,7 +245,12 @@ CallSet::end() const
 void CallSet::insert(unsigned id, Pointer subset)
 {
     assert(subset);
-    m_subsets[id] = subset;
+    if (!m_subsets[id])
+        m_subsets[id] = subset;
+    else if (m_subsets[id]->id() < subset->id()) {
+        m_subsets[id]->insert(*subset);
+        m_subsets[id]->update_id();
+    }
 
     if (m_last_call_no > subset->m_last_call_no)
         m_last_call_no = subset->m_last_call_no;

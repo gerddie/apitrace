@@ -106,6 +106,7 @@ public:
     void insert(unsigned id, Pointer subset);
 
     unsigned id() const {return m_callset_id;}
+    void update_id();
 protected:
     void insert_into_set(PTraceCall call);
 private:
@@ -119,6 +120,7 @@ private:
 
     unsigned m_callset_id;
 
+    mutable bool m_deep_resolve;
     static unsigned m_next_callset_id;
 };
 using PCallSet = std::shared_ptr<CallSet>;
