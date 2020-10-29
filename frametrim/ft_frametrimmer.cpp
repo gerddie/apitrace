@@ -916,8 +916,8 @@ void FrameTrimmeImpl::send_state_cache_to(FramebufferState& fbo)
 PTraceCall FrameTrimmeImpl::bind_fbo(const trace::Call& call)
 {
     auto c = m_fbo.bind_fbo(call, m_recording_frame);
-    m_current_draw_buffer = m_fbo.current_framebuffer();
-    send_state_cache_to(m_current_draw_buffer);
+ /*   m_current_draw_buffer = m_fbo.current_framebuffer();
+    send_state_cache_to(m_current_draw_buffer); */
     return c;
 }
 
