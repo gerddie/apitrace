@@ -70,7 +70,7 @@ private:
     PTraceCall m_bind_as_readbuffer_call;
     CallSet m_draw_calls;
     bool m_bind_dirty;
-
+protected:
     std::unordered_map<unsigned, PCallSet> m_dependend_states;
 };
 

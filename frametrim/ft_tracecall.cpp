@@ -122,10 +122,15 @@ void TraceCall::emit_required_callsets(CallSet& out_list)
 
 CallSet::CallSet(bool is_final):
     m_last_call_no(0),
-    m_is_final_callset(is_final)
+    m_is_final_callset(is_final),
+    m_callset_id(m_next_callset_id++)
 {
 
 }
+
+
+
+unsigned CallSet::m_next_callset_id = 1;
 
 void CallSet::insert(PTraceCall call)
 {

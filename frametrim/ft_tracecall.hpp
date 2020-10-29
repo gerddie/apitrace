@@ -104,6 +104,8 @@ public:
     void resolve();
     void deep_resolve();
     void insert(unsigned id, Pointer subset);
+
+    unsigned id() const {return m_callset_id;}
 protected:
     void insert_into_set(PTraceCall call);
 private:
@@ -114,6 +116,10 @@ private:
     std::unordered_map<unsigned, Pointer> m_subsets;
     unsigned m_last_call_no;
     bool m_is_final_callset;
+
+    unsigned m_callset_id;
+
+    static unsigned m_next_callset_id;
 };
 using PCallSet = std::shared_ptr<CallSet>;
 

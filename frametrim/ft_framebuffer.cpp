@@ -299,12 +299,10 @@ bool DefaultFramebufferState::is_active() const
 
 void DefaultFramebufferState::pass_state_cache(unsigned object_id, PCallSet cache)
 {
-    (void)object_id;
-    if (cache) {
-        cache->resolve();
-        for (auto&& c: *cache)
-            append_call(c);
-    }
+    if (!m_dependend_states[object_id])
+        m_dependend_states[object_id] = cache;
+    else if (m_dependend_states[object_id]->id() != cache->id())
+        m_dependend_states[object_id]->insert(*cache);
 }
 
 FramebufferState::FramebufferState(GLint glID, PTraceCall gen_call):
