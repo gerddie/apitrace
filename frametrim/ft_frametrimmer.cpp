@@ -651,7 +651,6 @@ FrameTrimmeImpl::register_state_calls()
         "glFog",
         "glHint",
         "glLight",
-        "glPixelStorei",
         "glPixelTransfer",
         "glStencilOpSeparate",
         "glStencilFuncSeparate",
@@ -696,7 +695,10 @@ void FrameTrimmeImpl::register_required_calls()
         "eglCreatePlatformWindowSurface",
         "eglBindAPI",
         "eglCreateContext",
-        "eglMakeCurrent"
+        "eglMakeCurrent",
+
+        "glPixelStorei", /* Being lazy here, we could track the dependency
+                            in the relevant calls */
     };
     update_call_table(required_calls, required_func);
 }
