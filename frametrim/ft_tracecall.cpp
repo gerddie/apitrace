@@ -146,6 +146,10 @@ void CallSet::insert(PTraceCall call)
 
 void CallSet::insert(const CallSet& set)
 {
+    if (m_merged_sets.find(set.id()) != m_merged_sets.end())
+        return;
+
+    m_merged_sets.insert(set.id());
     for(auto&& c : set.m_calls)
         insert(c);
     for(auto&& c : set.m_subsets)
@@ -256,10 +260,8 @@ void CallSet::insert(unsigned id, Pointer subset)
     assert(subset);
     if (!m_subsets[id])
         m_subsets[id] = subset;
-    else if (m_subsets[id]->id() < subset->id()) {
+    else
         m_subsets[id]->insert(*subset);
-        m_subsets[id]->update_id();
-    }
 
     if (m_last_call_no > subset->m_last_call_no)
         m_last_call_no = subset->m_last_call_no;

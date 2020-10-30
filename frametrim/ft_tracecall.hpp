@@ -115,6 +115,8 @@ private:
     std::unordered_set<PTraceCall, CallHash> m_calls;
     std::bitset<last_flag> m_flags;
     std::unordered_map<unsigned, Pointer> m_subsets;
+    std::unordered_set<unsigned> m_merged_sets;
+
     unsigned m_last_call_no;
     bool m_is_final_callset;
 

@@ -136,14 +136,13 @@ TextureState::sub_data(const trace::Call& call)
     return c;
 }
 
-PTraceCall
-TextureState::copy_sub_data(const trace::Call& call,
-                            FramebufferState::Pointer read_buffer)
+PTraceCall TextureState::copy_tex_subimage(const trace::Call& call,
+                                           FramebufferState::Pointer read_buffer)
 {
     auto c = trace2call(call);
     auto level = call.arg(1).toUInt();
-    m_data_upload_set[level].insert(c);
     m_fbo[level] = read_buffer;
+    m_data_upload_set[level].insert(c);
     dirty_cache();
     return c;
 }
@@ -307,25 +306,6 @@ TextureStateMap::set_sub_data(const trace::Call& call)
 }
 
 PTraceCall
-TextureStateMap::copy_sub_data(const trace::Call& call,
-                                    FramebufferState::Pointer read_fb)
-{
-    auto texture = bound_in_call(call);
-    if (!texture) {
-        std::cerr << "No texture found in call " << call.no
-                  << " target:" << call.arg(0).toUInt()
-                  << " U:" << m_active_texture_unit;
-        assert(0);
-    }
-    if (!read_fb) {
-        std::cerr << "TODO: Handle if the read buffer "
-                     "is the default framebuffer\n";
-    }
-    return texture->copy_sub_data(call, read_fb);
-
-}
-
-PTraceCall
 TextureStateMap::gen_mipmap(const trace::Call& call)
 {
     auto texture = bound_in_call(call);
@@ -337,6 +317,20 @@ TextureStateMap::gen_mipmap(const trace::Call& call)
         assert(0);
     }
     return texture->append_call(trace2call(call));
+}
+
+PTraceCall TextureStateMap::copy_tex_sub_image(const trace::Call& call,
+                                               FramebufferState::Pointer read_buffer)
+{
+    auto texture = bound_in_call(call);
+
+    if (!texture) {
+        std::cerr << "No texture found in call " << call.no
+                  << " target:" << call.arg(0).toUInt()
+                  << " U:" << m_active_texture_unit;
+        assert(0);
+    }
+    return texture->copy_tex_subimage(call, read_buffer);
 }
 
 unsigned TextureStateMap::composed_target_id(unsigned target) const

@@ -585,6 +585,8 @@ void FrameTrimmeImpl::register_texture_calls()
     MAP_GENOBJ(glCompressedTexSubImage2D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ(glTexSubImage3D, m_textures, TextureStateMap::set_sub_data);
     MAP_GENOBJ_DATA(glTexParameter, m_textures, TextureStateMap::set_state, 2);
+    MAP_GENOBJ_DATA(glCopyTexSubImage, m_textures, TextureStateMap::copy_tex_sub_image,
+                    m_fbo.read_framebuffer());
 
     /*
     MAP_GENOBJ(glCopyTexSubImage2D, m_textures, TextureStateMap::copy_sub_data);

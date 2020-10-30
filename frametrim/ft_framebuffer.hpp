@@ -144,6 +144,10 @@ public:
         return *m_current_framebuffer;
     }
 
+    FramebufferState::Pointer read_framebuffer() {
+        return m_read_buffer;
+    }
+
 private:
 
     void post_bind(unsigned target, FramebufferState::Pointer fbo) override;

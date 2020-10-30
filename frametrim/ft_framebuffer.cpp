@@ -301,10 +301,8 @@ void DefaultFramebufferState::pass_state_cache(unsigned object_id, PCallSet cach
 {
     if (!m_dependend_states[object_id])
         m_dependend_states[object_id] = cache;
-    else if (m_dependend_states[object_id]->id() < cache->id()) {
+    else if (m_dependend_states[object_id]->id() != cache->id())
         m_dependend_states[object_id]->insert(*cache);
-        m_dependend_states[object_id]->update_id();
-    }
 }
 
 FramebufferState::FramebufferState(GLint glID, PTraceCall gen_call):

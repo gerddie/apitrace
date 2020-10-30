@@ -20,8 +20,8 @@ public:
     PTraceCall data(const trace::Call& call);
     PTraceCall storage(const trace::Call& call);
     PTraceCall sub_data(const trace::Call& call);
-    PTraceCall copy_sub_data(const trace::Call& call,
-                             PFramebufferState fbo);
+    PTraceCall copy_tex_subimage(const trace::Call& call,
+                                 FramebufferState::Pointer fbo);
     void rendertarget_of(unsigned layer,
                          FramebufferState::Pointer fbo);
 
@@ -63,14 +63,15 @@ public:
     PTraceCall storage(const trace::Call& call);
 
     PTraceCall set_sub_data(const trace::Call& call);
-    PTraceCall copy_sub_data(const trace::Call& call,
-                             FramebufferState::Pointer read_fb);
 
     PTraceCall gen_mipmap(const trace::Call& call);
 
     PTraceCall bind_multitex(const trace::Call& call);
 
     PTraceCall set_state(const trace::Call& call, unsigned nparam_sel);
+
+    PTraceCall copy_tex_sub_image(const trace::Call& call,
+                                  FramebufferState::Pointer read_buffer);
 
 private:
 
