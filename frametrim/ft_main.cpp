@@ -68,10 +68,11 @@ usage(void)
                            "\n"
                            "    -h, --help               Show detailed help for trim options and exit\n"
                            "        --frames=FRAME        Frame the trace should be reduced to.\n"
+                           "        --keyframes=FRAME     Frame that are kept in the trace but but without the end-of-frame command.\n"
+                           "    -t, --top-calls-per-frame=NUMBER Print NUMBER of frames with the top amount of OpenGL calls\n"
                            "    -o, --output=TRACE_FILE  Output trace file\n"
                ;
 }
-
 
 enum {
     FRAMES_OPT = CHAR_MAX + 1,
