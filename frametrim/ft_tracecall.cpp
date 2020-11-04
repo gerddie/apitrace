@@ -258,10 +258,15 @@ CallSet::end() const
 void CallSet::insert(unsigned id, Pointer subset)
 {
     assert(subset);
-    if (!m_subsets[id])
-        m_subsets[id] = subset;
-    else
-        m_subsets[id]->insert(*subset);
+    if (subset->size() > 10) {
+
+        if (!m_subsets[id])
+            m_subsets[id] = subset;
+        else
+            m_subsets[id]->insert(*subset);
+    } else {
+        insert(*subset);
+    }
 
     if (m_last_call_no > subset->m_last_call_no)
         m_last_call_no = subset->m_last_call_no;
@@ -269,6 +274,7 @@ void CallSet::insert(unsigned id, Pointer subset)
 
 void TraceDrawCall::append_callset(PCallSet depends)
 {
+    assert(depends);
     m_depends.push_back(depends);
 }
 
