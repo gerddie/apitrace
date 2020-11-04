@@ -85,6 +85,8 @@ struct FrameTrimmeImpl {
     PTraceCall NewList(const trace::Call& call);
     PTraceCall CallList(const trace::Call& call);
     PTraceCall DeleteLists(const trace::Call& call);
+    PTraceCall Bind(const trace::Call& call, DependecyObjectMap& map, unsigned bind_param);
+
 
     PTraceCall todo(const trace::Call& call);
     PTraceCall ignore_history(const trace::Call& call);
@@ -346,7 +348,7 @@ FrameTrimmeImpl::record_state_call(const trace::Call& call,
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, data, std::ref(dataref))))
 
 #define MAP_DATAREF_DATA(name, call, data, param1) \
-    m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, _1, \
+    m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, this, _1, \
                         std::ref(data), param1)))
 
 
@@ -383,8 +385,7 @@ void FrameTrimmeImpl::register_legacy_calls()
     // shader calls
     MAP_GENOBJ(glGenPrograms, m_legacy_programs,
                DependecyObjectWithDefaultBindPointMap::Generate);
-    MAP_GENOBJ_DATA(glBindProgram, m_legacy_programs,
-                    DependecyObjectWithDefaultBindPointMap::Bind, 1);
+    MAP_DATAREF_DATA(glBindProgram, Bind, m_legacy_programs, 1);
 
     /*
     MAP_GENOBJ(glDeletePrograms, m_legacy_programs,
@@ -411,7 +412,7 @@ void FrameTrimmeImpl::register_legacy_calls()
 
 void FrameTrimmeImpl::register_framebuffer_calls()
 {
-    MAP_GENOBJ_DATA(glBindRenderbuffer, m_renderbuffers, DependecyObjectWithSingleBindPointMap::Bind, 1);
+    MAP_DATAREF_DATA(glBindRenderbuffer, Bind, m_renderbuffers, 1);
     MAP_GENOBJ(glDeleteRenderbuffers, m_renderbuffers, DependecyObjectWithSingleBindPointMap::Destroy);
     MAP_GENOBJ(glGenRenderbuffer, m_renderbuffers, DependecyObjectWithSingleBindPointMap::Generate);
     MAP_GENOBJ(glRenderbufferStorage, m_renderbuffers, DependecyObjectWithSingleBindPointMap::CallOnBoundObject);
@@ -420,8 +421,8 @@ void FrameTrimmeImpl::register_framebuffer_calls()
 
     MAP_GENOBJ(glGenFramebuffer, m_fbo, FramebufferObjectMap::Generate);
     MAP_GENOBJ(glDeleteFramebuffers, m_fbo, FramebufferObjectMap::Destroy);
-    MAP_GENOBJ_DATA(glBindFramebuffer, m_fbo, FramebufferObjectMap::Bind, 1);
-    MAP_GENOBJ(glViewport, m_fbo, FramebufferObjectMap::CallOnBoundObject);
+    MAP_DATAREF_DATA(glBindFramebuffer, Bind, m_fbo, 1);
+    MAP_GENOBJ_DATA(glViewport, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
 
     MAP_GENOBJ(glBlitFramebuffer, m_fbo, FramebufferObjectMap::Blit);
     MAP_GENOBJ_DATA_DATAREF(glFramebufferTexture, m_fbo,
@@ -431,8 +432,8 @@ void FrameTrimmeImpl::register_framebuffer_calls()
     MAP_GENOBJ_DATA_DATAREF(glFramebufferTexture2D, m_fbo,
                             FramebufferObjectMap::CallOnBoundObjectWithDep, 3, m_textures);
 
-    MAP_GENOBJ(glReadBuffer, m_fbo, FramebufferObjectMap::CallOnBoundObject);
-    MAP_GENOBJ(glDrawBuffer, m_fbo, FramebufferObjectMap::CallOnBoundObject);
+    MAP_GENOBJ_DATA(glReadBuffer, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_READ_FRAMEBUFFER);
+    MAP_GENOBJ_DATA(glDrawBuffer, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
 
 
 /*    MAP_GENOBJ_DATAREF(glFramebufferTexture3D, m_fbo,
@@ -443,7 +444,7 @@ void FrameTrimmeImpl::register_framebuffer_calls()
     MAP_GENOBJ_DATA_DATAREF(glFramebufferRenderbuffer, m_fbo,
                             FramebufferObjectMap::CallOnBoundObjectWithDep, 3, m_renderbuffers);
 
-    MAP_GENOBJ(glClear, m_fbo, FramebufferObjectMap::CallOnBoundObject);
+    MAP_GENOBJ_DATA(glClear, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
 
 }
 
@@ -453,21 +454,20 @@ FrameTrimmeImpl::register_buffer_calls()
     MAP_GENOBJ(glGenBuffers, m_buffers, BufferObjectMap::Generate);
     MAP_GENOBJ(glDeleteBuffers, m_buffers, BufferObjectMap::Destroy);
 
-    MAP_GENOBJ_DATA(glBindBuffer, m_buffers, BufferObjectMap::Bind, 1);
-
-    MAP_GENOBJ_DATA(glBindBufferRange, m_buffers, BufferObjectMap::Bind, 2);
+    MAP_DATAREF_DATA(glBindBuffer, Bind, m_buffers, 1);
+    MAP_DATAREF_DATA(glBindBufferRange, Bind, m_buffers, 2);
 
     /* This will need a bit more to be handled correctly */
-    MAP_GENOBJ_DATA(glBindBufferBase, m_buffers, BufferObjectMap::Bind, 2);
+    MAP_DATAREF_DATA(glBindBufferBase, Bind, m_buffers, 2);
 
-    MAP_GENOBJ(glBufferData, m_buffers, BufferObjectMap::CallOnBoundObject);
+    MAP_GENOBJ(glBufferData, m_buffers, BufferObjectMap::data);
     MAP_GENOBJ(glBufferSubData, m_buffers, BufferObjectMap::CallOnBoundObject);
 
-    MAP_GENOBJ(glMapBuffer, m_buffers, BufferObjectMap::CallOnBoundObject);
-    MAP_GENOBJ(glMapBufferRange, m_buffers, BufferObjectMap::CallOnBoundObject);
-    MAP_GENOBJ(memcpy, m_buffers, BufferObjectMap::CallOnBoundObject);
+    MAP_GENOBJ(glMapBuffer, m_buffers, BufferObjectMap::map);
+    MAP_GENOBJ(glMapBufferRange, m_buffers, BufferObjectMap::map_range);
+    MAP_GENOBJ(memcpy, m_buffers, BufferObjectMap::memcopy);
     MAP_GENOBJ(glFlushMappedBufferRange, m_buffers, BufferObjectMap::CallOnBoundObject);
-    MAP_GENOBJ(glUnmapBuffer, m_buffers, BufferObjectMap::CallOnBoundObject);
+    MAP_GENOBJ(glUnmapBuffer, m_buffers, BufferObjectMap::unmap);
 }
 
 void FrameTrimmeImpl::register_draw_calls()
@@ -506,7 +506,7 @@ FrameTrimmeImpl::register_program_calls()
     MAP_GENOBJ(glProgramBinary, m_programs, ProgramObjectMap::CallOnNamedObject);
 
     MAP_GENOBJ(glUniform, m_programs, ProgramObjectMap::CallOnBoundObject);
-    MAP_GENOBJ_DATA(glUseProgram, m_programs, ProgramObjectMap::Bind, 0);
+    MAP_DATAREF_DATA(glUseProgram, Bind, m_programs, 0);
     MAP_GENOBJ(glProgramParameter, m_programs, ProgramObjectMap::CallOnNamedObject);
 }
 
@@ -517,7 +517,7 @@ void FrameTrimmeImpl::register_texture_calls()
 
     MAP_GENOBJ(glActiveTexture, m_textures, TextureObjectMap::ActiveTexture);
     MAP_GENOBJ(glClientActiveTexture, m_textures, TextureObjectMap::ActiveTexture);
-    MAP_GENOBJ_DATA(glBindTexture, m_textures, TextureObjectMap::Bind, 1);
+    MAP_DATAREF_DATA(glBindTexture, Bind, m_textures, 1);
     //MAP_GENOBJ(glBindMultiTexture, m_textures, TextureStateMap::bind_multitex);
 
     MAP_GENOBJ(glCompressedTexImage2D, m_textures, TextureObjectMap::CallOnBoundObject);
@@ -539,7 +539,7 @@ void FrameTrimmeImpl::register_texture_calls()
     /*
     MAP_GENOBJ(glCopyTexSubImage2D, m_textures, TextureStateMap::copy_sub_data);
     */
-    MAP_GENOBJ_DATA(glBindSampler, m_samplers, SamplerObjectMap::Bind, 1);
+    MAP_DATAREF_DATA(glBindSampler, Bind, m_samplers, 1);
     MAP_GENOBJ(glGenSamplers, m_samplers, SamplerObjectMap::Generate);
     MAP_GENOBJ(glDeleteSamplers, m_samplers, SamplerObjectMap::Destroy);
     MAP_GENOBJ(glSamplerParameter, m_samplers, SamplerObjectMap::CallOnNamedObject);
@@ -702,10 +702,11 @@ FrameTrimmeImpl::register_va_calls()
 {
     MAP_GENOBJ(glGenVertexArrays, m_vertex_arrays, VertexArrayMap::Generate);
     MAP_GENOBJ(glDeleteVertexArrays, m_vertex_arrays, VertexArrayMap::Destroy);
-    MAP_GENOBJ_DATA(glBindVertexArray, m_vertex_arrays, VertexArrayMap::Bind, 0);
+    MAP_DATAREF_DATA(glBindVertexArray, Bind, m_vertex_arrays, 0);
 
-    MAP_GENOBJ(glDisableVertexAttribArray, m_vertex_arrays, VertexArrayMap::CallOnNamedObject);
-    MAP_GENOBJ(glVertexAttribPointer, m_vertex_arrays, VertexArrayMap::CallOnNamedObject);
+    MAP(glDisableVertexAttribArray, record_required_call);
+    MAP(glEnableVertexAttribArray, record_required_call);
+    MAP(glVertexAttribPointer, record_required_call);
 
     MAP(glVertexPointer, record_required_call);
     MAP(glTexCoordPointer, record_required_call);
@@ -823,6 +824,17 @@ FrameTrimmeImpl::DeleteLists(const trace::Call& call)
         m_display_lists.erase(list);
     }
     return trace2call(call);
+}
+
+PTraceCall FrameTrimmeImpl::Bind(const trace::Call& call, DependecyObjectMap& map,
+                                 unsigned bind_param)
+{
+    auto bound_obj = map.Bind(call, bind_param);
+    if (bound_obj)
+        bound_obj->add_call(trace2call(call));
+    if (m_recording_frame && bound_obj)
+        bound_obj->append_calls(m_required_calls);
+    return nullptr;
 }
 
 PTraceCall

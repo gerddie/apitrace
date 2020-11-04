@@ -8,6 +8,17 @@
 namespace frametrim {
 
 
+DependecyObject::DependecyObject(unsigned id):
+    m_id(id)
+{
+
+}
+
+unsigned DependecyObject::id() const
+{
+    return m_id;
+}
+
 void DependecyObject::add_call(PTraceCall call)
 {
     m_calls.push_back(call);
@@ -33,7 +44,7 @@ PTraceCall DependecyObjectMap::Generate(const trace::Call& call)
     auto c = trace2call(call);
     const auto ids = (call.arg(1)).toArray();
     for (auto& v : ids->values) {
-        auto obj = std::make_shared<DependecyObject>();
+        auto obj = std::make_shared<DependecyObject>(v->toUInt());
         obj->add_call(c);
         add_object(v->toUInt(), obj);
     }
@@ -52,7 +63,7 @@ PTraceCall DependecyObjectMap::Destroy(const trace::Call& call)
 
 PTraceCall DependecyObjectMap::Create(const trace::Call& call)
 {
-    auto obj = std::make_shared<DependecyObject>();
+    auto obj = std::make_shared<DependecyObject>(call.ret->toUInt());
     add_object(call.ret->toUInt(), obj);
     auto c = trace2call(call);
     obj->add_call(c);
@@ -73,42 +84,45 @@ void DependecyObjectMap::add_object(unsigned id, DependecyObject::Pointer obj)
     m_objects[id] = obj;
 }
 
-PTraceCall DependecyObjectMap::Bind(const trace::Call& call, unsigned obj_id_param)
+DependecyObject::Pointer
+DependecyObjectMap::Bind(const trace::Call& call, unsigned obj_id_param)
 {
     unsigned id = call.arg(obj_id_param).toUInt();
     unsigned bindpoint = get_bindpoint_from_call(call);
-
-    bind_target(id, bindpoint);
-
-    auto c = trace2call(call);
-    m_calls.push_back(c);
-    return c;
+    return bind_target(id, bindpoint);
 }
 
-void DependecyObjectMap::bind_target(unsigned id, unsigned bindpoint)
+DependecyObject::Pointer
+DependecyObjectMap::bind_target(unsigned id, unsigned bindpoint)
 {
     if (id) {
         m_bound_object[bindpoint] = m_objects[id];
     } else {
         m_bound_object[bindpoint] = nullptr;
     }
+    return m_bound_object[bindpoint];
 }
 
-void DependecyObjectMap::bind(unsigned id, unsigned bindpoint)
+DependecyObject::Pointer
+DependecyObjectMap::bind( unsigned bindpoint, unsigned id)
 {
-    m_bound_object[bindpoint] = m_objects[id];
+    return m_bound_object[bindpoint] = m_objects[id];
 }
 
 DependecyObject::Pointer
 DependecyObjectMap::bound_to(unsigned bindpoint)
 {
-    return m_objects[bindpoint];
+    return m_bound_object[bindpoint];
 }
 
 PTraceCall DependecyObjectMap::CallOnBoundObject(const trace::Call& call)
 {
     unsigned bindpoint = get_bindpoint_from_call(call);
-    assert(m_bound_object[bindpoint]);
+    if (!m_bound_object[bindpoint])  {
+        std::cerr << "required object not bound in call " << call.no << ": " << call.name() << "\n";
+        assert(0);
+    }
+
     auto c = trace2call(call);
     m_bound_object[bindpoint]->add_call(c);
     return c;
@@ -125,7 +139,11 @@ PTraceCall DependecyObjectMap::CallOnObjectBoundTo(const trace::Call& call, unsi
 PTraceCall DependecyObjectMap::CallOnNamedObject(const trace::Call& call)
 {
     auto obj = m_objects[call.arg(0).toUInt()];
-    assert(obj);
+    if (!obj) {
+        std::cerr << "Named object doesn't exists in call " << call.no << ": "
+                  << call.name() << "\n";
+        assert(obj);
+    }
     auto c = trace2call(call);
     obj->add_call(c);
     return c;
@@ -136,7 +154,11 @@ PTraceCall DependecyObjectMap::CallOnBoundObjectWithDep(const trace::Call& call,
                                                         DependecyObjectMap& other_objects)
 {
     unsigned bindpoint = get_bindpoint_from_call(call);
-    assert(m_bound_object[bindpoint]);
+    if (!m_bound_object[bindpoint]) {
+        std::cerr << "No object bound in call " << call.no << ":" << call.name() << "\n";
+        assert(0);
+    }
+
     auto c = trace2call(call);
     unsigned obj_id = call.arg(dep_obj_param).toUInt();
     if (obj_id) {
@@ -144,6 +166,7 @@ PTraceCall DependecyObjectMap::CallOnBoundObjectWithDep(const trace::Call& call,
         assert(obj);
         m_bound_object[bindpoint]->add_depenency(obj);
     }
+    m_bound_object[bindpoint]->add_call(c);
     return c;
 }
 
@@ -159,6 +182,7 @@ PTraceCall DependecyObjectMap::CallOnNamedObjectWithDep(const trace::Call& call,
         assert(dep_obj);
         obj->add_depenency(dep_obj);
     }
+    obj->add_call(c);
     return c;
 }
 
@@ -180,6 +204,8 @@ void DependecyObjectMap::emit_bound_objects(CallSet& out_calls)
         if (obj)
             obj->append_calls(out_calls);
     }
+    for(auto&& c : m_calls)
+        out_calls.insert(c);
 }
 
 unsigned
@@ -232,8 +258,85 @@ unsigned BufferObjectMap::get_bindpoint_from_call(const trace::Call& call) const
     case GL_UNIFORM_BUFFER:
         return 14 + 16 * index;
     }
-    assert(0 && "Unknown buffer binding target");
+    std::cerr << "Call " << call.no << ":" << call.name() << "Unknown buffer binding target\n";
+    assert(0);
     return 0;
+}
+
+PTraceCall BufferObjectMap::data(const trace::Call& call)
+{
+    unsigned target = get_bindpoint_from_call(call);
+    auto buf = bound_to(target);
+    PTraceCall c = trace2call(call);
+    if (buf) {
+        m_buffer_sizes[buf->id()] = call.arg(1).toUInt();
+        buf->add_call(c);
+    }
+    return c;
+}
+
+PTraceCall BufferObjectMap::map(const trace::Call& call)
+{
+    unsigned target = get_bindpoint_from_call(call);
+    auto buf = bound_to(target);
+    PTraceCall c = trace2call(call);
+    if (buf) {
+        m_mapped_buffers[target][buf->id()] = buf;
+        uint64_t begin = call.ret->toUInt();
+        uint64_t end = begin + m_buffer_sizes[buf->id()];
+        m_buffer_mappings[buf->id()] = std::make_pair(begin, end);
+        buf->add_call(c);
+    }
+    return c;
+}
+
+PTraceCall BufferObjectMap::map_range(const trace::Call& call)
+{
+    unsigned target = get_bindpoint_from_call(call);
+    auto buf = bound_to(target);
+    PTraceCall c = trace2call(call);
+    if (buf) {
+        m_mapped_buffers[target][buf->id()] = buf;
+        uint64_t begin = call.ret->toUInt();
+        uint64_t end = begin + call.arg(2).toUInt();
+        m_buffer_mappings[buf->id()] = std::make_pair(begin, end);
+        buf->add_call(c);
+    }
+    return c;
+}
+
+PTraceCall BufferObjectMap::unmap(const trace::Call& call)
+{
+    unsigned target = get_bindpoint_from_call(call);
+    auto buf = bound_to(target);
+    auto c = trace2call(call);
+    if (buf) {
+        m_mapped_buffers[target].erase(buf->id());
+        m_buffer_mappings[buf->id()] = std::make_pair(0, 0);
+        buf->add_call(c);
+    }
+    return c;
+
+}
+
+PTraceCall BufferObjectMap::memcopy(const trace::Call& call)
+{
+    uint64_t start = call.arg(0).toUInt();
+    unsigned buf_id = 0;
+    for(auto&& [id, range ]: m_buffer_mappings) {
+        if (range.first <= start && start < range.second) {
+            buf_id = id;
+            break;
+        }
+    }
+    if (!buf_id) {
+        std::cerr << "Found no mapping for memcopy to " << start << " in call " << call.no << ": " << call.name() << "\n";
+        assert(0);
+    }
+    auto buf = get_by_id(buf_id);
+    auto c = trace2call(call);
+    buf->add_call(c);
+    return c;
 }
 
 TextureObjectMap::TextureObjectMap():
@@ -324,7 +427,7 @@ TextureObjectMap::get_bindpoint_from_target_and_unit(unsigned target, unsigned u
 
 FramebufferObjectMap::FramebufferObjectMap()
 {
-    auto default_fb = std::make_shared<DependecyObject>();
+    auto default_fb = std::make_shared<DependecyObject>(0);
     add_object(0, default_fb);
     bind(GL_DRAW_FRAMEBUFFER, 0);
     bind(GL_READ_FRAMEBUFFER, 0);
@@ -335,15 +438,21 @@ unsigned FramebufferObjectMap::get_bindpoint_from_call(const trace::Call& call) 
     return call.arg(0).toUInt();
 }
 
-void FramebufferObjectMap::bind_target(unsigned id, unsigned bindpoint)
+DependecyObject::Pointer
+FramebufferObjectMap::bind_target(unsigned id, unsigned bindpoint)
 {
+    DependecyObject::Pointer obj = nullptr;
     if (bindpoint == GL_FRAMEBUFFER ||
-        bindpoint == GL_DRAW_FRAMEBUFFER)
-        bind(GL_DRAW_FRAMEBUFFER, id);
+        bindpoint == GL_DRAW_FRAMEBUFFER) {
+        bind(GL_FRAMEBUFFER, id);
+        obj = bind(GL_DRAW_FRAMEBUFFER, id);
+    }
 
     if (bindpoint == GL_FRAMEBUFFER ||
         bindpoint == GL_READ_FRAMEBUFFER)
-        bind(GL_READ_FRAMEBUFFER, id);
+        obj = bind(GL_READ_FRAMEBUFFER, id);
+
+    return id ? obj : nullptr;
 }
 
 PTraceCall FramebufferObjectMap::Blit(const trace::Call& call)
@@ -351,6 +460,8 @@ PTraceCall FramebufferObjectMap::Blit(const trace::Call& call)
     auto c = trace2call(call);
     auto dest = bound_to(GL_DRAW_FRAMEBUFFER);
     auto src = bound_to(GL_READ_FRAMEBUFFER);
+    assert(dest);
+    assert(src);
     dest->add_depenency(src);
     dest->add_call(c);
     return c;
