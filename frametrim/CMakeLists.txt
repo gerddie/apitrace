@@ -40,4 +40,20 @@ target_link_libraries (glxtrim
     glretrace_common
     )
 
+add_executable(glxtrim-lazy
+   ftb_dependecyobject.cpp
+   ftb_frametrimmer.cpp
+   ftb_main.cpp
+   ft_matrixstate.cpp
+   ft_objectstate.cpp
+   ft_tracecall.cpp
+   ft_tracecall.cpp)
+
+set_target_properties(glxtrim-lazy PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+
+target_link_libraries (glxtrim-lazy
+    retrace_common
+    glretrace_common
+    )
+
 add_subdirectory (tests)

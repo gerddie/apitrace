@@ -25,16 +25,32 @@ private:
 class DependecyObjectMap {
 public:
     PTraceCall Generate(const trace::Call& call);
-    PTraceCall Bind(const trace::Call& call);
+    PTraceCall Destroy(const trace::Call& call);
+
+    PTraceCall Create(const trace::Call& call);
+    PTraceCall Delete(const trace::Call& call);
+
+    PTraceCall Bind(const trace::Call& call, unsigned obj_id_param);
     PTraceCall CallOnBoundObject(const trace::Call& call);
+    PTraceCall CallOnObjectBoundTo(const trace::Call& call, unsigned bindpoint);
+    PTraceCall CallOnNamedObject(const trace::Call& call);
     PTraceCall CallOnBoundObjectWithDep(const trace::Call& call, int dep_obj_param,
                                         DependecyObjectMap& other_objects);
+    PTraceCall CallOnNamedObjectWithDep(const trace::Call& call, int dep_obj_param,
+                                        DependecyObjectMap& other_objects);
+
 
     DependecyObject::Pointer get_by_id(unsigned id) const;
-private:
+    void add_call(PTraceCall call);
 
-    virtual unsigned get_id_from_call(const trace::Call& call) const;
-    virtual unsigned get_bindpoint_from_call(const trace::Call& call) const;
+    void emit_bound_objects(CallSet& out_calls);
+protected:
+    void bind(unsigned id, unsigned bindpoint);
+    DependecyObject::Pointer bound_to(unsigned bindpoint);
+    void add_object(unsigned id, DependecyObject::Pointer obj);
+private:
+    virtual void bind_target(unsigned id, unsigned bindpoint);
+    virtual unsigned get_bindpoint_from_call(const trace::Call& call) const = 0;
 
     std::unordered_map<unsigned, DependecyObject::Pointer> m_objects;
     std::unordered_map<unsigned, DependecyObject::Pointer> m_bound_object;
@@ -42,8 +58,40 @@ private:
     std::vector<PTraceCall> m_calls;
 };
 
+class DependecyObjectWithSingleBindPointMap: public DependecyObjectMap {
+private:
+    unsigned get_bindpoint_from_call(const trace::Call& call) const override;
+};
 
+class DependecyObjectWithDefaultBindPointMap: public DependecyObjectMap {
+private:
+    unsigned get_bindpoint_from_call(const trace::Call& call) const override;
+};
 
+class BufferObjectMap: public DependecyObjectMap {
+private:
+    unsigned get_bindpoint_from_call(const trace::Call& call) const override;
+};
+
+class TextureObjectMap: public DependecyObjectMap {
+public:
+    TextureObjectMap();
+    PTraceCall ActiveTexture(const trace::Call& call);
+
+private:
+    unsigned get_bindpoint_from_call(const trace::Call& call) const override;
+    unsigned get_bindpoint_from_target_and_unit(unsigned target, unsigned unit) const;
+    unsigned m_active_texture;
+};
+
+class FramebufferObjectMap: public DependecyObjectMap {
+public:
+    FramebufferObjectMap();
+    PTraceCall Blit(const trace::Call& call);
+private:
+    void bind_target(unsigned id, unsigned bindpoint) override;
+    unsigned get_bindpoint_from_call(const trace::Call& call) const override;
+};
 
 }
 
