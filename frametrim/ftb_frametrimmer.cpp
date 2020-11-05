@@ -125,7 +125,7 @@ struct FrameTrimmeImpl {
     SamplerObjectMap m_samplers;
     SyncObjectMap m_sync_objects;
     VertexArrayMap m_vertex_arrays;
-    ObjectMap m_vertex_attrib_pointers;
+    VertexAttribObjectMap m_vertex_attrib_pointers;
 
     std::unordered_map<GLint, DependecyObject::Pointer> m_vertex_attr_pointer;
     std::unordered_map<GLint, PTraceCall> m_va_enables;
@@ -271,7 +271,7 @@ void FrameTrimmeImpl::start_target_frame()
     m_samplers.emit_bound_objects(m_required_calls);
     m_sync_objects.emit_bound_objects(m_required_calls);
     m_vertex_arrays.emit_bound_objects(m_required_calls);
-
+    m_vertex_attrib_pointers.emit_bound_objects(m_required_calls);
 }
 
 bool
@@ -605,7 +605,6 @@ FrameTrimmeImpl::register_state_calls()
         "glClearColor",
         "glClearDepth",
         "glClearStencil",
-        "glClientWaitSync",
         "glColorMask",
         "glColorPointer",
         "glCullFace",
@@ -753,7 +752,7 @@ FrameTrimmeImpl::register_va_calls()
 
     MAP(glDisableVertexAttribArray, record_required_call);
     MAP(glEnableVertexAttribArray, record_required_call);
-    MAP(glVertexAttribPointer, record_required_call);
+    MAP_GENOBJ_DATAREF(glVertexAttribPointer, m_vertex_attrib_pointers, VertexAttribObjectMap::BindAVO, m_buffers);
 
     MAP(glVertexPointer, record_required_call);
     MAP(glTexCoordPointer, record_required_call);

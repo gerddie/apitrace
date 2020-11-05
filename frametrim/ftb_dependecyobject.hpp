@@ -15,7 +15,9 @@ public:
     unsigned id() const;
 
     void add_call(PTraceCall call);
+    void set_call(PTraceCall call);
     void add_depenency(Pointer dep);
+    void set_depenency(Pointer dep);
 
     void append_calls(CallSet& out_list);
 
@@ -51,9 +53,10 @@ public:
     void add_call(PTraceCall call);
 
     void emit_bound_objects(CallSet& out_calls);
+    DependecyObject::Pointer bound_to(unsigned bindpoint);
 protected:
     DependecyObject::Pointer bind(unsigned bindpoint, unsigned id);
-    DependecyObject::Pointer bound_to(unsigned bindpoint);
+
     void add_object(unsigned id, DependecyObject::Pointer obj);
 private:
     virtual DependecyObject::Pointer bind_target(unsigned id, unsigned bindpoint);
@@ -92,6 +95,12 @@ private:
     std::unordered_map<unsigned, unsigned> m_buffer_sizes;
     std::unordered_map<unsigned, std::pair<uint64_t, uint64_t>> m_buffer_mappings;
 
+};
+
+class VertexAttribObjectMap: public DependecyObjectWithDefaultBindPointMap {
+public:
+    void
+    BindAVO(const trace::Call& call, BufferObjectMap& buffers);
 };
 
 class TextureObjectMap: public DependecyObjectMap {

@@ -35,10 +35,24 @@ DependecyObject::add_call(PTraceCall call)
 }
 
 void
+DependecyObject::set_call(PTraceCall call)
+{
+    m_calls.clear();
+    add_call(call);
+}
+
+
+void
 DependecyObject::add_depenency(Pointer dep)
 {
     m_dependencies.push_back(dep);
     m_emitted = false;
+}
+
+void DependecyObject::set_depenency(Pointer dep)
+{
+    m_dependencies.clear();
+    add_depenency(dep);
 }
 
 void
@@ -347,6 +361,23 @@ BufferObjectMap::memcopy(const trace::Call& call)
     }
     auto buf = get_by_id(buf_id);
     buf->add_call(trace2call(call));
+}
+
+void
+VertexAttribObjectMap::BindAVO(const trace::Call& call, BufferObjectMap& buffers)
+{
+    unsigned id = call.arg(0).toUInt();
+    auto obj = get_by_id(id);
+    if (!obj) {
+        obj = std::make_shared<DependecyObject>(id);
+        add_object(id, obj);
+    }
+    bind(id, id);
+    obj->set_call(trace2call(call));
+
+    auto buf = buffers.bound_to(GL_ARRAY_BUFFER);
+    if (buf)
+        obj->set_depenency(buf);
 }
 
 TextureObjectMap::TextureObjectMap():
