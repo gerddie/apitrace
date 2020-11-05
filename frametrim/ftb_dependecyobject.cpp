@@ -9,7 +9,8 @@ namespace frametrim {
 
 
 DependecyObject::DependecyObject(unsigned id):
-    m_id(id)
+    m_id(id),
+    m_emitted(true)
 {
 
 }
@@ -20,26 +21,38 @@ DependecyObject::id() const
     return m_id;
 }
 
+bool
+DependecyObject::emitted() const
+{
+    return m_emitted;
+}
+
 void
 DependecyObject::add_call(PTraceCall call)
 {
     m_calls.push_back(call);
+    m_emitted = false;
 }
 
 void
 DependecyObject::add_depenency(Pointer dep)
 {
     m_dependencies.push_back(dep);
+    m_emitted = false;
 }
 
 void
 DependecyObject::append_calls(CallSet& out_list)
 {
-    for (auto&& n : m_calls)
-        out_list.insert(n);
+    if (!m_emitted) {
+        for (auto&& n : m_calls)
+            out_list.insert(n);
 
-    for (auto&& o : m_dependencies)
-        o->append_calls(out_list);
+        for (auto&& o : m_dependencies)
+            o->append_calls(out_list);
+
+        m_emitted = true;
+    }
 }
 
 void
@@ -59,6 +72,7 @@ void DependecyObjectMap::Destroy(const trace::Call& call)
     auto c = trace2call(call);
     const auto ids = (call.arg(1)).toArray();
     for (auto& v : ids->values) {
+        assert(m_objects[v->toUInt()]->id() == v->toUInt());
         m_objects[v->toUInt()]->add_call(c);
     }
 }

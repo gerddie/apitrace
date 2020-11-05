@@ -92,6 +92,8 @@ struct FrameTrimmeImpl {
     void todo(const trace::Call& call);
     void ignore_history(const trace::Call& call);
 
+    bool skip_delete_obj(const trace::Call& call);
+    bool skip_delete_impl(unsigned obj_id, DependecyObjectMap& map);
     void finalize();
 
     using CallTable = std::multimap<const char *, ft_callback, string_part_less>;
@@ -234,6 +236,10 @@ FrameTrimmeImpl::call(const trace::Call& call, Frametype frametype)
         if (call.flags & trace::CALL_FLAG_END_FRAME)
             m_last_swap = c;
     } else {
+        /* Skip delete calls for objects that have never been emitted */
+        if (skip_delete_obj(call))
+            return;
+
         if (!(call.flags & trace::CALL_FLAG_END_FRAME)) {
             m_required_calls.insert(c);
         } else {
@@ -267,6 +273,44 @@ void FrameTrimmeImpl::start_target_frame()
     m_sync_objects.emit_bound_objects(m_required_calls);
     m_vertex_arrays.emit_bound_objects(m_required_calls);
 
+}
+
+bool
+FrameTrimmeImpl::skip_delete_obj(const trace::Call& call)
+{
+    if (!strcmp(call.name(), "glDeleteProgram"))
+        return skip_delete_impl(call.arg(0).toUInt(), m_programs);
+
+    DependecyObjectMap *map = nullptr;
+    if (!strcmp(call.name(), "glDeleteBuffers"))
+        map = &m_buffers;
+
+    if (!strcmp(call.name(), "glDeleteTextures"))
+        map = &m_textures;
+
+    if (!strcmp(call.name(), "glDeleteFramebuffers"))
+        map = &m_fbo;
+
+    if (!strcmp(call.name(), "glDeleteRenderbuffers"))
+        map = &m_renderbuffers;
+
+    if (map) {
+        const auto ids = (call.arg(1)).toArray();
+        for (auto& v : ids->values) {
+            if (!skip_delete_impl(v->toUInt(), *map))
+                return false;
+        }
+        return true;
+    }
+    return false;
+}
+
+bool
+FrameTrimmeImpl::skip_delete_impl(unsigned obj_id,
+                                  DependecyObjectMap& map)
+{
+    auto obj = map.get_by_id(obj_id);
+    return !obj->emitted();
 }
 
 void FrameTrimmeImpl::finalize()

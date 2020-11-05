@@ -19,12 +19,14 @@ public:
 
     void append_calls(CallSet& out_list);
 
+    bool emitted() const;
+
 private:
 
     std::vector<PTraceCall> m_calls;
     std::vector<Pointer> m_dependencies;
     unsigned m_id;
-
+    bool m_emitted;
 };
 
 class DependecyObjectMap {
