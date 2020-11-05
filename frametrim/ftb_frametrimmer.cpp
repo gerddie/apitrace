@@ -86,7 +86,8 @@ struct FrameTrimmeImpl {
     PTraceCall CallList(const trace::Call& call);
     PTraceCall DeleteLists(const trace::Call& call);
     PTraceCall Bind(const trace::Call& call, DependecyObjectMap& map, unsigned bind_param);
-
+    PTraceCall BindFbo(const trace::Call& call, DependecyObjectMap& map,
+                       unsigned bind_param);
 
     PTraceCall todo(const trace::Call& call);
     PTraceCall ignore_history(const trace::Call& call);
@@ -421,7 +422,7 @@ void FrameTrimmeImpl::register_framebuffer_calls()
 
     MAP_GENOBJ(glGenFramebuffer, m_fbo, FramebufferObjectMap::Generate);
     MAP_GENOBJ(glDeleteFramebuffers, m_fbo, FramebufferObjectMap::Destroy);
-    MAP_DATAREF_DATA(glBindFramebuffer, Bind, m_fbo, 1);
+    MAP_DATAREF_DATA(glBindFramebuffer, BindFbo, m_fbo, 1);
     MAP_GENOBJ_DATA(glViewport, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
 
     MAP_GENOBJ(glBlitFramebuffer, m_fbo, FramebufferObjectMap::Blit);
@@ -432,7 +433,7 @@ void FrameTrimmeImpl::register_framebuffer_calls()
     MAP_GENOBJ_DATA_DATAREF(glFramebufferTexture2D, m_fbo,
                             FramebufferObjectMap::CallOnBoundObjectWithDep, 3, m_textures);
 
-    MAP_GENOBJ_DATA(glReadBuffer, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_READ_FRAMEBUFFER);
+    MAP_GENOBJ(glReadBuffer, m_fbo, FramebufferObjectMap::ReadBuffer);
     MAP_GENOBJ_DATA(glDrawBuffer, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
 
 
@@ -836,6 +837,17 @@ PTraceCall FrameTrimmeImpl::Bind(const trace::Call& call, DependecyObjectMap& ma
         bound_obj->append_calls(m_required_calls);
     return nullptr;
 }
+
+PTraceCall FrameTrimmeImpl::BindFbo(const trace::Call& call, DependecyObjectMap& map,
+                                    unsigned bind_param)
+{
+    auto bound_obj = map.Bind(call, bind_param);
+    bound_obj->add_call(trace2call(call));
+    if (m_recording_frame && bound_obj->id())
+        bound_obj->append_calls(m_required_calls);
+    return nullptr;
+}
+
 
 PTraceCall
 FrameTrimmeImpl::todo(const trace::Call& call)

@@ -107,6 +107,7 @@ class FramebufferObjectMap: public DependecyObjectMap {
 public:
     FramebufferObjectMap();
     PTraceCall Blit(const trace::Call& call);
+    PTraceCall ReadBuffer(const trace::Call& call);
 private:
     DependecyObject::Pointer
     bind_target(unsigned id, unsigned bindpoint) override;

@@ -130,9 +130,12 @@ PTraceCall DependecyObjectMap::CallOnBoundObject(const trace::Call& call)
 
 PTraceCall DependecyObjectMap::CallOnObjectBoundTo(const trace::Call& call, unsigned bindpoint)
 {
-    assert(m_bound_object[bindpoint]);
+    auto obj = bound_to(bindpoint);
+
+    assert(obj);
+
     auto c = trace2call(call);
-    m_bound_object[bindpoint]->add_call(c);
+    obj->add_call(c);
     return c;
 }
 
@@ -211,6 +214,7 @@ void DependecyObjectMap::emit_bound_objects(CallSet& out_calls)
 unsigned
 DependecyObjectWithSingleBindPointMap::get_bindpoint_from_call(const trace::Call& call) const
 {
+    (void)call;
     return 0;
 }
 
@@ -452,7 +456,7 @@ FramebufferObjectMap::bind_target(unsigned id, unsigned bindpoint)
         bindpoint == GL_READ_FRAMEBUFFER)
         obj = bind(GL_READ_FRAMEBUFFER, id);
 
-    return id ? obj : nullptr;
+    return obj;
 }
 
 PTraceCall FramebufferObjectMap::Blit(const trace::Call& call)
@@ -465,6 +469,14 @@ PTraceCall FramebufferObjectMap::Blit(const trace::Call& call)
     dest->add_depenency(src);
     dest->add_call(c);
     return c;
+}
+
+PTraceCall FramebufferObjectMap::ReadBuffer(const trace::Call& call)
+{
+    auto fbo = bound_to(GL_READ_FRAMEBUFFER);
+    assert(call.arg(0).toUInt() != GL_BACK || fbo->id() == 0);
+
+    return CallOnObjectBoundTo(call, GL_READ_FRAMEBUFFER);
 }
 
 }
