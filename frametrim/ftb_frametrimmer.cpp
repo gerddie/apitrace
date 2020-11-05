@@ -27,7 +27,7 @@ using std::placeholders::_1;
 using std::make_shared;
 
 
-using ft_callback = std::function<PTraceCall(const trace::Call&)>;
+using ft_callback = std::function<void(const trace::Call&)>;
 
 struct string_part_less {
     bool operator () (const char *lhs, const char *rhs) const
@@ -72,25 +72,25 @@ struct FrameTrimmeImpl {
     void register_draw_calls();
     void register_ignore_history_calls();
 
-    PTraceCall record_required_call(const trace::Call& call);
+    void record_required_call(const trace::Call& call);
 
     void update_call_table(const std::vector<const char*>& names,
                            ft_callback cb);
 
-    PTraceCall Begin(const trace::Call& call);
-    PTraceCall End(const trace::Call& call);
-    PTraceCall Vertex(const trace::Call& call);
-    PTraceCall EndList(const trace::Call& call);
-    PTraceCall GenLists(const trace::Call& call);
-    PTraceCall NewList(const trace::Call& call);
-    PTraceCall CallList(const trace::Call& call);
-    PTraceCall DeleteLists(const trace::Call& call);
-    PTraceCall Bind(const trace::Call& call, DependecyObjectMap& map, unsigned bind_param);
-    PTraceCall BindFbo(const trace::Call& call, DependecyObjectMap& map,
+    void Begin(const trace::Call& call);
+    void End(const trace::Call& call);
+    void Vertex(const trace::Call& call);
+    void EndList(const trace::Call& call);
+    void GenLists(const trace::Call& call);
+    void NewList(const trace::Call& call);
+    void CallList(const trace::Call& call);
+    void DeleteLists(const trace::Call& call);
+    void Bind(const trace::Call& call, DependecyObjectMap& map, unsigned bind_param);
+    void BindFbo(const trace::Call& call, DependecyObjectMap& map,
                        unsigned bind_param);
 
-    PTraceCall todo(const trace::Call& call);
-    PTraceCall ignore_history(const trace::Call& call);
+    void todo(const trace::Call& call);
+    void ignore_history(const trace::Call& call);
 
     void finalize();
 
@@ -735,46 +735,37 @@ FrameTrimmeImpl::update_call_table(const std::vector<const char*>& names,
         m_call_table.insert(std::make_pair(i, cb));
 }
 
-PTraceCall
+void
 FrameTrimmeImpl::Begin(const trace::Call& call)
 {
-    auto c = trace2call(call);
     if (m_active_display_list)
-        m_active_display_list->append_call(c);
-    return c;
+        m_active_display_list->append_call(trace2call(call));
 }
 
-PTraceCall
+void
 FrameTrimmeImpl::End(const trace::Call& call)
 {
-    auto c = trace2call(call);
     if (m_active_display_list)
-        m_active_display_list->append_call(c);
-    return c;
+        m_active_display_list->append_call(trace2call(call));
 }
 
-
-PTraceCall
+void
 FrameTrimmeImpl::Vertex(const trace::Call& call)
 {
-    auto c = trace2call(call);
     if (m_active_display_list)
-        m_active_display_list->append_call(c);
-    return c;
+        m_active_display_list->append_call(trace2call(call));
 }
 
-PTraceCall
+void
 FrameTrimmeImpl::EndList(const trace::Call& call)
 {
-    auto c = trace2call(call);
     if (!m_recording_frame)
-        m_active_display_list->append_call(c);
+        m_active_display_list->append_call(trace2call(call));
 
     m_active_display_list = nullptr;
-    return c;
 }
 
-PTraceCall
+void
 FrameTrimmeImpl::GenLists(const trace::Call& call)
 {
     unsigned nlists = call.arg(0).toUInt();
@@ -785,10 +776,9 @@ FrameTrimmeImpl::GenLists(const trace::Call& call)
     auto c = trace2call(call);
     if (!m_recording_frame)
         m_display_lists[origResult]->append_call(c);
-    return c;
 }
 
-PTraceCall
+void
 FrameTrimmeImpl::NewList(const trace::Call& call)
 {
     assert(!m_active_display_list);
@@ -796,13 +786,11 @@ FrameTrimmeImpl::NewList(const trace::Call& call)
     assert(list != m_display_lists.end());
     m_active_display_list = list->second;
 
-    auto c = trace2call(call);
     if (!m_recording_frame)
-        m_active_display_list->append_call(c);
-    return c;
+        m_active_display_list->append_call(trace2call(call));
 }
 
-PTraceCall
+void
 FrameTrimmeImpl::CallList(const trace::Call& call)
 {
     auto list  = m_display_lists.find(call.arg(0).toUInt());
@@ -810,11 +798,9 @@ FrameTrimmeImpl::CallList(const trace::Call& call)
 
     if (m_recording_frame)
         list->second->emit_calls_to_list(m_required_calls);
-
-    return trace2call(call);
 }
 
-PTraceCall
+void
 FrameTrimmeImpl::DeleteLists(const trace::Call& call)
 {
     GLint value = call.arg(0).toUInt();
@@ -822,51 +808,50 @@ FrameTrimmeImpl::DeleteLists(const trace::Call& call)
     for(int i = value; i < value_end; ++i) {
         auto list  = m_display_lists.find(call.arg(0).toUInt());
         assert(list != m_display_lists.end());
+        list->second->append_call(trace2call(call));
         m_display_lists.erase(list);
     }
-    return trace2call(call);
 }
 
-PTraceCall FrameTrimmeImpl::Bind(const trace::Call& call, DependecyObjectMap& map,
-                                 unsigned bind_param)
+void
+FrameTrimmeImpl::Bind(const trace::Call& call, DependecyObjectMap& map,
+                      unsigned bind_param)
 {
     auto bound_obj = map.Bind(call, bind_param);
     if (bound_obj)
         bound_obj->add_call(trace2call(call));
     if (m_recording_frame && bound_obj)
         bound_obj->append_calls(m_required_calls);
-    return nullptr;
 }
 
-PTraceCall FrameTrimmeImpl::BindFbo(const trace::Call& call, DependecyObjectMap& map,
-                                    unsigned bind_param)
+void
+FrameTrimmeImpl::BindFbo(const trace::Call& call, DependecyObjectMap& map,
+                         unsigned bind_param)
 {
     auto bound_obj = map.Bind(call, bind_param);
     bound_obj->add_call(trace2call(call));
     if (m_recording_frame && bound_obj->id())
         bound_obj->append_calls(m_required_calls);
-    return nullptr;
 }
 
 
-PTraceCall
+void
 FrameTrimmeImpl::todo(const trace::Call& call)
 {
     std::cerr << "TODO: " << call.name() << "\n";
-    return trace2call(call);
 }
 
-PTraceCall FrameTrimmeImpl::ignore_history(const trace::Call& call)
+void
+FrameTrimmeImpl::ignore_history(const trace::Call& call)
 {
-    return trace2call(call);
+    (void)call;
 }
 
-PTraceCall
+void
 FrameTrimmeImpl::record_required_call(const trace::Call& call)
 {
     auto c = trace2call(call);
     m_required_calls.insert(c);
-    return c;
 }
 
 }

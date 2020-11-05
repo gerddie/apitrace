@@ -29,19 +29,19 @@ private:
 
 class DependecyObjectMap {
 public:
-    PTraceCall Generate(const trace::Call& call);
-    PTraceCall Destroy(const trace::Call& call);
+    void Generate(const trace::Call& call);
+    void Destroy(const trace::Call& call);
 
-    PTraceCall Create(const trace::Call& call);
-    PTraceCall Delete(const trace::Call& call);
+    void Create(const trace::Call& call);
+    void Delete(const trace::Call& call);
 
     DependecyObject::Pointer Bind(const trace::Call& call, unsigned obj_id_param);
-    PTraceCall CallOnBoundObject(const trace::Call& call);
-    PTraceCall CallOnObjectBoundTo(const trace::Call& call, unsigned bindpoint);
-    PTraceCall CallOnNamedObject(const trace::Call& call);
-    PTraceCall CallOnBoundObjectWithDep(const trace::Call& call, int dep_obj_param,
+    void CallOnBoundObject(const trace::Call& call);
+    void CallOnObjectBoundTo(const trace::Call& call, unsigned bindpoint);
+    void CallOnNamedObject(const trace::Call& call);
+    void CallOnBoundObjectWithDep(const trace::Call& call, int dep_obj_param,
                                         DependecyObjectMap& other_objects);
-    PTraceCall CallOnNamedObjectWithDep(const trace::Call& call, int dep_obj_param,
+    void CallOnNamedObjectWithDep(const trace::Call& call, int dep_obj_param,
                                         DependecyObjectMap& other_objects);
 
 
@@ -75,11 +75,11 @@ private:
 
 class BufferObjectMap: public DependecyObjectMap {
 public:
-    PTraceCall data(const trace::Call& call);
-    PTraceCall map(const trace::Call& call);
-    PTraceCall map_range(const trace::Call& call);
-    PTraceCall unmap(const trace::Call& call);
-    PTraceCall memcopy(const trace::Call& call);
+    void data(const trace::Call& call);
+    void map(const trace::Call& call);
+    void map_range(const trace::Call& call);
+    void unmap(const trace::Call& call);
+    void memcopy(const trace::Call& call);
 
 private:
     unsigned get_bindpoint_from_call(const trace::Call& call) const override;
@@ -95,7 +95,7 @@ private:
 class TextureObjectMap: public DependecyObjectMap {
 public:
     TextureObjectMap();
-    PTraceCall ActiveTexture(const trace::Call& call);
+    void ActiveTexture(const trace::Call& call);
 
 private:
     unsigned get_bindpoint_from_call(const trace::Call& call) const override;
@@ -106,8 +106,8 @@ private:
 class FramebufferObjectMap: public DependecyObjectMap {
 public:
     FramebufferObjectMap();
-    PTraceCall Blit(const trace::Call& call);
-    PTraceCall ReadBuffer(const trace::Call& call);
+    void Blit(const trace::Call& call);
+    void ReadBuffer(const trace::Call& call);
 private:
     DependecyObject::Pointer
     bind_target(unsigned id, unsigned bindpoint) override;
