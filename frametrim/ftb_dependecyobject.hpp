@@ -86,8 +86,12 @@ public:
     void unmap(const trace::Call& call);
     void memcopy(const trace::Call& call);
 
+    DependecyObject::Pointer bound_to_target(unsigned target, unsigned index = 0);
+
 private:
     unsigned get_bindpoint_from_call(const trace::Call& call) const override;
+
+    unsigned get_bindpoint(unsigned target, unsigned index) const;
 
     std::unordered_map<unsigned,
         std::unordered_map<unsigned, DependecyObject::Pointer>> m_mapped_buffers;
@@ -119,6 +123,7 @@ public:
     FramebufferObjectMap();
     void Blit(const trace::Call& call);
     void ReadBuffer(const trace::Call& call);
+    void DrawFromBuffer(const trace::Call& call, BufferObjectMap &buffers);
 private:
     DependecyObject::Pointer
     bind_target(unsigned id, unsigned bindpoint) override;

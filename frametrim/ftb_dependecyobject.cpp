@@ -170,11 +170,14 @@ DependecyObjectMap::CallOnNamedObject(const trace::Call& call)
 {
     auto obj = m_objects[call.arg(0).toUInt()];
     if (!obj) {
-        std::cerr << "Named object doesn't exists in call " << call.no << ": "
-                  << call.name() << "\n";
-        assert(obj);
-    }
-    obj->add_call(trace2call(call));
+        if (call.arg(0).toUInt()) {
+            std::cerr << "Named object " << call.arg(0).toUInt()
+                      << " doesn't exists in call " << call.no << ": "
+                      << call.name() << "\n";
+            assert(0);
+        }
+    } else
+        obj->add_call(trace2call(call));
 }
 
 void
@@ -203,6 +206,10 @@ DependecyObjectMap::CallOnNamedObjectWithDep(const trace::Call& call,
                                              DependecyObjectMap& other_objects)
 {
     auto obj = m_objects[call.arg(0).toUInt()];
+
+    if (!obj && !call.arg(0).toUInt())
+        return;
+    assert(obj);
     unsigned dep_obj_id = call.arg(dep_obj_param).toUInt();
     if (dep_obj_id) {
         auto dep_obj = other_objects.get_by_id(dep_obj_id);
@@ -249,15 +256,15 @@ DependecyObjectWithDefaultBindPointMap::get_bindpoint_from_call(const trace::Cal
     return call.arg(0).toUInt();
 }
 
-unsigned
-BufferObjectMap::get_bindpoint_from_call(const trace::Call& call) const
+DependecyObject::Pointer
+BufferObjectMap::bound_to_target(unsigned target, unsigned index)
 {
-    unsigned target = call.arg(0).toUInt();
-    unsigned index = 0;
-    if (!strcmp(call.name(), "glBindBufferRange")) {
-        index = call.arg(1).toUInt();
-    }
+    return bound_to(get_bindpoint(target, index));
+}
 
+unsigned
+BufferObjectMap::get_bindpoint(unsigned target, unsigned index) const
+{
     switch (target) {
     case GL_ARRAY_BUFFER:
         return 1;
@@ -288,9 +295,19 @@ BufferObjectMap::get_bindpoint_from_call(const trace::Call& call) const
     case GL_UNIFORM_BUFFER:
         return 14 + 16 * index;
     }
-    std::cerr << "Call " << call.no << ":" << call.name() << "Unknown buffer binding target\n";
-    assert(0);
+    assert(0 && "Unknown buffer binding target");
     return 0;
+}
+
+unsigned
+BufferObjectMap::get_bindpoint_from_call(const trace::Call& call) const
+{
+    unsigned target = call.arg(0).toUInt();
+    unsigned index = 0;
+    if (!strcmp(call.name(), "glBindBufferRange")) {
+        index = call.arg(1).toUInt();
+    }
+    return get_bindpoint(target, index);
 }
 
 void
@@ -375,7 +392,7 @@ VertexAttribObjectMap::BindAVO(const trace::Call& call, BufferObjectMap& buffers
     bind(id, id);
     obj->set_call(trace2call(call));
 
-    auto buf = buffers.bound_to(GL_ARRAY_BUFFER);
+    auto buf = buffers.bound_to_target(GL_ARRAY_BUFFER);
     if (buf)
         obj->set_depenency(buf);
 }
@@ -513,6 +530,15 @@ FramebufferObjectMap::ReadBuffer(const trace::Call& call)
     auto fbo = bound_to(GL_READ_FRAMEBUFFER);
     assert(call.arg(0).toUInt() != GL_BACK || fbo->id() == 0);
     CallOnObjectBoundTo(call, GL_READ_FRAMEBUFFER);
+}
+
+void FramebufferObjectMap::DrawFromBuffer(const trace::Call& call, BufferObjectMap& buffers)
+{
+    auto fbo = bound_to(GL_DRAW_FRAMEBUFFER);
+    auto buf = buffers.bound_to_target(GL_ELEMENT_ARRAY_BUFFER);
+    if (buf)
+        fbo->add_depenency(buf);
+    fbo->add_call(trace2call(call));
 }
 
 }

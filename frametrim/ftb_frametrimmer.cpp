@@ -108,7 +108,7 @@ struct FrameTrimmeImpl {
 
     AllMatrisStates m_matrix_states;
 
-    DependecyObjectWithDefaultBindPointMap m_legacy_programs;
+    using LegacyProgrambjectMap = DependecyObjectWithDefaultBindPointMap;
     using ProgramObjectMap = DependecyObjectWithSingleBindPointMap;
     using SamplerObjectMap = DependecyObjectWithDefaultBindPointMap;
     using SyncObjectMap = DependecyObjectWithSingleBindPointMap;
@@ -116,6 +116,7 @@ struct FrameTrimmeImpl {
     using RenderObjectMap = DependecyObjectWithSingleBindPointMap;
     using VertexArrayMap = DependecyObjectWithDefaultBindPointMap;
 
+    LegacyProgrambjectMap m_legacy_programs;
     ProgramObjectMap m_programs;
     TextureObjectMap m_textures;
     FramebufferObjectMap m_fbo;
@@ -439,14 +440,13 @@ void FrameTrimmeImpl::register_legacy_calls()
                DependecyObjectWithDefaultBindPointMap::Generate);
     MAP_DATAREF_DATA(glBindProgram, Bind, m_legacy_programs, 1);
 
-    /*
     MAP_GENOBJ(glDeletePrograms, m_legacy_programs,
-               DependecyObjectWithDefaultBindPointMap::destroy);
+               LegacyProgrambjectMap::Destroy);
 
     MAP_GENOBJ(glProgramString, m_legacy_programs,
-               LegacyProgramStateMap::program_string);
+               LegacyProgrambjectMap::CallOnBoundObject);
     MAP_GENOBJ(glProgramLocalParameter, m_legacy_programs,
-               LegacyProgramStateMap::program_parameter);*/
+               LegacyProgrambjectMap::CallOnBoundObject);
 
 
     // Matrix manipulation
@@ -526,12 +526,12 @@ void FrameTrimmeImpl::register_draw_calls()
 {
     MAP_GENOBJ_DATA(glDrawArrays, m_fbo,
                     FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
-    MAP_GENOBJ_DATA(glDrawElements, m_fbo,
-                    FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
-    MAP_GENOBJ_DATA(glDrawRangeElements, m_fbo,
-                    FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
-    MAP_GENOBJ_DATA(glDrawRangeElementsBaseVertex, m_fbo,
-                    FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
+    MAP_GENOBJ_DATAREF(glDrawElements, m_fbo,
+                       FramebufferObjectMap::DrawFromBuffer, m_buffers);
+    MAP_GENOBJ_DATAREF(glDrawRangeElements, m_fbo,
+                       FramebufferObjectMap::DrawFromBuffer, m_buffers);
+    MAP_GENOBJ_DATAREF(glDrawRangeElementsBaseVertex, m_fbo,
+                       FramebufferObjectMap::DrawFromBuffer, m_buffers);
 }
 
 void
