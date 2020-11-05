@@ -88,7 +88,13 @@ struct FrameTrimmeImpl {
     void Bind(const trace::Call& call, DependecyObjectMap& map, unsigned bind_param);
     void BindFbo(const trace::Call& call, DependecyObjectMap& map,
                        unsigned bind_param);
+    void BindWithCreate(const trace::Call& call, DependecyObjectMap& map,
+                        unsigned bind_param);
     void WaitSync(const trace::Call& call);
+    void CallOnBoundObjWithDep(const trace::Call& call, DependecyObjectMap& map,
+                                unsigned obj_id_param, DependecyObjectMap &dep_map);
+
+    void BindMultitex(const trace::Call& call);
 
     void todo(const trace::Call& call);
     void ignore_history(const trace::Call& call);
@@ -278,6 +284,7 @@ void FrameTrimmeImpl::start_target_frame()
     m_sync_objects.emit_bound_objects(m_required_calls);
     m_vertex_arrays.emit_bound_objects(m_required_calls);
     m_vertex_attrib_pointers.emit_bound_objects(m_required_calls);
+    m_legacy_programs.emit_bound_objects(m_required_calls);
 }
 
 bool
@@ -393,6 +400,11 @@ FrameTrimmeImpl::record_state_call(const trace::Call& call,
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, data)))
 #define MAP_GENOBJ_DATAREF(name, obj, call, data) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, std::ref(data))))
+
+#define MAP_GENOBJ_DATAREF2(name, obj, call, data1, data2) \
+    m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, std::ref(data1), \
+                        std::ref(data2))))
+
 #define MAP_GENOBJ_DATAREF_2(name, obj, call, data, param1, param2) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
                         std::ref(data), param1, param2)))
@@ -403,6 +415,10 @@ FrameTrimmeImpl::record_state_call(const trace::Call& call,
 #define MAP_DATAREF_DATA(name, call, data, param1) \
     m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, this, _1, \
                         std::ref(data), param1)))
+
+#define MAP_DATAREF_DATA_DATAREF(name, call, data1, param1, data2) \
+    m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, this, _1, \
+                        std::ref(data1), param1, std::ref(data2))))
 
 
 void FrameTrimmeImpl::register_legacy_calls()
@@ -438,7 +454,7 @@ void FrameTrimmeImpl::register_legacy_calls()
     // shader calls
     MAP_GENOBJ(glGenPrograms, m_legacy_programs,
                DependecyObjectWithDefaultBindPointMap::Generate);
-    MAP_DATAREF_DATA(glBindProgram, Bind, m_legacy_programs, 1);
+    MAP_DATAREF_DATA(glBindProgram, BindWithCreate, m_legacy_programs, 1);
 
     MAP_GENOBJ(glDeletePrograms, m_legacy_programs,
                LegacyProgrambjectMap::Destroy);
@@ -447,7 +463,8 @@ void FrameTrimmeImpl::register_legacy_calls()
                LegacyProgrambjectMap::CallOnBoundObject);
     MAP_GENOBJ(glProgramLocalParameter, m_legacy_programs,
                LegacyProgrambjectMap::CallOnBoundObject);
-
+    MAP_GENOBJ(glProgramEnvParameter, m_legacy_programs,
+               LegacyProgrambjectMap::CallOnBoundObject);
 
     // Matrix manipulation
     MAP_GENOBJ(glLoadIdentity, m_matrix_states, AllMatrisStates::LoadIdentity);
@@ -477,12 +494,11 @@ void FrameTrimmeImpl::register_framebuffer_calls()
     MAP_GENOBJ_DATA(glViewport, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
 
     MAP_GENOBJ(glBlitFramebuffer, m_fbo, FramebufferObjectMap::Blit);
-    MAP_GENOBJ_DATA_DATAREF(glFramebufferTexture, m_fbo,
-                            FramebufferObjectMap::CallOnBoundObjectWithDep, 2, m_textures);
-    MAP_GENOBJ_DATA_DATAREF(glFramebufferTexture1D, m_fbo,
-                            FramebufferObjectMap::CallOnBoundObjectWithDep, 3, m_textures);
-    MAP_GENOBJ_DATA_DATAREF(glFramebufferTexture2D, m_fbo,
-                            FramebufferObjectMap::CallOnBoundObjectWithDep, 3, m_textures);
+    MAP_DATAREF_DATA_DATAREF(glFramebufferTexture, CallOnBoundObjWithDep, m_fbo, 2, m_textures);
+    MAP_DATAREF_DATA_DATAREF(glFramebufferTexture1D, CallOnBoundObjWithDep, m_fbo,
+                            3, m_textures);
+    MAP_DATAREF_DATA_DATAREF(glFramebufferTexture2D, CallOnBoundObjWithDep, m_fbo,
+                            3, m_textures);
 
     MAP_GENOBJ(glReadBuffer, m_fbo, FramebufferObjectMap::ReadBuffer);
     MAP_GENOBJ_DATA(glDrawBuffer, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
@@ -570,7 +586,7 @@ void FrameTrimmeImpl::register_texture_calls()
     MAP_GENOBJ(glActiveTexture, m_textures, TextureObjectMap::ActiveTexture);
     MAP_GENOBJ(glClientActiveTexture, m_textures, TextureObjectMap::ActiveTexture);
     MAP_DATAREF_DATA(glBindTexture, Bind, m_textures, 1);
-    //MAP_GENOBJ(glBindMultiTexture, m_textures, TextureStateMap::bind_multitex);
+    MAP(glBindMultiTexture, BindMultitex);
 
     MAP_GENOBJ(glCompressedTexImage2D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glGenerateMipmap, m_textures, TextureObjectMap::CallOnBoundObject);
@@ -587,6 +603,8 @@ void FrameTrimmeImpl::register_texture_calls()
 
     /* Should add a dependency on the read fbo */
     MAP_GENOBJ(glCopyTexSubImage, m_textures, TextureObjectMap::CallOnBoundObject);
+
+    MAP_GENOBJ(glCopyTexImage2D, m_textures, TextureObjectMap::CallOnBoundObject);
 
     /*
     MAP_GENOBJ(glCopyTexSubImage2D, m_textures, TextureStateMap::copy_sub_data);
@@ -616,6 +634,7 @@ FrameTrimmeImpl::register_state_calls()
         "glDepthFunc",
         "glDepthMask",
         "glDepthRange",
+        "glDepthBounds",
         "glFlush",
         "glFrontFace",
         "glFrustum",
@@ -771,6 +790,7 @@ FrameTrimmeImpl::register_va_calls()
     MAP(glVertexAttribP2, record_required_call);
     MAP(glVertexAttribP3, record_required_call);
     MAP(glVertexAttribP4, record_required_call);
+    MAP(glTexGen, record_required_call);
 
     MAP(glDisableClientState, record_required_call);
     MAP(glEnableClientState, record_required_call);
@@ -875,6 +895,24 @@ FrameTrimmeImpl::Bind(const trace::Call& call, DependecyObjectMap& map,
 }
 
 void
+FrameTrimmeImpl::BindWithCreate(const trace::Call& call, DependecyObjectMap& map,
+                                unsigned bind_param)
+{
+    auto bound_obj = map.BindWithCreate(call, bind_param);
+    if (bound_obj)
+        bound_obj->add_call(trace2call(call));
+    if (m_recording_frame && bound_obj)
+        bound_obj->append_calls(m_required_calls);
+}
+
+void FrameTrimmeImpl::BindMultitex(const trace::Call& call)
+{
+    auto tex = m_textures.BindMultitex(call);
+    if (m_recording_frame && tex)
+        tex->append_calls(m_required_calls);
+}
+
+void
 FrameTrimmeImpl::WaitSync(const trace::Call& call)
 {
     auto obj = m_sync_objects.get_by_id(call.arg(0).toUInt());
@@ -894,6 +932,15 @@ FrameTrimmeImpl::BindFbo(const trace::Call& call, DependecyObjectMap& map,
         bound_obj->append_calls(m_required_calls);
 }
 
+void
+FrameTrimmeImpl::CallOnBoundObjWithDep(const trace::Call& call, DependecyObjectMap& map,
+                                        unsigned obj_id_param,
+                                        DependecyObjectMap& dep_map)
+{
+    auto dep_obj = map.CallOnBoundObjectWithDep(call, obj_id_param, dep_map);
+    if (m_recording_frame && dep_obj)
+        dep_obj->append_calls(m_required_calls);
+}
 
 void
 FrameTrimmeImpl::todo(const trace::Call& call)

@@ -41,10 +41,12 @@ public:
 
     DependecyObject::Pointer Bind(const trace::Call& call, unsigned obj_id_param);
     void CallOnBoundObject(const trace::Call& call);
+    DependecyObject::Pointer BindWithCreate(const trace::Call& call, unsigned obj_id_param);
     void CallOnObjectBoundTo(const trace::Call& call, unsigned bindpoint);
     void CallOnNamedObject(const trace::Call& call);
-    void CallOnBoundObjectWithDep(const trace::Call& call, int dep_obj_param,
-                                        DependecyObjectMap& other_objects);
+    DependecyObject::Pointer
+    CallOnBoundObjectWithDep(const trace::Call& call, int dep_obj_param,
+                             DependecyObjectMap& other_objects);
     void CallOnNamedObjectWithDep(const trace::Call& call, int dep_obj_param,
                                         DependecyObjectMap& other_objects);
 
@@ -111,7 +113,7 @@ class TextureObjectMap: public DependecyObjectMap {
 public:
     TextureObjectMap();
     void ActiveTexture(const trace::Call& call);
-
+    DependecyObject::Pointer BindMultitex(const trace::Call& call);
 private:
     unsigned get_bindpoint_from_call(const trace::Call& call) const override;
     unsigned get_bindpoint_from_target_and_unit(unsigned target, unsigned unit) const;

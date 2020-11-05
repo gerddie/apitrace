@@ -148,11 +148,22 @@ DependecyObjectMap::CallOnBoundObject(const trace::Call& call)
 {
     unsigned bindpoint = get_bindpoint_from_call(call);
     if (!m_bound_object[bindpoint])  {
-        std::cerr << "no object not bound in call " << call.no << ": " << call.name() << "\n";
+        std::cerr << "no object bound to " << bindpoint << " in call " << call.no << ": " << call.name() << "\n";
         return;
     }
 
     m_bound_object[bindpoint]->add_call(trace2call(call));
+}
+
+DependecyObject::Pointer
+DependecyObjectMap::BindWithCreate(const trace::Call& call, unsigned obj_id_param)
+{
+    unsigned bindpoint = get_bindpoint_from_call(call);
+    unsigned id = call.arg(obj_id_param).toUInt();
+    if (!m_objects[id])  {
+        m_objects[id] = std::make_shared<DependecyObject>(id);
+    }
+    return bind_target(id, bindpoint);
 }
 
 void
@@ -180,7 +191,7 @@ DependecyObjectMap::CallOnNamedObject(const trace::Call& call)
         obj->add_call(trace2call(call));
 }
 
-void
+DependecyObject::Pointer
 DependecyObjectMap::CallOnBoundObjectWithDep(const trace::Call& call,
                                              int dep_obj_param,
                                              DependecyObjectMap& other_objects)
@@ -191,13 +202,15 @@ DependecyObjectMap::CallOnBoundObjectWithDep(const trace::Call& call,
         assert(0);
     }
 
+    DependecyObject::Pointer obj = nullptr;
     unsigned obj_id = call.arg(dep_obj_param).toUInt();
     if (obj_id) {
-        auto obj = other_objects.get_by_id(obj_id);
+        obj = other_objects.get_by_id(obj_id);
         assert(obj);
         m_bound_object[bindpoint]->add_depenency(obj);
     }
     m_bound_object[bindpoint]->add_call(trace2call(call));
+    return obj;
 }
 
 void
@@ -424,6 +437,16 @@ enum TexTypes {
     gl_texture_last
 };
 
+DependecyObject::Pointer
+TextureObjectMap::BindMultitex(const trace::Call& call)
+{
+    unsigned unit = call.arg(0).toUInt() - GL_TEXTURE0;
+    unsigned target = call.arg(1).toUInt();
+    unsigned id = call.arg(2).toUInt();
+    unsigned bindpoint  = get_bindpoint_from_target_and_unit(target, unit);
+    return bind(bindpoint, id);
+}
+
 unsigned
 TextureObjectMap::get_bindpoint_from_call(const trace::Call& call) const
 {
@@ -493,7 +516,14 @@ FramebufferObjectMap::FramebufferObjectMap()
 unsigned
 FramebufferObjectMap::get_bindpoint_from_call(const trace::Call& call) const
 {
-    return call.arg(0).toUInt();
+    switch (call.arg(0).toUInt()) {
+    case GL_FRAMEBUFFER:
+    case GL_DRAW_FRAMEBUFFER:
+        return GL_DRAW_FRAMEBUFFER;
+    case GL_READ_FRAMEBUFFER:
+        return GL_READ_FRAMEBUFFER;
+    }
+    return 0;
 }
 
 DependecyObject::Pointer
@@ -535,10 +565,12 @@ FramebufferObjectMap::ReadBuffer(const trace::Call& call)
 void FramebufferObjectMap::DrawFromBuffer(const trace::Call& call, BufferObjectMap& buffers)
 {
     auto fbo = bound_to(GL_DRAW_FRAMEBUFFER);
-    auto buf = buffers.bound_to_target(GL_ELEMENT_ARRAY_BUFFER);
-    if (buf)
-        fbo->add_depenency(buf);
-    fbo->add_call(trace2call(call));
+    if (fbo->id()) {
+        auto buf = buffers.bound_to_target(GL_ELEMENT_ARRAY_BUFFER);
+        if (buf)
+            fbo->add_depenency(buf);
+        fbo->add_call(trace2call(call));
+    }
 }
 
 }
