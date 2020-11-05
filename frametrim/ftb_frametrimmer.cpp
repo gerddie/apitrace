@@ -261,6 +261,11 @@ void FrameTrimmeImpl::start_target_frame()
     m_recording_frame = true;
     m_matrix_states.emit_state_to_lists(m_required_calls);
 
+    for (auto&& [name, call] : m_state_calls)
+        m_required_calls.insert(call);
+
+    for (auto&& [id, call]: m_enables)
+        m_required_calls.insert(call);
 
     m_programs.emit_bound_objects(m_required_calls);
     m_textures.emit_bound_objects(m_required_calls);

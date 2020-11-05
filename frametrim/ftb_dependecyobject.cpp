@@ -148,8 +148,8 @@ DependecyObjectMap::CallOnBoundObject(const trace::Call& call)
 {
     unsigned bindpoint = get_bindpoint_from_call(call);
     if (!m_bound_object[bindpoint])  {
-        std::cerr << "required object not bound in call " << call.no << ": " << call.name() << "\n";
-        assert(0);
+        std::cerr << "no object not bound in call " << call.no << ": " << call.name() << "\n";
+        return;
     }
 
     m_bound_object[bindpoint]->add_call(trace2call(call));
