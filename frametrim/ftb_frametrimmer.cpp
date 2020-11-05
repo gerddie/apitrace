@@ -88,6 +88,7 @@ struct FrameTrimmeImpl {
     void Bind(const trace::Call& call, DependecyObjectMap& map, unsigned bind_param);
     void BindFbo(const trace::Call& call, DependecyObjectMap& map,
                        unsigned bind_param);
+    void WaitSync(const trace::Call& call);
 
     void todo(const trace::Call& call);
     void ignore_history(const trace::Call& call);
@@ -125,8 +126,6 @@ struct FrameTrimmeImpl {
     SyncObjectMap m_sync_objects;
     VertexArrayMap m_vertex_arrays;
     ObjectMap m_vertex_attrib_pointers;
-
-
 
     std::unordered_map<GLint, DependecyObject::Pointer> m_vertex_attr_pointer;
     std::unordered_map<GLint, PTraceCall> m_va_enables;
@@ -280,6 +279,9 @@ FrameTrimmeImpl::skip_delete_obj(const trace::Call& call)
 {
     if (!strcmp(call.name(), "glDeleteProgram"))
         return skip_delete_impl(call.arg(0).toUInt(), m_programs);
+
+    if (!strcmp(call.name(), "glDeleteSync"))
+        return skip_delete_impl(call.arg(0).toUInt(), m_sync_objects);
 
     DependecyObjectMap *map = nullptr;
     if (!strcmp(call.name(), "glDeleteBuffers"))
@@ -660,8 +662,8 @@ FrameTrimmeImpl::register_state_calls()
     MAP(glEnable, record_required_call);
 
     MAP_GENOBJ(glFenceSync, m_sync_objects, SyncObjectMap::Create);
-    MAP_GENOBJ(glWaitSync, m_sync_objects, SyncObjectMap::CallOnNamedObject);
-    MAP_GENOBJ(glClientWaitSync, m_sync_objects, SyncObjectMap::CallOnNamedObject);
+    MAP(glWaitSync, WaitSync);
+    MAP(glClientWaitSync, WaitSync);
     MAP_GENOBJ(glDeleteSync, m_sync_objects, SyncObjectMap::CallOnNamedObject);
 }
 
@@ -866,6 +868,16 @@ FrameTrimmeImpl::Bind(const trace::Call& call, DependecyObjectMap& map,
         bound_obj->add_call(trace2call(call));
     if (m_recording_frame && bound_obj)
         bound_obj->append_calls(m_required_calls);
+}
+
+void
+FrameTrimmeImpl::WaitSync(const trace::Call& call)
+{
+    auto obj = m_sync_objects.get_by_id(call.arg(0).toUInt());
+    assert(obj);
+    obj->add_call(trace2call(call));
+    if (m_recording_frame)
+        obj->append_calls(m_required_calls);
 }
 
 void
