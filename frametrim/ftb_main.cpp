@@ -67,8 +67,8 @@ usage(void)
             << synopsis << "\n"
                            "\n"
                            "    -h, --help               Show detailed help for trim options and exit\n"
-                           "    -f,  --frames=FRAME        Frame the trace should be reduced to.\n"
-                           "    -s,  --setupframes=FRAME     Frame that are kept in the trace but but without the end-of-frame command.\n"
+                           "    -f, --frames=FRAME       Frame the trace should be reduced to.\n"
+                           "    -s, --setupframes=FRAME   Frame that are kept in the trace but but without the end-of-frame command.\n"
                            "    -t, --top-calls-per-frame=NUMBER Print NUMBER of frames with the top amount of OpenGL calls\n"
                            "    -o, --output=TRACE_FILE  Output trace file\n"
                ;
@@ -80,7 +80,7 @@ enum {
 };
 
 const static char *
-shortOptions = "tho:x";
+shortOptions = "t:ho:f:s:x";
 
 bool operator < (std::pair<unsigned, unsigned>& lhs, std::pair<unsigned, unsigned>& rhs)
 {
@@ -91,8 +91,8 @@ const static struct option
         longOptions[] = {
 {"help", no_argument, 0, 'h'},
 {"top-calls-per-frame", required_argument, 0, 't'},
-{"frames", required_argument, 0, FRAMES_OPT},
-{"keyframes", required_argument, 0, SETUPFRAMES_OPT},
+{"frames", required_argument, 0, 'f'},
+{"keyframes", required_argument, 0, 's'},
 {"output", required_argument, 0, 'o'},
 {0, 0, 0, 0}
 };
