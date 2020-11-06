@@ -654,7 +654,7 @@ FrameTrimmeImpl::register_state_calls()
         "glFinish",
     };
 
-    auto state_call_func = bind(&FrameTrimmeImpl::record_required_call, this, _1);
+    auto state_call_func = bind(&FrameTrimmeImpl::record_state_call, this, _1, 0);
     update_call_table(state_calls, state_call_func);
 
     /* These are state functions with an extra parameter */
@@ -890,6 +890,9 @@ FrameTrimmeImpl::Bind(const trace::Call& call, DependecyObjectMap& map,
     auto bound_obj = map.Bind(call, bind_param);
     if (bound_obj)
         bound_obj->add_call(trace2call(call));
+    else
+        map.add_call(trace2call(call));
+
     if (m_recording_frame && bound_obj)
         bound_obj->emit_calls_to(m_required_calls);
 }
@@ -901,6 +904,8 @@ FrameTrimmeImpl::BindWithCreate(const trace::Call& call, DependecyObjectMap& map
     auto bound_obj = map.BindWithCreate(call, bind_param);
     if (bound_obj)
         bound_obj->add_call(trace2call(call));
+    else
+        map.add_call(trace2call(call));
     if (m_recording_frame && bound_obj)
         bound_obj->emit_calls_to(m_required_calls);
 }
@@ -908,6 +913,11 @@ FrameTrimmeImpl::BindWithCreate(const trace::Call& call, DependecyObjectMap& map
 void FrameTrimmeImpl::BindMultitex(const trace::Call& call)
 {
     auto tex = m_textures.BindMultitex(call);
+    if (tex)
+        tex->add_call(trace2call(call));
+    else
+        m_textures.add_call(trace2call(call));
+
     if (m_recording_frame && tex)
         tex->emit_calls_to(m_required_calls);
 }
