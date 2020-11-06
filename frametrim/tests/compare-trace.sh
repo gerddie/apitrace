@@ -1,6 +1,6 @@
 #/bin/bash
 
-trim="$1/glxtrim-lazy"
+trim="$1/apitrace-frametrim-fast"
 apitrace="$1/apitrace"
 datadir="$2"
 trace="$3"

@@ -14,7 +14,7 @@ include_directories (
 
 cmake_policy(SET CMP0079 NEW)
 
-add_executable(glxtrim
+add_executable(apitrace-frametrim
    ft_bufferstate.cpp
    ft_framebuffer.cpp
    ft_frametrimmer.cpp
@@ -33,14 +33,14 @@ add_executable(glxtrim
    ft_vertexattribpointer.cpp
    )
 
-set_target_properties(glxtrim PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+set_target_properties(apitrace-frametrim PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
-target_link_libraries (glxtrim
+target_link_libraries(apitrace-frametrim
     retrace_common
     glretrace_common
     )
 
-add_executable(glxtrim-lazy
+add_executable(apitrace-frametrim-fast
    ftb_dependecyobject.cpp
    ftb_frametrimmer.cpp
    ftb_main.cpp
@@ -49,9 +49,9 @@ add_executable(glxtrim-lazy
    ft_tracecall.cpp
    ft_tracecall.cpp)
 
-set_target_properties(glxtrim-lazy PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+set_target_properties(apitrace-frametrim-fast PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
-target_link_libraries (glxtrim-lazy
+target_link_libraries (apitrace-frametrim-fast
     retrace_common
     glretrace_common
     )
