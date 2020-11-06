@@ -59,13 +59,12 @@ void
 UsedObject::emit_calls_to(CallSet& out_list)
 {
     if (!m_emitted) {
+        m_emitted = true;
         for (auto&& n : m_calls)
             out_list.insert(n);
 
         for (auto&& o : m_dependencies)
             o->emit_calls_to(out_list);
-
-        m_emitted = true;
     }
 }
 
@@ -194,7 +193,8 @@ DependecyObjectMap::CallOnNamedObject(const trace::Call& call)
 UsedObject::Pointer
 DependecyObjectMap::CallOnBoundObjectWithDep(const trace::Call& call,
                                              int dep_obj_param,
-                                             DependecyObjectMap& other_objects)
+                                             DependecyObjectMap& other_objects,
+                                             bool reverse_dep_too)
 {
     unsigned bindpoint = get_bindpoint_from_call(call);
     if (!m_bound_object[bindpoint]) {
@@ -208,6 +208,8 @@ DependecyObjectMap::CallOnBoundObjectWithDep(const trace::Call& call,
         obj = other_objects.get_by_id(obj_id);
         assert(obj);
         m_bound_object[bindpoint]->add_depenency(obj);
+        if (reverse_dep_too)
+            obj->add_depenency(m_bound_object[bindpoint]);
     }
     m_bound_object[bindpoint]->add_call(trace2call(call));
     return obj;
@@ -215,8 +217,9 @@ DependecyObjectMap::CallOnBoundObjectWithDep(const trace::Call& call,
 
 void
 DependecyObjectMap::CallOnNamedObjectWithDep(const trace::Call& call,
+                                             DependecyObjectMap& other_objects,
                                              int dep_obj_param,
-                                             DependecyObjectMap& other_objects)
+                                             bool reverse_dep_too)
 {
     auto obj = m_objects[call.arg(0).toUInt()];
 
@@ -228,6 +231,8 @@ DependecyObjectMap::CallOnNamedObjectWithDep(const trace::Call& call,
         auto dep_obj = other_objects.get_by_id(dep_obj_id);
         assert(dep_obj);
         obj->add_depenency(dep_obj);
+        if (reverse_dep_too)
+            dep_obj->add_depenency(obj);
     }
     obj->add_call(trace2call(call));
 }

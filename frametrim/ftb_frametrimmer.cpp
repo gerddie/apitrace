@@ -92,7 +92,7 @@ struct FrameTrimmeImpl {
                         unsigned bind_param);
     void WaitSync(const trace::Call& call);
     void CallOnBoundObjWithDep(const trace::Call& call, DependecyObjectMap& map,
-                                unsigned obj_id_param, DependecyObjectMap &dep_map);
+                               unsigned obj_id_param, DependecyObjectMap &dep_map, bool reverse_dep_too);
 
     void BindMultitex(const trace::Call& call);
 
@@ -405,7 +405,7 @@ FrameTrimmeImpl::record_state_call(const trace::Call& call,
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, std::ref(data1), \
                         std::ref(data2))))
 
-#define MAP_GENOBJ_DATAREF_2(name, obj, call, data, param1, param2) \
+#define MAP_GENOBJ_RDD(name, obj, call, data, param1, param2) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
                         std::ref(data), param1, param2)))
 
@@ -420,6 +420,9 @@ FrameTrimmeImpl::record_state_call(const trace::Call& call,
     m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, this, _1, \
                         std::ref(data1), param1, std::ref(data2))))
 
+#define MAP_RDRD(name, call, data1, param1, data2, param2) \
+    m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, this, _1, \
+                        std::ref(data1), param1, std::ref(data2), param2)))
 
 void FrameTrimmeImpl::register_legacy_calls()
 {
@@ -494,11 +497,11 @@ void FrameTrimmeImpl::register_framebuffer_calls()
     MAP_GENOBJ_DATA(glViewport, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
 
     MAP_GENOBJ(glBlitFramebuffer, m_fbo, FramebufferObjectMap::Blit);
-    MAP_DATAREF_DATA_DATAREF(glFramebufferTexture, CallOnBoundObjWithDep, m_fbo, 2, m_textures);
-    MAP_DATAREF_DATA_DATAREF(glFramebufferTexture1D, CallOnBoundObjWithDep, m_fbo,
-                            3, m_textures);
-    MAP_DATAREF_DATA_DATAREF(glFramebufferTexture2D, CallOnBoundObjWithDep, m_fbo,
-                            3, m_textures);
+    MAP_RDRD(glFramebufferTexture, CallOnBoundObjWithDep, m_fbo, 2, m_textures, true);
+    MAP_RDRD(glFramebufferTexture1D, CallOnBoundObjWithDep, m_fbo,
+                            3, m_textures, true);
+    MAP_RDRD(glFramebufferTexture2D, CallOnBoundObjWithDep, m_fbo,
+                            3, m_textures, true);
 
     MAP_GENOBJ(glReadBuffer, m_fbo, FramebufferObjectMap::ReadBuffer);
     MAP_GENOBJ_DATA(glDrawBuffer, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
@@ -508,9 +511,8 @@ void FrameTrimmeImpl::register_framebuffer_calls()
                          FramebufferStateMap::attach_texture3d, m_textures);
       MAP(glReadBuffer, ReadBuffer); */
 
-
-    MAP_GENOBJ_DATA_DATAREF(glFramebufferRenderbuffer, m_fbo,
-                            FramebufferObjectMap::CallOnBoundObjectWithDep, 3, m_renderbuffers);
+    MAP_RDRD(glFramebufferRenderbuffer, CallOnBoundObjWithDep,
+             m_fbo, 3, m_renderbuffers, true);
 
     MAP_GENOBJ_DATA(glClear, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
 
@@ -553,10 +555,10 @@ void FrameTrimmeImpl::register_draw_calls()
 void
 FrameTrimmeImpl::register_program_calls()
 {
-    MAP_GENOBJ_DATA_DATAREF(glAttachObject, m_programs,
-                            ProgramObjectMap::CallOnNamedObjectWithDep, 1, m_shaders);
-    MAP_GENOBJ_DATA_DATAREF(glAttachShader, m_programs,
-                            ProgramObjectMap::CallOnNamedObjectWithDep, 1, m_shaders);
+    MAP_GENOBJ_RDD(glAttachObject, m_programs,
+                   ProgramObjectMap::CallOnNamedObjectWithDep, m_shaders, 1, false);
+    MAP_GENOBJ_RDD(glAttachShader, m_programs,
+                   ProgramObjectMap::CallOnNamedObjectWithDep, m_shaders, 1, false);
 
     MAP_GENOBJ(glCompileShader, m_shaders, ShaderStateMap::CallOnNamedObject);
     MAP_GENOBJ(glCreateShader, m_shaders, ShaderStateMap::Create);
@@ -945,9 +947,10 @@ FrameTrimmeImpl::BindFbo(const trace::Call& call, DependecyObjectMap& map,
 void
 FrameTrimmeImpl::CallOnBoundObjWithDep(const trace::Call& call, DependecyObjectMap& map,
                                         unsigned obj_id_param,
-                                        DependecyObjectMap& dep_map)
+                                        DependecyObjectMap& dep_map, bool reverse_dep_too)
 {
-    auto dep_obj = map.CallOnBoundObjectWithDep(call, obj_id_param, dep_map);
+    auto dep_obj = map.CallOnBoundObjectWithDep(call, obj_id_param, dep_map,
+                                                reverse_dep_too);
     if (m_recording_frame && dep_obj)
         dep_obj->emit_calls_to(m_required_calls);
 }

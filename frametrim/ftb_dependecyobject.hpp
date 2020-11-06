@@ -45,9 +45,9 @@ public:
     void CallOnNamedObject(const trace::Call& call);
     UsedObject::Pointer
     CallOnBoundObjectWithDep(const trace::Call& call, int dep_obj_param,
-                             DependecyObjectMap& other_objects);
-    void CallOnNamedObjectWithDep(const trace::Call& call, int dep_obj_param,
-                                        DependecyObjectMap& other_objects);
+                             DependecyObjectMap& other_objects, bool reverse_dep_too);
+    void CallOnNamedObjectWithDep(const trace::Call& call,
+                                  DependecyObjectMap& other_objects, int dep_obj_param, bool reverse_dep_too);
 
 
     UsedObject::Pointer get_by_id(unsigned id) const;
