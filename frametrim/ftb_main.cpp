@@ -46,7 +46,7 @@ using namespace frametrim;
 
 struct trim_options {
     /* Frames to be included in trace. */
-    trace::CallSet keyframes;
+    trace::CallSet setupframes;
 
     /* Frames to keep replayable */
     trace::CallSet frames;
@@ -67,16 +67,16 @@ usage(void)
             << synopsis << "\n"
                            "\n"
                            "    -h, --help               Show detailed help for trim options and exit\n"
-                           "        --frames=FRAME        Frame the trace should be reduced to.\n"
-                           "        --keyframes=FRAME     Frame that are kept in the trace but but without the end-of-frame command.\n"
+                           "    -f,  --frames=FRAME        Frame the trace should be reduced to.\n"
+                           "    -s,  --setupframes=FRAME     Frame that are kept in the trace but but without the end-of-frame command.\n"
                            "    -t, --top-calls-per-frame=NUMBER Print NUMBER of frames with the top amount of OpenGL calls\n"
                            "    -o, --output=TRACE_FILE  Output trace file\n"
                ;
 }
 
 enum {
-    FRAMES_OPT = CHAR_MAX + 1,
-    KEYFRAMES_OPT = CHAR_MAX + 2
+    FRAMES_OPT = 'f',
+    SETUPFRAMES_OPT = 's'
 };
 
 const static char *
@@ -92,7 +92,7 @@ const static struct option
 {"help", no_argument, 0, 'h'},
 {"top-calls-per-frame", required_argument, 0, 't'},
 {"frames", required_argument, 0, FRAMES_OPT},
-{"keyframes", required_argument, 0, KEYFRAMES_OPT},
+{"keyframes", required_argument, 0, SETUPFRAMES_OPT},
 {"output", required_argument, 0, 'o'},
 {0, 0, 0, 0}
 };
@@ -109,12 +109,12 @@ static int trim_to_frame(const char *filename,
         return 1;
     }
 
-    if (options.frames.getLast() < options.keyframes.getLast() &&
-        !options.keyframes.empty()) {
+    if (options.frames.getLast() < options.setupframes.getLast() &&
+        !options.setupframes.empty()) {
         std::cerr << "error: last frame to keep ("
                   << options.frames.getLast()
                   << ") must be larger than last key frame"
-                  << options.keyframes.getLast() << "\n";
+                  << options.setupframes.getLast() << "\n";
         return 1;
     }
 
@@ -147,7 +147,7 @@ static int trim_to_frame(const char *filename,
         }
 
         Frametype ft = ft_none;
-        if (options.keyframes.contains(frame, call->flags))
+        if (options.setupframes.contains(frame, call->flags))
             ft = ft_key_frame;
         if (options.frames.contains(frame, call->flags))
             ft = ft_retain_frame;
@@ -230,8 +230,8 @@ int main(int argc, char **argv)
         case FRAMES_OPT:
             options.frames.merge(optarg);
             break;
-        case KEYFRAMES_OPT:
-            options.keyframes.merge(optarg);
+        case SETUPFRAMES_OPT:
+            options.setupframes.merge(optarg);
             break;
         case 'o':
             options.output = optarg;
