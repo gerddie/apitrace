@@ -48,7 +48,7 @@ struct FrameTrimmeImpl {
         pt_last
     };
 
-    using ObjectMap = std::unordered_map<unsigned, DependecyObject::Pointer>;
+    using ObjectMap = std::unordered_map<unsigned, UsedObject::Pointer>;
 
     FrameTrimmeImpl();
     void call(const trace::Call& call, Frametype frametype);
@@ -134,7 +134,7 @@ struct FrameTrimmeImpl {
     VertexArrayMap m_vertex_arrays;
     VertexAttribObjectMap m_vertex_attrib_pointers;
 
-    std::unordered_map<GLint, DependecyObject::Pointer> m_vertex_attr_pointer;
+    std::unordered_map<GLint, UsedObject::Pointer> m_vertex_attr_pointer;
     std::unordered_map<GLint, PTraceCall> m_va_enables;
     std::unordered_map<GLint, PTraceCall> m_vertex_attribs;
     std::map<std::string, PTraceCall> m_state_calls;
@@ -654,7 +654,7 @@ FrameTrimmeImpl::register_state_calls()
         "glFinish",
     };
 
-    auto state_call_func = bind(&FrameTrimmeImpl::record_state_call, this, _1, 0);
+    auto state_call_func = bind(&FrameTrimmeImpl::record_required_call, this, _1);
     update_call_table(state_calls, state_call_func);
 
     /* These are state functions with an extra parameter */
@@ -891,7 +891,7 @@ FrameTrimmeImpl::Bind(const trace::Call& call, DependecyObjectMap& map,
     if (bound_obj)
         bound_obj->add_call(trace2call(call));
     if (m_recording_frame && bound_obj)
-        bound_obj->append_calls(m_required_calls);
+        bound_obj->emit_calls_to(m_required_calls);
 }
 
 void
@@ -902,14 +902,14 @@ FrameTrimmeImpl::BindWithCreate(const trace::Call& call, DependecyObjectMap& map
     if (bound_obj)
         bound_obj->add_call(trace2call(call));
     if (m_recording_frame && bound_obj)
-        bound_obj->append_calls(m_required_calls);
+        bound_obj->emit_calls_to(m_required_calls);
 }
 
 void FrameTrimmeImpl::BindMultitex(const trace::Call& call)
 {
     auto tex = m_textures.BindMultitex(call);
     if (m_recording_frame && tex)
-        tex->append_calls(m_required_calls);
+        tex->emit_calls_to(m_required_calls);
 }
 
 void
@@ -919,7 +919,7 @@ FrameTrimmeImpl::WaitSync(const trace::Call& call)
     assert(obj);
     obj->add_call(trace2call(call));
     if (m_recording_frame)
-        obj->append_calls(m_required_calls);
+        obj->emit_calls_to(m_required_calls);
 }
 
 void
@@ -929,7 +929,7 @@ FrameTrimmeImpl::BindFbo(const trace::Call& call, DependecyObjectMap& map,
     auto bound_obj = map.Bind(call, bind_param);
     bound_obj->add_call(trace2call(call));
     if (m_recording_frame && bound_obj->id())
-        bound_obj->append_calls(m_required_calls);
+        bound_obj->emit_calls_to(m_required_calls);
 }
 
 void
@@ -939,7 +939,7 @@ FrameTrimmeImpl::CallOnBoundObjWithDep(const trace::Call& call, DependecyObjectM
 {
     auto dep_obj = map.CallOnBoundObjectWithDep(call, obj_id_param, dep_map);
     if (m_recording_frame && dep_obj)
-        dep_obj->append_calls(m_required_calls);
+        dep_obj->emit_calls_to(m_required_calls);
 }
 
 void

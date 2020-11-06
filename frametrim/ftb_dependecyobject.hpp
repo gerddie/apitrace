@@ -5,22 +5,21 @@
 
 namespace frametrim {
 
-class DependecyObject
-{
+class UsedObject {
 public:
-    using Pointer = std::shared_ptr<DependecyObject>;
+    using Pointer = std::shared_ptr<UsedObject>;
 
-    DependecyObject(unsigned id);
+    UsedObject(unsigned id);
 
     unsigned id() const;
 
     void add_call(PTraceCall call);
     void set_call(PTraceCall call);
+
     void add_depenency(Pointer dep);
     void set_depenency(Pointer dep);
 
-    void append_calls(CallSet& out_list);
-
+    void emit_calls_to(CallSet& out_list);
     bool emitted() const;
 
 private:
@@ -39,33 +38,33 @@ public:
     void Create(const trace::Call& call);
     void Delete(const trace::Call& call);
 
-    DependecyObject::Pointer Bind(const trace::Call& call, unsigned obj_id_param);
+    UsedObject::Pointer Bind(const trace::Call& call, unsigned obj_id_param);
     void CallOnBoundObject(const trace::Call& call);
-    DependecyObject::Pointer BindWithCreate(const trace::Call& call, unsigned obj_id_param);
+    UsedObject::Pointer BindWithCreate(const trace::Call& call, unsigned obj_id_param);
     void CallOnObjectBoundTo(const trace::Call& call, unsigned bindpoint);
     void CallOnNamedObject(const trace::Call& call);
-    DependecyObject::Pointer
+    UsedObject::Pointer
     CallOnBoundObjectWithDep(const trace::Call& call, int dep_obj_param,
                              DependecyObjectMap& other_objects);
     void CallOnNamedObjectWithDep(const trace::Call& call, int dep_obj_param,
                                         DependecyObjectMap& other_objects);
 
 
-    DependecyObject::Pointer get_by_id(unsigned id) const;
+    UsedObject::Pointer get_by_id(unsigned id) const;
     void add_call(PTraceCall call);
 
     void emit_bound_objects(CallSet& out_calls);
-    DependecyObject::Pointer bound_to(unsigned bindpoint);
+    UsedObject::Pointer bound_to(unsigned bindpoint);
 protected:
-    DependecyObject::Pointer bind(unsigned bindpoint, unsigned id);
+    UsedObject::Pointer bind(unsigned bindpoint, unsigned id);
 
-    void add_object(unsigned id, DependecyObject::Pointer obj);
+    void add_object(unsigned id, UsedObject::Pointer obj);
 private:
-    virtual DependecyObject::Pointer bind_target(unsigned id, unsigned bindpoint);
+    virtual UsedObject::Pointer bind_target(unsigned id, unsigned bindpoint);
     virtual unsigned get_bindpoint_from_call(const trace::Call& call) const = 0;
 
-    std::unordered_map<unsigned, DependecyObject::Pointer> m_objects;
-    std::unordered_map<unsigned, DependecyObject::Pointer> m_bound_object;
+    std::unordered_map<unsigned, UsedObject::Pointer> m_objects;
+    std::unordered_map<unsigned, UsedObject::Pointer> m_bound_object;
 
     std::vector<PTraceCall> m_calls;
 };
@@ -88,7 +87,7 @@ public:
     void unmap(const trace::Call& call);
     void memcopy(const trace::Call& call);
 
-    DependecyObject::Pointer bound_to_target(unsigned target, unsigned index = 0);
+    UsedObject::Pointer bound_to_target(unsigned target, unsigned index = 0);
 
 private:
     unsigned get_bindpoint_from_call(const trace::Call& call) const override;
@@ -96,7 +95,7 @@ private:
     unsigned get_bindpoint(unsigned target, unsigned index) const;
 
     std::unordered_map<unsigned,
-        std::unordered_map<unsigned, DependecyObject::Pointer>> m_mapped_buffers;
+        std::unordered_map<unsigned, UsedObject::Pointer>> m_mapped_buffers;
 
     std::unordered_map<unsigned, unsigned> m_buffer_sizes;
     std::unordered_map<unsigned, std::pair<uint64_t, uint64_t>> m_buffer_mappings;
@@ -113,7 +112,7 @@ class TextureObjectMap: public DependecyObjectMap {
 public:
     TextureObjectMap();
     void ActiveTexture(const trace::Call& call);
-    DependecyObject::Pointer BindMultitex(const trace::Call& call);
+    UsedObject::Pointer BindMultitex(const trace::Call& call);
 private:
     unsigned get_bindpoint_from_call(const trace::Call& call) const override;
     unsigned get_bindpoint_from_target_and_unit(unsigned target, unsigned unit) const;
@@ -127,7 +126,7 @@ public:
     void ReadBuffer(const trace::Call& call);
     void DrawFromBuffer(const trace::Call& call, BufferObjectMap &buffers);
 private:
-    DependecyObject::Pointer
+    UsedObject::Pointer
     bind_target(unsigned id, unsigned bindpoint) override;
     unsigned get_bindpoint_from_call(const trace::Call& call) const override;
 };
