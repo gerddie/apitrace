@@ -409,6 +409,15 @@ FrameTrimmeImpl::record_state_call(const trace::Call& call,
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
                         std::ref(data), param1, param2)))
 
+#define MAP_GENOBJ_RRD(name, obj, call, data1, data2, param) \
+    m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
+                        std::ref(data1), std::ref(data2), param)))
+
+#define MAP_GENOBJ_RRR(name, obj, call, data1, data2, data3) \
+    m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
+                        std::ref(data1), std::ref(data2), std::ref(data3))))
+
+
 #define MAP_GENOBJ_DATA_DATAREF(name, obj, call, data, dataref) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, data, std::ref(dataref))))
 
@@ -489,8 +498,6 @@ void FrameTrimmeImpl::register_framebuffer_calls()
     MAP_GENOBJ(glGenRenderbuffer, m_renderbuffers, DependecyObjectWithSingleBindPointMap::Generate);
     MAP_GENOBJ(glRenderbufferStorage, m_renderbuffers, DependecyObjectWithSingleBindPointMap::CallOnBoundObject);
 
-
-
     MAP_GENOBJ(glGenFramebuffer, m_fbo, FramebufferObjectMap::Generate);
     MAP_GENOBJ(glDeleteFramebuffers, m_fbo, FramebufferObjectMap::Destroy);
     MAP_DATAREF_DATA(glBindFramebuffer, BindFbo, m_fbo, 1);
@@ -506,6 +513,10 @@ void FrameTrimmeImpl::register_framebuffer_calls()
     MAP_GENOBJ(glReadBuffer, m_fbo, FramebufferObjectMap::ReadBuffer);
     MAP_GENOBJ_DATA(glDrawBuffer, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
 
+    MAP_GENOBJ_DATA(glClearBuffer, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
+    MAP_GENOBJ_DATA(glClearBufferfi, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
+    MAP_GENOBJ_DATA(glClearBufferfv, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
+    MAP_GENOBJ_DATA(glClearBufferiv, m_fbo, FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
 
 /*    MAP_GENOBJ_DATAREF(glFramebufferTexture3D, m_fbo,
                          FramebufferStateMap::attach_texture3d, m_textures);
@@ -538,6 +549,8 @@ FrameTrimmeImpl::register_buffer_calls()
     MAP_GENOBJ(memcpy, m_buffers, BufferObjectMap::memcopy);
     MAP_GENOBJ(glFlushMappedBufferRange, m_buffers, BufferObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glUnmapBuffer, m_buffers, BufferObjectMap::unmap);
+    MAP_GENOBJ(glClearBufferData, m_buffers, BufferObjectMap::CallOnBoundObject);
+    MAP_GENOBJ(glInvalidateBufferData, m_buffers, BufferObjectMap::CallOnNamedObject);
 }
 
 void FrameTrimmeImpl::register_draw_calls()
@@ -578,6 +591,7 @@ FrameTrimmeImpl::register_program_calls()
     MAP_GENOBJ(glUniform, m_programs, ProgramObjectMap::CallOnBoundObject);
     MAP_DATAREF_DATA(glUseProgram, Bind, m_programs, 0);
     MAP_GENOBJ(glProgramParameter, m_programs, ProgramObjectMap::CallOnNamedObject);
+    MAP_GENOBJ(glShaderStorageBlockBinding, m_programs, ProgramObjectMap::CallOnNamedObject);
 }
 
 void FrameTrimmeImpl::register_texture_calls()
@@ -594,6 +608,7 @@ void FrameTrimmeImpl::register_texture_calls()
     MAP_GENOBJ(glGenerateMipmap, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexImage1D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexImage2D, m_textures, TextureObjectMap::CallOnBoundObject);
+    MAP_GENOBJ(glTexStorage1D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexStorage2D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexStorage3D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexImage3D, m_textures, TextureObjectMap::CallOnBoundObject);
@@ -602,11 +617,19 @@ void FrameTrimmeImpl::register_texture_calls()
     MAP_GENOBJ(glCompressedTexSubImage2D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexSubImage3D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexParameter, m_textures, TextureObjectMap::CallOnBoundObject);
+    MAP_GENOBJ_RDD(glTextureView, m_textures, TextureObjectMap::CallOnNamedObjectWithDep,
+                   m_textures, 2, true);
+
+    MAP_GENOBJ_RDD(glTexBuffer, m_textures, TextureObjectMap::CallOnBoundObjectWithDep,
+                   m_buffers, 2, true);
 
     /* Should add a dependency on the read fbo */
     MAP_GENOBJ(glCopyTexSubImage, m_textures, TextureObjectMap::CallOnBoundObject);
 
     MAP_GENOBJ(glCopyTexImage2D, m_textures, TextureObjectMap::CallOnBoundObject);
+
+    MAP_GENOBJ(glCopyImageSubData, m_textures, TextureObjectMap::Copy);
+    MAP_GENOBJ(glBindImageTexture, m_textures, TextureObjectMap::BindToImageUnit);
 
     /*
     MAP_GENOBJ(glCopyTexSubImage2D, m_textures, TextureStateMap::copy_sub_data);
@@ -648,6 +671,7 @@ FrameTrimmeImpl::register_state_calls()
         "glPolygonMode",
         "glPolygonOffset",
         "glPolygonStipple",
+        "glProvokingVertex",
         "glPrimitiveBoundingBox",
         "glSampleCoverage",
         "glShadeModel",
@@ -685,6 +709,7 @@ FrameTrimmeImpl::register_state_calls()
 
     MAP(glDisable, record_required_call);
     MAP(glEnable, record_required_call);
+    MAP(glEnablei, record_required_call);
 
     MAP_GENOBJ(glFenceSync, m_sync_objects, SyncObjectMap::Create);
     MAP(glWaitSync, WaitSync);
@@ -778,7 +803,12 @@ FrameTrimmeImpl::register_va_calls()
 
     MAP(glDisableVertexAttribArray, record_required_call);
     MAP(glEnableVertexAttribArray, record_required_call);
-    MAP_GENOBJ_DATAREF(glVertexAttribPointer, m_vertex_attrib_pointers, VertexAttribObjectMap::BindAVO, m_buffers);
+    MAP_GENOBJ_DATAREF(glVertexAttribPointer, m_vertex_attrib_pointers,
+                       VertexAttribObjectMap::BindAVO, m_buffers);
+
+    MAP_GENOBJ_RRR(glBindVertexBuffer, m_vertex_attrib_pointers,
+                   VertexAttribObjectMap::BindVAOBuf, m_buffers,
+                   m_required_calls, m_recording_frame);
 
     MAP(glVertexPointer, record_required_call);
     MAP(glTexCoordPointer, record_required_call);
@@ -949,7 +979,7 @@ FrameTrimmeImpl::CallOnBoundObjWithDep(const trace::Call& call, DependecyObjectM
                                         unsigned obj_id_param,
                                         DependecyObjectMap& dep_map, bool reverse_dep_too)
 {
-    auto dep_obj = map.CallOnBoundObjectWithDep(call, obj_id_param, dep_map,
+    auto dep_obj = map.CallOnBoundObjectWithDep(call, dep_map, obj_id_param,
                                                 reverse_dep_too);
     if (m_recording_frame && dep_obj)
         dep_obj->emit_calls_to(m_required_calls);

@@ -192,8 +192,8 @@ DependecyObjectMap::CallOnNamedObject(const trace::Call& call)
 
 UsedObject::Pointer
 DependecyObjectMap::CallOnBoundObjectWithDep(const trace::Call& call,
-                                             int dep_obj_param,
                                              DependecyObjectMap& other_objects,
+                                             int dep_obj_param,
                                              bool reverse_dep_too)
 {
     unsigned bindpoint = get_bindpoint_from_call(call);
@@ -223,9 +223,17 @@ DependecyObjectMap::CallOnNamedObjectWithDep(const trace::Call& call,
 {
     auto obj = m_objects[call.arg(0).toUInt()];
 
-    if (!obj && !call.arg(0).toUInt())
-        return;
-    assert(obj);
+    if (!obj) {
+        if (!call.arg(0).toUInt())
+            return;
+
+        std::cerr << "Call:" << call.no << ":" << call.name()
+                  << " Object " << call.arg(0).toUInt() << "not found\n";
+        assert(0);
+    }
+
+
+
     unsigned dep_obj_id = call.arg(dep_obj_param).toUInt();
     if (dep_obj_id) {
         auto dep_obj = other_objects.get_by_id(dep_obj_id);
@@ -411,8 +419,34 @@ VertexAttribObjectMap::BindAVO(const trace::Call& call, BufferObjectMap& buffers
     obj->set_call(trace2call(call));
 
     auto buf = buffers.bound_to_target(GL_ARRAY_BUFFER);
-    if (buf)
+    if (buf) {
         obj->set_depenency(buf);
+    }
+}
+
+void VertexAttribObjectMap::BindVAOBuf(const trace::Call& call, BufferObjectMap& buffers,
+                                       CallSet &out_list, bool emit_dependencies)
+{
+    unsigned id = call.arg(0).toUInt();
+    auto obj = get_by_id(id);
+    if (!obj) {
+        obj = std::make_shared<UsedObject>(id);
+        add_object(id, obj);
+    }
+    bind(id, id);
+    obj->add_call(trace2call(call));
+
+    auto buf = buffers.get_by_id(call.arg(1).toUInt());
+    assert(buf || (call.arg(1).toUInt() == 0));
+    std::cerr << "BindVAOBuf:" << id << ":" << buf->id()
+              << " (" << (emit_dependencies ? "emit" : "") << ")\n";
+    if (buf) {
+        obj->add_depenency(buf);
+        if (emit_dependencies) {
+            std::cerr << "Emit buffer " << buf->id() << "\n";
+            buf->emit_calls_to(out_list);
+        }
+    }
 }
 
 TextureObjectMap::TextureObjectMap():
@@ -439,6 +473,7 @@ enum TexTypes {
     gl_texture_cube_array,
     gl_texture_2dms,
     gl_texture_2dms_array,
+    gl_texture_rectangle,
     gl_texture_last
 };
 
@@ -450,6 +485,31 @@ TextureObjectMap::BindMultitex(const trace::Call& call)
     unsigned id = call.arg(2).toUInt();
     unsigned bindpoint  = get_bindpoint_from_target_and_unit(target, unit);
     return bind(bindpoint, id);
+}
+
+void TextureObjectMap::Copy(const trace::Call& call)
+{
+    unsigned src_id = call.arg(0).toUInt();
+    unsigned dst_id = call.arg(6).toUInt();
+
+    auto src = get_by_id(src_id);
+    auto dst = get_by_id(dst_id);
+    assert(src && dst);
+    dst->add_call(trace2call(call));
+    dst->add_depenency(src);
+}
+
+void TextureObjectMap::BindToImageUnit(const trace::Call& call)
+{
+    unsigned id = call.arg(1).toUInt();
+
+    auto c = trace2call(call);
+    if (id) {
+        auto tex = get_by_id(id);
+        assert(tex);
+        tex->add_call(c);
+    } else
+        add_call(c);
 }
 
 unsigned
@@ -501,6 +561,9 @@ TextureObjectMap::get_bindpoint_from_target_and_unit(unsigned target, unsigned u
         break;
     case GL_TEXTURE_BUFFER:
         target = gl_texture_buffer;
+        break;
+    case GL_TEXTURE_RECTANGLE:
+        target = gl_texture_rectangle;
         break;
     default:
         std::cerr << "target=" << target << "not supported\n";

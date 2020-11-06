@@ -44,8 +44,8 @@ public:
     void CallOnObjectBoundTo(const trace::Call& call, unsigned bindpoint);
     void CallOnNamedObject(const trace::Call& call);
     UsedObject::Pointer
-    CallOnBoundObjectWithDep(const trace::Call& call, int dep_obj_param,
-                             DependecyObjectMap& other_objects, bool reverse_dep_too);
+    CallOnBoundObjectWithDep(const trace::Call& call,
+                             DependecyObjectMap& other_objects, int dep_obj_param, bool reverse_dep_too);
     void CallOnNamedObjectWithDep(const trace::Call& call,
                                   DependecyObjectMap& other_objects, int dep_obj_param, bool reverse_dep_too);
 
@@ -104,8 +104,8 @@ private:
 
 class VertexAttribObjectMap: public DependecyObjectWithDefaultBindPointMap {
 public:
-    void
-    BindAVO(const trace::Call& call, BufferObjectMap& buffers);
+    void BindAVO(const trace::Call& call, BufferObjectMap& buffers);
+    void BindVAOBuf(const trace::Call& call, BufferObjectMap& buffers, CallSet &out_list, bool emit_dependencies);
 };
 
 class TextureObjectMap: public DependecyObjectMap {
@@ -113,6 +113,8 @@ public:
     TextureObjectMap();
     void ActiveTexture(const trace::Call& call);
     UsedObject::Pointer BindMultitex(const trace::Call& call);
+    void Copy(const trace::Call& call);
+    void BindToImageUnit(const trace::Call& call);
 private:
     unsigned get_bindpoint_from_call(const trace::Call& call) const override;
     unsigned get_bindpoint_from_target_and_unit(unsigned target, unsigned unit) const;
