@@ -49,7 +49,7 @@ public:
 
     void
     CallOnBoundObjectWithDepBoundTo(const trace::Call& call, DependecyObjectMap& other_objects,
-                                    int bindingpoint);
+                                    int bindingpoint, CallSet &out_set, bool recording);
 
     void CallOnNamedObjectWithDep(const trace::Call& call,
                                   DependecyObjectMap& other_objects, int dep_obj_param, bool reverse_dep_too);

@@ -242,7 +242,7 @@ DependecyObjectMap::CallOnBoundObjectWithDep(const trace::Call& call,
 void
 DependecyObjectMap::CallOnBoundObjectWithDepBoundTo(const trace::Call& call,
                                                     DependecyObjectMap& other_objects,
-                                                    int bindingpoint)
+                                                    int bindingpoint, CallSet& out_set, bool recording)
 {
     unsigned bindpoint = get_bindpoint_from_call(call);
     if (!m_bound_object[bindpoint]) {
@@ -255,7 +255,10 @@ DependecyObjectMap::CallOnBoundObjectWithDepBoundTo(const trace::Call& call,
     auto dep = other_objects.bound_to(bindingpoint);
     if (dep) {
         m_bound_object[bindpoint]->add_depenency(dep);
+        if (recording)
+            dep->emit_calls_to(out_set);
     }
+
 }
 
 void
