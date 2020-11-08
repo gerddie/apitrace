@@ -230,8 +230,7 @@ DependecyObjectMap::CallOnBoundObjectWithDep(const trace::Call& call,
 void
 DependecyObjectMap::CallOnBoundObjectWithDepBoundTo(const trace::Call& call,
                                                     DependecyObjectMap& other_objects,
-                                                    int bindingpoint,
-                                                    CallSet &out_list, bool emit_dependencies)
+                                                    int bindingpoint)
 {
     unsigned bindpoint = get_bindpoint_from_call(call);
     if (!m_bound_object[bindpoint]) {
@@ -244,16 +243,6 @@ DependecyObjectMap::CallOnBoundObjectWithDepBoundTo(const trace::Call& call,
     auto dep = other_objects.bound_to(bindingpoint);
     if (dep) {
         m_bound_object[bindpoint]->add_depenency(dep);
-        if (emit_dependencies)
-            dep->emit_calls_to(out_list);
-    } else {
-        if (!strcmp(call.name(), "glTexSubImage1D")) {
-            if (!call.arg(6).toPointer()) {
-                std::cerr << call.no << ":Called glTexSubImage1D without data, and "
-                             "GL_PIXEL_UNPACK_BUFFER not bound\n";
-                assert(0);
-            }
-        }
     }
 }
 

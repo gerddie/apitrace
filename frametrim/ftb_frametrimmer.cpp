@@ -410,9 +410,15 @@ FrameTrimmeImpl::record_state_call(const trace::Call& call,
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
                         std::ref(data), param1, param2)))
 
+#define MAP_GENOBJ_RD(name, obj, call, data, param) \
+    m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
+                        std::ref(data), param)))
+
 #define MAP_GENOBJ_RRD(name, obj, call, data1, data2, param) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
                         std::ref(data1), std::ref(data2), param)))
+
+
 
 #define MAP_GENOBJ_RDRR(name, obj, call, data1, param, data2, data3) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
@@ -617,10 +623,10 @@ void FrameTrimmeImpl::register_texture_calls()
     MAP_GENOBJ(glTexStorage2D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexStorage3D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexImage3D, m_textures, TextureObjectMap::CallOnBoundObject);
-    MAP_GENOBJ_RDRR(glTexSubImage1D, m_textures, TextureObjectMap::CallOnBoundObjectWithDepBoundTo,
-               m_buffers, GL_PIXEL_UNPACK_BUFFER, m_required_calls, m_recording_frame);
-    MAP_GENOBJ_RDRR(glTexSubImage2D, m_textures, TextureObjectMap::CallOnBoundObjectWithDepBoundTo,
-                    m_buffers, GL_PIXEL_UNPACK_BUFFER, m_required_calls, m_recording_frame);
+    MAP_GENOBJ_RD(glTexSubImage1D, m_textures, TextureObjectMap::CallOnBoundObjectWithDepBoundTo,
+               m_buffers, GL_PIXEL_UNPACK_BUFFER);
+    MAP_GENOBJ_RD(glTexSubImage2D, m_textures, TextureObjectMap::CallOnBoundObjectWithDepBoundTo,
+                    m_buffers, GL_PIXEL_UNPACK_BUFFER);
     MAP_GENOBJ(glCompressedTexSubImage2D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexSubImage3D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexParameter, m_textures, TextureObjectMap::CallOnBoundObject);
