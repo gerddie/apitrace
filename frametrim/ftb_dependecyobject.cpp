@@ -143,6 +143,18 @@ DependecyObjectMap::bound_to(unsigned target, unsigned index)
     return at_binding(bindpoint);
 }
 
+DependecyObjectMap::ObjectMap::iterator
+DependecyObjectMap::begin()
+{
+    return m_bound_object.begin();
+}
+
+DependecyObjectMap::ObjectMap::iterator
+DependecyObjectMap::end()
+{
+    return m_bound_object.end();
+}
+
 UsedObject::Pointer DependecyObjectMap::at_binding(unsigned index)
 {
     return m_bound_object[index];
@@ -300,6 +312,11 @@ DependecyObjectMap::emit_bound_objects(CallSet& out_calls)
         out_calls.insert(c);
 }
 
+void DependecyObjectMap::emit_bound_objects_ext(CallSet& out_calls)
+{
+    (void)out_calls;
+}
+
 unsigned
 DependecyObjectWithSingleBindPointMap::get_bindpoint_from_call(const trace::Call& call) const
 {
@@ -319,38 +336,56 @@ BufferObjectMap::bound_to_target(unsigned target, unsigned index)
     return bound_to(target, index);
 }
 
+enum BufTypes {
+    bt_array = 1,
+    bt_atomic_counter,
+    bt_copy_read,
+    bt_copy_write,
+    bt_dispatch_indirect,
+    bt_draw_indirect,
+    bt_element_array,
+    bt_pixel_pack,
+    bt_pixel_unpack,
+    bt_query,
+    bt_ssbo,
+    bt_texture,
+    bt_tf,
+    bt_uniform,
+    bt_last,
+};
+
 unsigned
 BufferObjectMap::get_bindpoint(unsigned target, unsigned index) const
 {
     switch (target) {
     case GL_ARRAY_BUFFER:
-        return 1;
+        return bt_array;
     case GL_ATOMIC_COUNTER_BUFFER:
-        return 2 + 16 * index;
+        return bt_atomic_counter + bt_last* index;
     case GL_COPY_READ_BUFFER:
-        return 3;
+        return bt_copy_read;
     case GL_COPY_WRITE_BUFFER:
-        return 4;
+        return bt_copy_write;
     case GL_DISPATCH_INDIRECT_BUFFER:
-        return 5;
+        return bt_dispatch_indirect;
     case GL_DRAW_INDIRECT_BUFFER:
-        return 6;
+        return bt_draw_indirect;
     case GL_ELEMENT_ARRAY_BUFFER:
-        return 7;
+        return bt_element_array;
     case GL_PIXEL_PACK_BUFFER:
-        return 8;
+        return bt_pixel_pack;
     case GL_PIXEL_UNPACK_BUFFER:
-        return 9;
+        return bt_pixel_unpack;
     case GL_QUERY_BUFFER:
-        return 10;
+        return bt_query;
     case GL_SHADER_STORAGE_BUFFER:
-        return 11 + 16 * index;
+        return bt_ssbo + bt_last * index;
     case GL_TEXTURE_BUFFER:
-        return 12;
+        return bt_texture;
     case GL_TRANSFORM_FEEDBACK_BUFFER:
-        return 13  + 16 * index;
+        return bt_tf  + bt_last * index;
     case GL_UNIFORM_BUFFER:
-        return 14 + 16 * index;
+        return bt_uniform + bt_last * index;
     }
     std::cerr << "Unknown buffer binding target=" << target << "\n";
     assert(0);
@@ -436,6 +471,16 @@ BufferObjectMap::memcopy(const trace::Call& call)
     }
     auto buf = get_by_id(buf_id);
     buf->add_call(trace2call(call));
+}
+
+void BufferObjectMap::add_ssbo_dependencies(UsedObject::Pointer dep)
+{
+    for(auto && [key, buf]: *this) {
+        if (buf && ((key % bt_last) == bt_ssbo)) {
+            buf->add_depenency(dep);
+            dep->add_depenency(buf);
+        }
+    }
 }
 
 void
@@ -530,6 +575,7 @@ void TextureObjectMap::Copy(const trace::Call& call)
 
 void TextureObjectMap::BindToImageUnit(const trace::Call& call)
 {
+    unsigned unit = call.arg(0).toUInt();
     unsigned id = call.arg(1).toUInt();
 
     auto c = trace2call(call);
@@ -537,8 +583,11 @@ void TextureObjectMap::BindToImageUnit(const trace::Call& call)
         auto tex = get_by_id(id);
         assert(tex);
         tex->add_call(c);
-    } else
+        m_bound_images[unit] = tex;
+    } else {
         add_call(c);
+        m_bound_images[unit] = nullptr;
+    }
 }
 
 unsigned
@@ -546,6 +595,23 @@ TextureObjectMap::get_bindpoint_from_call(const trace::Call& call) const
 {
     unsigned target = call.arg(0).toUInt();
     return get_bindpoint_from_target_and_unit(target, m_active_texture);
+}
+
+void TextureObjectMap::emit_bound_objects_ext(CallSet& out_calls)
+{
+    for(auto [unit, tex]: m_bound_images)
+        if (tex)
+            tex->emit_calls_to(out_calls);
+}
+
+void TextureObjectMap::add_image_dependencies(UsedObject::Pointer dep)
+{
+    for (auto&& [key, tex]: m_bound_images) {
+        if (tex) {
+            tex->add_depenency(dep);
+            dep->add_depenency(tex);
+        }
+    }
 }
 
 unsigned

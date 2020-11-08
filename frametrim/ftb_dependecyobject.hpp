@@ -60,18 +60,24 @@ public:
     void emit_bound_objects(CallSet& out_calls);
     UsedObject::Pointer bound_to(unsigned target, unsigned index = 0);
 protected:
-    UsedObject::Pointer bind(unsigned bindpoint, unsigned id);
+    using ObjectMap=std::unordered_map<unsigned, UsedObject::Pointer>;
 
+    UsedObject::Pointer bind(unsigned bindpoint, unsigned id);
     void add_object(unsigned id, UsedObject::Pointer obj);
     UsedObject::Pointer at_binding(unsigned index);
+
+     ObjectMap::iterator begin();
+     ObjectMap::iterator end();
+
 private:
 
+    virtual void emit_bound_objects_ext(CallSet& out_calls);
     virtual UsedObject::Pointer bind_target(unsigned id, unsigned bindpoint);
     virtual unsigned get_bindpoint_from_call(const trace::Call& call) const = 0;
     virtual unsigned get_bindpoint(unsigned target, unsigned index) const;
 
-    std::unordered_map<unsigned, UsedObject::Pointer> m_objects;
-    std::unordered_map<unsigned, UsedObject::Pointer> m_bound_object;
+    ObjectMap m_objects;
+    ObjectMap m_bound_object;
 
     std::vector<PTraceCall> m_calls;
 };
@@ -95,6 +101,8 @@ public:
     void memcopy(const trace::Call& call);
 
     UsedObject::Pointer bound_to_target(unsigned target, unsigned index = 0);
+
+    void add_ssbo_dependencies(UsedObject::Pointer dep);
 
 private:
     unsigned get_bindpoint_from_call(const trace::Call& call) const override;
@@ -122,10 +130,13 @@ public:
     UsedObject::Pointer BindMultitex(const trace::Call& call);
     void Copy(const trace::Call& call);
     void BindToImageUnit(const trace::Call& call);
+    void add_image_dependencies(UsedObject::Pointer dep);
 private:
+    void emit_bound_objects_ext(CallSet& out_calls) override;
     unsigned get_bindpoint_from_call(const trace::Call& call) const override;
     unsigned get_bindpoint_from_target_and_unit(unsigned target, unsigned unit) const;
     unsigned m_active_texture;
+    std::unordered_map<unsigned, UsedObject::Pointer> m_bound_images;
 };
 
 class FramebufferObjectMap: public DependecyObjectMap {

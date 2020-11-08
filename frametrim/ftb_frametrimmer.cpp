@@ -95,6 +95,7 @@ struct FrameTrimmeImpl {
                                unsigned obj_id_param, DependecyObjectMap &dep_map, bool reverse_dep_too);
 
     void BindMultitex(const trace::Call& call);
+    void DispatchCompute(const trace::Call& call);
 
     void todo(const trace::Call& call);
     void ignore_history(const trace::Call& call);
@@ -500,6 +501,7 @@ void FrameTrimmeImpl::register_legacy_calls()
     MAP_GENOBJ(glTranslate, m_matrix_states, AllMatrisStates::matrix_op);
     MAP_GENOBJ(glPopMatrix, m_matrix_states, AllMatrisStates::PopMatrix);
     MAP_GENOBJ(glPushMatrix, m_matrix_states, AllMatrisStates::PushMatrix);
+    MAP(glDispatchCompute, DispatchCompute);
 }
 
 void FrameTrimmeImpl::register_framebuffer_calls()
@@ -996,6 +998,21 @@ FrameTrimmeImpl::CallOnBoundObjWithDep(const trace::Call& call, DependecyObjectM
                                                 reverse_dep_too);
     if (m_recording_frame && dep_obj)
         dep_obj->emit_calls_to(m_required_calls);
+}
+
+void FrameTrimmeImpl::DispatchCompute(const trace::Call& call)
+{
+    auto cur_prog = m_programs.bound_to(0);
+    assert(cur_prog);
+
+    cur_prog->add_call(trace2call(call));
+    // Without knowning how the compute program is actually written
+    // we have to assume that any bound ssbo and any bound image can be
+    // changed by the program, so the program has to depend on all bound
+    // ssbos and images, ane they in turn must depend on the program
+
+    m_buffers.add_ssbo_dependencies(cur_prog);
+    m_textures.add_image_dependencies(cur_prog);
 }
 
 void
