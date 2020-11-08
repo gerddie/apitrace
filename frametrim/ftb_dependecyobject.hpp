@@ -32,6 +32,8 @@ private:
 
 class DependecyObjectMap {
 public:
+    using ObjectMap=std::unordered_map<unsigned, UsedObject::Pointer>;
+
     void Generate(const trace::Call& call);
     void Destroy(const trace::Call& call);
 
@@ -59,15 +61,17 @@ public:
 
     void emit_bound_objects(CallSet& out_calls);
     UsedObject::Pointer bound_to(unsigned target, unsigned index = 0);
+
+    ObjectMap::iterator begin();
+    ObjectMap::iterator end();
+
 protected:
-    using ObjectMap=std::unordered_map<unsigned, UsedObject::Pointer>;
+
 
     UsedObject::Pointer bind(unsigned bindpoint, unsigned id);
     void add_object(unsigned id, UsedObject::Pointer obj);
     UsedObject::Pointer at_binding(unsigned index);
 
-     ObjectMap::iterator begin();
-     ObjectMap::iterator end();
 
 private:
 
@@ -94,6 +98,25 @@ private:
 
 class BufferObjectMap: public DependecyObjectMap {
 public:
+
+    enum BufTypes {
+        bt_array = 1,
+        bt_atomic_counter,
+        bt_copy_read,
+        bt_copy_write,
+        bt_dispatch_indirect,
+        bt_draw_indirect,
+        bt_element_array,
+        bt_pixel_pack,
+        bt_pixel_unpack,
+        bt_query,
+        bt_ssbo,
+        bt_texture,
+        bt_tf,
+        bt_uniform,
+        bt_last,
+    };
+
     void data(const trace::Call& call);
     void map(const trace::Call& call);
     void map_range(const trace::Call& call);

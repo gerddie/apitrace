@@ -86,6 +86,7 @@ struct FrameTrimmeImpl {
     void CallList(const trace::Call& call);
     void DeleteLists(const trace::Call& call);
     void Bind(const trace::Call& call, DependecyObjectMap& map, unsigned bind_param);
+    void Draw(const trace::Call& call);
     void BindFbo(const trace::Call& call, DependecyObjectMap& map,
                        unsigned bind_param);
     void BindWithCreate(const trace::Call& call, DependecyObjectMap& map,
@@ -568,14 +569,10 @@ FrameTrimmeImpl::register_buffer_calls()
 
 void FrameTrimmeImpl::register_draw_calls()
 {
-    MAP_GENOBJ_DATA(glDrawArrays, m_fbo,
-                    FramebufferObjectMap::CallOnObjectBoundTo, GL_DRAW_FRAMEBUFFER);
-    MAP_GENOBJ_DATAREF(glDrawElements, m_fbo,
-                       FramebufferObjectMap::DrawFromBuffer, m_buffers);
-    MAP_GENOBJ_DATAREF(glDrawRangeElements, m_fbo,
-                       FramebufferObjectMap::DrawFromBuffer, m_buffers);
-    MAP_GENOBJ_DATAREF(glDrawRangeElementsBaseVertex, m_fbo,
-                       FramebufferObjectMap::DrawFromBuffer, m_buffers);
+    MAP(glDrawArrays, Draw);
+    MAP(glDrawElements, Draw);
+    MAP(glDrawRangeElements, Draw);
+    MAP(glDrawRangeElementsBaseVertex, Draw);
 }
 
 void
@@ -602,6 +599,7 @@ FrameTrimmeImpl::register_program_calls()
     MAP_GENOBJ(glProgramBinary, m_programs, ProgramObjectMap::CallOnNamedObject);
 
     MAP_GENOBJ(glUniform, m_programs, ProgramObjectMap::CallOnBoundObject);
+    MAP_GENOBJ(glUniformBlockBinding, m_programs, ProgramObjectMap::CallOnBoundObject);
     MAP_DATAREF_DATA(glUseProgram, Bind, m_programs, 0);
     MAP_GENOBJ(glProgramParameter, m_programs, ProgramObjectMap::CallOnNamedObject);
     MAP_GENOBJ(glShaderStorageBlockBinding, m_programs, ProgramObjectMap::CallOnNamedObject);
@@ -944,6 +942,43 @@ FrameTrimmeImpl::Bind(const trace::Call& call, DependecyObjectMap& map,
 
     if (m_recording_frame && bound_obj)
         bound_obj->emit_calls_to(m_required_calls);
+}
+
+void FrameTrimmeImpl::Draw(const trace::Call& call)
+{
+    auto fb = m_fbo.bound_to(GL_DRAW_FRAMEBUFFER);
+    auto cur_prog = m_programs.bound_to(0, 0);
+    if (cur_prog) {
+        cur_prog->add_call(trace2call(call));
+
+        for(auto && [key, buf]: m_buffers) {
+            if (buf && ((key % BufferObjectMap::bt_last) == BufferObjectMap::bt_uniform))
+                cur_prog->add_depenency(buf);
+        }
+        m_buffers.add_ssbo_dependencies(cur_prog);
+        m_textures.add_image_dependencies(cur_prog);
+
+        if (fb->id())
+            fb->add_depenency(cur_prog);
+
+        if (m_recording_frame)
+            cur_prog->emit_calls_to(m_required_calls);
+    }
+
+    auto buf = m_buffers.bound_to_target(GL_ELEMENT_ARRAY_BUFFER);
+    if (fb->id()) {
+        if (buf)
+            fb->add_depenency(buf);
+        fb->add_call(trace2call(call));
+
+        for(auto&& [key, vbo]: m_vertex_attrib_pointers) {
+            if (vbo)
+                fb->add_depenency(vbo);
+        }
+    }
+
+    if (buf && m_recording_frame)
+        buf->emit_calls_to(m_required_calls);
 }
 
 void

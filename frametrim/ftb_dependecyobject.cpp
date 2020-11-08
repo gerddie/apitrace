@@ -339,24 +339,6 @@ BufferObjectMap::bound_to_target(unsigned target, unsigned index)
     return bound_to(target, index);
 }
 
-enum BufTypes {
-    bt_array = 1,
-    bt_atomic_counter,
-    bt_copy_read,
-    bt_copy_write,
-    bt_dispatch_indirect,
-    bt_draw_indirect,
-    bt_element_array,
-    bt_pixel_pack,
-    bt_pixel_unpack,
-    bt_query,
-    bt_ssbo,
-    bt_texture,
-    bt_tf,
-    bt_uniform,
-    bt_last,
-};
-
 unsigned
 BufferObjectMap::get_bindpoint(unsigned target, unsigned index) const
 {
