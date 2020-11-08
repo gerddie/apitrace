@@ -523,7 +523,7 @@ unsigned BufferStateMap::composed_target_id(unsigned target, unsigned index)
     case GL_TEXTURE_BUFFER:
         return 12;
     case GL_TRANSFORM_FEEDBACK_BUFFER:
-        return 13  + 16 * index;
+        return 13 + 16 * index;
     case GL_UNIFORM_BUFFER:
         return 14 + 16 * index;
     }

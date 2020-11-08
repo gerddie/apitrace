@@ -196,6 +196,7 @@ static int trim_to_frame(const char *filename,
     while (call && callid_itr != call_ids.end()) {
         while (call->no != *callid_itr)
             call.reset(p.parse_call());
+
         writer.writeCall(call.get());
         call.reset(p.parse_call());
         ++callid_itr;

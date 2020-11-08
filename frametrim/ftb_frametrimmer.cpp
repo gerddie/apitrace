@@ -266,6 +266,7 @@ void FrameTrimmeImpl::start_target_frame()
     std::cerr << "Start recording\n";
 
     m_recording_frame = true;
+
     m_matrix_states.emit_state_to_lists(m_required_calls);
 
     for (auto&& [name, call] : m_state_calls)
@@ -273,18 +274,6 @@ void FrameTrimmeImpl::start_target_frame()
 
     for (auto&& [id, call]: m_enables)
         m_required_calls.insert(call);
-
-    m_programs.emit_bound_objects(m_required_calls);
-    m_textures.emit_bound_objects(m_required_calls);
-    m_fbo.emit_bound_objects(m_required_calls);
-    m_buffers.emit_bound_objects(m_required_calls);
-    m_shaders.emit_bound_objects(m_required_calls);
-    m_renderbuffers.emit_bound_objects(m_required_calls);
-    m_samplers.emit_bound_objects(m_required_calls);
-    m_sync_objects.emit_bound_objects(m_required_calls);
-    m_vertex_arrays.emit_bound_objects(m_required_calls);
-    m_vertex_attrib_pointers.emit_bound_objects(m_required_calls);
-    m_legacy_programs.emit_bound_objects(m_required_calls);
 }
 
 bool
@@ -330,6 +319,18 @@ FrameTrimmeImpl::skip_delete_impl(unsigned obj_id,
 
 void FrameTrimmeImpl::finalize()
 {
+    m_programs.emit_bound_objects(m_required_calls);
+    m_textures.emit_bound_objects(m_required_calls);
+    m_fbo.emit_bound_objects(m_required_calls);
+    m_buffers.emit_bound_objects(m_required_calls);
+    m_shaders.emit_bound_objects(m_required_calls);
+    m_renderbuffers.emit_bound_objects(m_required_calls);
+    m_samplers.emit_bound_objects(m_required_calls);
+    m_sync_objects.emit_bound_objects(m_required_calls);
+    m_vertex_arrays.emit_bound_objects(m_required_calls);
+    m_vertex_attrib_pointers.emit_bound_objects(m_required_calls);
+    m_legacy_programs.emit_bound_objects(m_required_calls);
+
     if (m_last_swap)
         m_required_calls.insert(m_last_swap);
 }
@@ -412,6 +413,10 @@ FrameTrimmeImpl::record_state_call(const trace::Call& call,
 #define MAP_GENOBJ_RRD(name, obj, call, data1, data2, param) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
                         std::ref(data1), std::ref(data2), param)))
+
+#define MAP_GENOBJ_RDRR(name, obj, call, data1, param, data2, data3) \
+    m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
+                        std::ref(data1), param, std::ref(data2), std::ref(data3))))
 
 #define MAP_GENOBJ_RRR(name, obj, call, data1, data2, data3) \
     m_call_table.insert(std::make_pair(#name, bind(&call, &obj, _1, \
@@ -612,8 +617,10 @@ void FrameTrimmeImpl::register_texture_calls()
     MAP_GENOBJ(glTexStorage2D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexStorage3D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexImage3D, m_textures, TextureObjectMap::CallOnBoundObject);
-    MAP_GENOBJ(glTexSubImage1D, m_textures, TextureObjectMap::CallOnBoundObject);
-    MAP_GENOBJ(glTexSubImage2D, m_textures, TextureObjectMap::CallOnBoundObject);
+    MAP_GENOBJ_RDRR(glTexSubImage1D, m_textures, TextureObjectMap::CallOnBoundObjectWithDepBoundTo,
+               m_buffers, GL_PIXEL_UNPACK_BUFFER, m_required_calls, m_recording_frame);
+    MAP_GENOBJ_RDRR(glTexSubImage2D, m_textures, TextureObjectMap::CallOnBoundObjectWithDepBoundTo,
+                    m_buffers, GL_PIXEL_UNPACK_BUFFER, m_required_calls, m_recording_frame);
     MAP_GENOBJ(glCompressedTexSubImage2D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexSubImage3D, m_textures, TextureObjectMap::CallOnBoundObject);
     MAP_GENOBJ(glTexParameter, m_textures, TextureObjectMap::CallOnBoundObject);

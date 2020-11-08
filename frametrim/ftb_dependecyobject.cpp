@@ -137,9 +137,21 @@ DependecyObjectMap::bind( unsigned bindpoint, unsigned id)
 }
 
 UsedObject::Pointer
-DependecyObjectMap::bound_to(unsigned bindpoint)
+DependecyObjectMap::bound_to(unsigned target, unsigned index)
 {
-    return m_bound_object[bindpoint];
+    unsigned bindpoint = get_bindpoint(target, index);
+    return at_binding(bindpoint);
+}
+
+UsedObject::Pointer DependecyObjectMap::at_binding(unsigned index)
+{
+    return m_bound_object[index];
+}
+
+unsigned DependecyObjectMap::get_bindpoint(unsigned target, unsigned index) const
+{
+    (void)index;
+    return target;
 }
 
 void
@@ -216,6 +228,36 @@ DependecyObjectMap::CallOnBoundObjectWithDep(const trace::Call& call,
 }
 
 void
+DependecyObjectMap::CallOnBoundObjectWithDepBoundTo(const trace::Call& call,
+                                                    DependecyObjectMap& other_objects,
+                                                    int bindingpoint,
+                                                    CallSet &out_list, bool emit_dependencies)
+{
+    unsigned bindpoint = get_bindpoint_from_call(call);
+    if (!m_bound_object[bindpoint]) {
+        std::cerr << "No object bound in call " << call.no << ":" << call.name() << "\n";
+        assert(0);
+    }
+    m_bound_object[bindpoint]->add_call(trace2call(call));
+
+    UsedObject::Pointer obj = nullptr;
+    auto dep = other_objects.bound_to(bindingpoint);
+    if (dep) {
+        m_bound_object[bindpoint]->add_depenency(dep);
+        if (emit_dependencies)
+            dep->emit_calls_to(out_list);
+    } else {
+        if (!strcmp(call.name(), "glTexSubImage1D")) {
+            if (!call.arg(6).toPointer()) {
+                std::cerr << call.no << ":Called glTexSubImage1D without data, and "
+                             "GL_PIXEL_UNPACK_BUFFER not bound\n";
+                assert(0);
+            }
+        }
+    }
+}
+
+void
 DependecyObjectMap::CallOnNamedObjectWithDep(const trace::Call& call,
                                              DependecyObjectMap& other_objects,
                                              int dep_obj_param,
@@ -285,7 +327,7 @@ DependecyObjectWithDefaultBindPointMap::get_bindpoint_from_call(const trace::Cal
 UsedObject::Pointer
 BufferObjectMap::bound_to_target(unsigned target, unsigned index)
 {
-    return bound_to(get_bindpoint(target, index));
+    return bound_to(target, index);
 }
 
 unsigned
@@ -321,7 +363,8 @@ BufferObjectMap::get_bindpoint(unsigned target, unsigned index) const
     case GL_UNIFORM_BUFFER:
         return 14 + 16 * index;
     }
-    assert(0 && "Unknown buffer binding target");
+    std::cerr << "Unknown buffer binding target=" << target << "\n";
+    assert(0);
     return 0;
 }
 
@@ -340,7 +383,7 @@ void
 BufferObjectMap::data(const trace::Call& call)
 {
     unsigned target = get_bindpoint_from_call(call);
-    auto buf = bound_to(target);
+    auto buf = at_binding(target);
     if (buf) {
         m_buffer_sizes[buf->id()] = call.arg(1).toUInt();
         buf->add_call(trace2call(call));
@@ -351,7 +394,7 @@ void
 BufferObjectMap::map(const trace::Call& call)
 {
     unsigned target = get_bindpoint_from_call(call);
-    auto buf = bound_to(target);
+    auto buf = at_binding(target);
     if (buf) {
         m_mapped_buffers[target][buf->id()] = buf;
         uint64_t begin = call.ret->toUInt();
@@ -365,7 +408,7 @@ void
 BufferObjectMap::map_range(const trace::Call& call)
 {
     unsigned target = get_bindpoint_from_call(call);
-    auto buf = bound_to(target);
+    auto buf = at_binding(target);
     if (buf) {
         m_mapped_buffers[target][buf->id()] = buf;
         uint64_t begin = call.ret->toUInt();
@@ -379,7 +422,7 @@ void
 BufferObjectMap::unmap(const trace::Call& call)
 {
     unsigned target = get_bindpoint_from_call(call);
-    auto buf = bound_to(target);
+    auto buf = at_binding(target);
     if (buf) {
         m_mapped_buffers[target].erase(buf->id());
         m_buffer_mappings[buf->id()] = std::make_pair(0, 0);
@@ -438,12 +481,9 @@ void VertexAttribObjectMap::BindVAOBuf(const trace::Call& call, BufferObjectMap&
 
     auto buf = buffers.get_by_id(call.arg(1).toUInt());
     assert(buf || (call.arg(1).toUInt() == 0));
-    std::cerr << "BindVAOBuf:" << id << ":" << buf->id()
-              << " (" << (emit_dependencies ? "emit" : "") << ")\n";
     if (buf) {
         obj->add_depenency(buf);
         if (emit_dependencies) {
-            std::cerr << "Emit buffer " << buf->id() << "\n";
             buf->emit_calls_to(out_list);
         }
     }

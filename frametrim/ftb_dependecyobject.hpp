@@ -46,22 +46,29 @@ public:
     UsedObject::Pointer
     CallOnBoundObjectWithDep(const trace::Call& call,
                              DependecyObjectMap& other_objects, int dep_obj_param, bool reverse_dep_too);
+
+    void
+    CallOnBoundObjectWithDepBoundTo(const trace::Call& call, DependecyObjectMap& other_objects,
+                                    int bindingpoint, CallSet &out_list, bool emit_dependencies);
+
     void CallOnNamedObjectWithDep(const trace::Call& call,
                                   DependecyObjectMap& other_objects, int dep_obj_param, bool reverse_dep_too);
-
 
     UsedObject::Pointer get_by_id(unsigned id) const;
     void add_call(PTraceCall call);
 
     void emit_bound_objects(CallSet& out_calls);
-    UsedObject::Pointer bound_to(unsigned bindpoint);
+    UsedObject::Pointer bound_to(unsigned target, unsigned index = 0);
 protected:
     UsedObject::Pointer bind(unsigned bindpoint, unsigned id);
 
     void add_object(unsigned id, UsedObject::Pointer obj);
+    UsedObject::Pointer at_binding(unsigned index);
 private:
+
     virtual UsedObject::Pointer bind_target(unsigned id, unsigned bindpoint);
     virtual unsigned get_bindpoint_from_call(const trace::Call& call) const = 0;
+    virtual unsigned get_bindpoint(unsigned target, unsigned index) const;
 
     std::unordered_map<unsigned, UsedObject::Pointer> m_objects;
     std::unordered_map<unsigned, UsedObject::Pointer> m_bound_object;
@@ -92,7 +99,7 @@ public:
 private:
     unsigned get_bindpoint_from_call(const trace::Call& call) const override;
 
-    unsigned get_bindpoint(unsigned target, unsigned index) const;
+    unsigned get_bindpoint(unsigned target, unsigned index) const override;
 
     std::unordered_map<unsigned,
         std::unordered_map<unsigned, UsedObject::Pointer>> m_mapped_buffers;
