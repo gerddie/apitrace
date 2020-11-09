@@ -16,7 +16,7 @@ enum Frametype {
 class FrameTrimmer
 {
 public:
-    FrameTrimmer();
+    FrameTrimmer(bool keep_all_states);
     ~FrameTrimmer();
 
     void call(const trace::Call& call, Frametype target_frame_type);

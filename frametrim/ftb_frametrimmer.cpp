@@ -50,7 +50,7 @@ struct FrameTrimmeImpl {
 
     using ObjectMap = std::unordered_map<unsigned, UsedObject::Pointer>;
 
-    FrameTrimmeImpl();
+    FrameTrimmeImpl(bool keep_all_states);
     void call(const trace::Call& call, Frametype frametype);
     void start_target_frame();
     void end_target_frame();
@@ -145,11 +145,12 @@ struct FrameTrimmeImpl {
     std::unordered_map<EStateCaches, PCallSet> m_state_caches;
     std::bitset<sc_last> m_state_caches_dirty;
     PTraceCall m_last_swap;
+    bool m_keep_all_state_calls;
 };
 
-FrameTrimmer::FrameTrimmer()
+FrameTrimmer::FrameTrimmer(bool keep_all_states)
 {
-    impl = new FrameTrimmeImpl;
+    impl = new FrameTrimmeImpl(keep_all_states);
 }
 
 FrameTrimmer::~FrameTrimmer()
@@ -174,10 +175,11 @@ void FrameTrimmer::finalize()
     impl->finalize();
 }
 
-FrameTrimmeImpl::FrameTrimmeImpl():
+FrameTrimmeImpl::FrameTrimmeImpl(bool keep_all_states):
     m_required_calls(true),
     m_recording_frame(false),
-    m_state_caches(sc_last)
+    m_state_caches(sc_last),
+    m_keep_all_state_calls(keep_all_states)
 {
     register_state_calls();
     register_legacy_calls();
@@ -694,10 +696,11 @@ FrameTrimmeImpl::register_state_calls()
     };
 
     auto state_call_func = bind(&FrameTrimmeImpl::record_state_call, this, _1, 0);
-    update_call_table(state_calls, state_call_func);
+    auto state_call_1_func = bind(&FrameTrimmeImpl::record_state_call, this, _1, 1);
+    auto keep_state_calls_func = bind(&FrameTrimmeImpl::record_required_call, this, _1);
 
     /* These are state functions with an extra parameter */
-    auto state_call_1_func = bind(&FrameTrimmeImpl::record_state_call, this, _1, 1);
+
     const std::vector<const char *> state_calls_1  = {
         "glClipPlane",
         "glColorMaskIndexedEXT",
@@ -710,7 +713,6 @@ FrameTrimmeImpl::register_state_calls()
         "glStencilFuncSeparate",
         "glVertexAttribDivisor",
     };
-    update_call_table(state_calls_1, state_call_1_func);
 
     /* These are state functions with an extra parameter */
     auto state_call_2_func = bind(&FrameTrimmeImpl::record_state_call, this, _1, 2);
@@ -718,7 +720,16 @@ FrameTrimmeImpl::register_state_calls()
         "glMaterial",
         "glTexEnv",
     };
-    update_call_table(state_calls_2, state_call_2_func);
+
+    if (m_keep_all_state_calls) {
+        update_call_table(state_calls, keep_state_calls_func);
+        update_call_table(state_calls_1, keep_state_calls_func);
+        update_call_table(state_calls_2, keep_state_calls_func);
+    } else {
+        update_call_table(state_calls, state_call_func);
+        update_call_table(state_calls_1, state_call_1_func);
+        update_call_table(state_calls_2, state_call_2_func);
+    }
 
     MAP(glDisable, record_required_call);
     MAP(glEnable, record_required_call);

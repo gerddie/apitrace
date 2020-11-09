@@ -52,6 +52,7 @@ struct trim_options {
     trace::CallSet frames;
 
     unsigned top_frame_call_counts;
+    bool keep_all_states;
 
     /* Output filename */
     std::string output;
@@ -68,8 +69,9 @@ usage(void)
                            "\n"
                            "    -h, --help               Show detailed help for trim options and exit\n"
                            "    -f, --frames=FRAME       Frame the trace should be reduced to.\n"
-                           "    -s, --setupframes=FRAME   Frame that are kept in the trace but but without the end-of-frame command.\n"
+                           "    -s, --setupframes=FRAME  Frame that are kept in the trace but but without the end-of-frame command.\n"
                            "    -t, --top-calls-per-frame=NUMBER Print NUMBER of frames with the top amount of OpenGL calls\n"
+                           "    -k, --kepp-all-states    Keep all state calls in the trace (This may help with textures that are created by using FBO\n"
                            "    -o, --output=TRACE_FILE  Output trace file\n"
                ;
 }
@@ -80,7 +82,7 @@ enum {
 };
 
 const static char *
-shortOptions = "t:ho:f:s:x";
+shortOptions = "t:hko:f:s:x";
 
 bool operator < (std::pair<unsigned, unsigned>& lhs, std::pair<unsigned, unsigned>& rhs)
 {
@@ -92,7 +94,8 @@ const static struct option
 {"help", no_argument, 0, 'h'},
 {"top-calls-per-frame", required_argument, 0, 't'},
 {"frames", required_argument, 0, 'f'},
-{"keyframes", required_argument, 0, 's'},
+{"setupframes", required_argument, 0, 's'},
+{"keep-all_states", no_argument, 0, 'k'},
 {"output", required_argument, 0, 'o'},
 {0, 0, 0, 0}
 };
@@ -128,7 +131,7 @@ static int trim_to_frame(const char *filename,
         out_filename = std::string(base.str()) + std::string("-trim.trace");
     }
 
-    FrameTrimmer trimmer;
+    FrameTrimmer trimmer(options.keep_all_states);
 
     frame = 0;
     uint64_t callid = 0;
@@ -238,8 +241,10 @@ int main(int argc, char **argv)
             options.output = optarg;
             break;
         case 't':
-            std::cerr << "optarg='" << optarg << "'\n";
             options.top_frame_call_counts = atoi(optarg);
+            break;
+        case 'k':
+            options.keep_all_states = true;
             break;
         default:
             std::cerr << "error: unexpected option `" << (char)opt << "`\n";
