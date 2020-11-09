@@ -43,7 +43,7 @@ UsedObject::set_call(PTraceCall call)
 
 
 void
-UsedObject::add_depenency(Pointer dep)
+UsedObject::add_dependency(Pointer dep)
 {
     m_dependencies.push_back(dep);
     m_emitted = false;
@@ -52,7 +52,7 @@ UsedObject::add_depenency(Pointer dep)
 void UsedObject::set_depenency(Pointer dep)
 {
     m_dependencies.clear();
-    add_depenency(dep);
+    add_dependency(dep);
 }
 
 void
@@ -231,9 +231,9 @@ DependecyObjectMap::CallOnBoundObjectWithDep(const trace::Call& call,
     if (obj_id) {
         obj = other_objects.get_by_id(obj_id);
         assert(obj);
-        m_bound_object[bindpoint]->add_depenency(obj);
+        m_bound_object[bindpoint]->add_dependency(obj);
         if (reverse_dep_too)
-            obj->add_depenency(m_bound_object[bindpoint]);
+            obj->add_dependency(m_bound_object[bindpoint]);
     }
     m_bound_object[bindpoint]->add_call(trace2call(call));
     return obj;
@@ -254,7 +254,7 @@ DependecyObjectMap::CallOnBoundObjectWithDepBoundTo(const trace::Call& call,
     UsedObject::Pointer obj = nullptr;
     auto dep = other_objects.bound_to(bindingpoint);
     if (dep) {
-        m_bound_object[bindpoint]->add_depenency(dep);
+        m_bound_object[bindpoint]->add_dependency(dep);
         if (recording)
             dep->emit_calls_to(out_set);
     }
@@ -284,9 +284,9 @@ DependecyObjectMap::CallOnNamedObjectWithDep(const trace::Call& call,
     if (dep_obj_id) {
         auto dep_obj = other_objects.get_by_id(dep_obj_id);
         assert(dep_obj);
-        obj->add_depenency(dep_obj);
+        obj->add_dependency(dep_obj);
         if (reverse_dep_too)
-            dep_obj->add_depenency(obj);
+            dep_obj->add_dependency(obj);
     }
     obj->add_call(trace2call(call));
 }
@@ -462,8 +462,8 @@ void BufferObjectMap::add_ssbo_dependencies(UsedObject::Pointer dep)
 {
     for(auto && [key, buf]: *this) {
         if (buf && ((key % bt_last) == bt_ssbo)) {
-            buf->add_depenency(dep);
-            dep->add_depenency(buf);
+            buf->add_dependency(dep);
+            dep->add_dependency(buf);
         }
     }
 }
@@ -501,7 +501,7 @@ void VertexAttribObjectMap::BindVAOBuf(const trace::Call& call, BufferObjectMap&
     auto buf = buffers.get_by_id(call.arg(1).toUInt());
     assert(buf || (call.arg(1).toUInt() == 0));
     if (buf) {
-        obj->add_depenency(buf);
+        obj->add_dependency(buf);
         if (emit_dependencies) {
             buf->emit_calls_to(out_list);
         }
@@ -555,7 +555,7 @@ void TextureObjectMap::Copy(const trace::Call& call)
     auto dst = get_by_id(dst_id);
     assert(src && dst);
     dst->add_call(trace2call(call));
-    dst->add_depenency(src);
+    dst->add_dependency(src);
 }
 
 void TextureObjectMap::BindToImageUnit(const trace::Call& call)
@@ -593,8 +593,8 @@ void TextureObjectMap::add_image_dependencies(UsedObject::Pointer dep)
 {
     for (auto&& [key, tex]: m_bound_images) {
         if (tex) {
-            tex->add_depenency(dep);
-            dep->add_depenency(tex);
+            tex->add_dependency(dep);
+            dep->add_dependency(tex);
         }
     }
 }
@@ -698,7 +698,7 @@ FramebufferObjectMap::Blit(const trace::Call& call)
     auto src = bound_to(GL_READ_FRAMEBUFFER);
     assert(dest);
     assert(src);
-    dest->add_depenency(src);
+    dest->add_dependency(src);
     dest->add_call(trace2call(call));
 }
 
@@ -716,7 +716,7 @@ void FramebufferObjectMap::DrawFromBuffer(const trace::Call& call, BufferObjectM
     if (fbo->id()) {
         auto buf = buffers.bound_to_target(GL_ELEMENT_ARRAY_BUFFER);
         if (buf)
-            fbo->add_depenency(buf);
+            fbo->add_dependency(buf);
         fbo->add_call(trace2call(call));
     }
 }

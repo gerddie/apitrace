@@ -950,13 +950,13 @@ void FrameTrimmeImpl::Draw(const trace::Call& call)
 
         for(auto && [key, buf]: m_buffers) {
             if (buf && ((key % BufferObjectMap::bt_last) == BufferObjectMap::bt_uniform))
-                cur_prog->add_depenency(buf);
+                cur_prog->add_dependency(buf);
         }
         m_buffers.add_ssbo_dependencies(cur_prog);
         m_textures.add_image_dependencies(cur_prog);
 
         if (fb->id())
-            fb->add_depenency(cur_prog);
+            fb->add_dependency(cur_prog);
 
         if (m_recording_frame)
             cur_prog->emit_calls_to(m_required_calls);
@@ -974,17 +974,17 @@ void FrameTrimmeImpl::Draw(const trace::Call& call)
 
     if (fb->id()) {
         if (buf)
-            fb->add_depenency(buf);
+            fb->add_dependency(buf);
         fb->add_call(trace2call(call));
 
         for(auto&& [key, vbo]: m_vertex_attrib_pointers) {
             if (vbo)
-                fb->add_depenency(vbo);
+                fb->add_dependency(vbo);
 
         }
         for(auto&& [key, vbo]: m_vertex_buffer_pointers) {
             if (vbo)
-                fb->add_depenency(vbo);
+                fb->add_dependency(vbo);
         }
     }
 

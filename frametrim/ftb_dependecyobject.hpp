@@ -16,7 +16,7 @@ public:
     void add_call(PTraceCall call);
     void set_call(PTraceCall call);
 
-    void add_depenency(Pointer dep);
+    void add_dependency(Pointer dep);
     void set_depenency(Pointer dep);
 
     void emit_calls_to(CallSet& out_list);
