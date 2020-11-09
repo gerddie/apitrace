@@ -135,14 +135,10 @@ struct FrameTrimmeImpl {
     SyncObjectMap m_sync_objects;
     VertexArrayMap m_vertex_arrays;
     VertexAttribObjectMap m_vertex_attrib_pointers;
+    VertexAttribObjectMap m_vertex_buffer_pointers;
 
-    std::unordered_map<GLint, UsedObject::Pointer> m_vertex_attr_pointer;
-    std::unordered_map<GLint, PTraceCall> m_va_enables;
-    std::unordered_map<GLint, PTraceCall> m_vertex_attribs;
     std::map<std::string, PTraceCall> m_state_calls;
     std::map<unsigned, PTraceCall> m_enables;
-
-    std::unordered_map<GLint, bool> m_va_is_enabled;
 
     bool m_recording_frame;
 
@@ -287,6 +283,7 @@ void FrameTrimmeImpl::start_target_frame()
     m_sync_objects.emit_bound_objects(m_required_calls);
     m_vertex_arrays.emit_bound_objects(m_required_calls);
     m_vertex_attrib_pointers.emit_bound_objects(m_required_calls);
+    m_vertex_buffer_pointers.emit_bound_objects(m_required_calls);
     m_legacy_programs.emit_bound_objects(m_required_calls);
 }
 
@@ -821,7 +818,7 @@ FrameTrimmeImpl::register_va_calls()
     MAP_GENOBJ_DATAREF(glVertexAttribPointer, m_vertex_attrib_pointers,
                        VertexAttribObjectMap::BindAVO, m_buffers);
 
-    MAP_GENOBJ_RRR(glBindVertexBuffer, m_vertex_attrib_pointers,
+    MAP_GENOBJ_RRR(glBindVertexBuffer, m_vertex_buffer_pointers,
                    VertexAttribObjectMap::BindVAOBuf, m_buffers,
                    m_required_calls, m_recording_frame);
 
@@ -966,12 +963,26 @@ void FrameTrimmeImpl::Draw(const trace::Call& call)
     }
 
     auto buf = m_buffers.bound_to_target(GL_ELEMENT_ARRAY_BUFFER);
+
+    if (!strcmp(call.name(), "glDrawElementsBaseVertex")) {
+        if (!call.arg(3).toPointer() && !buf) {
+            std::cerr << call.no << ":" << call.name()
+                      << " no ELEMENT_ARRAY_BUFFER bound\n";
+            assert(0);
+        }
+    }
+
     if (fb->id()) {
         if (buf)
             fb->add_depenency(buf);
         fb->add_call(trace2call(call));
 
         for(auto&& [key, vbo]: m_vertex_attrib_pointers) {
+            if (vbo)
+                fb->add_depenency(vbo);
+
+        }
+        for(auto&& [key, vbo]: m_vertex_buffer_pointers) {
             if (vbo)
                 fb->add_depenency(vbo);
         }
