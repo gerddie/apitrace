@@ -95,7 +95,7 @@ const static struct option
 {"top-calls-per-frame", required_argument, 0, 't'},
 {"frames", required_argument, 0, 'f'},
 {"setupframes", required_argument, 0, 's'},
-{"keep-all_states", no_argument, 0, 'k'},
+{"keep-all-states", no_argument, 0, 'k'},
 {"output", required_argument, 0, 'o'},
 {0, 0, 0, 0}
 };
