@@ -588,6 +588,7 @@ FrameTrimmeImpl::register_program_calls()
     MAP_GENOBJ(glBindAttribLocation, m_programs, ProgramObjectMap::CallOnNamedObject);
     MAP_GENOBJ(glCreateProgram, m_programs, ProgramObjectMap::Create);
     MAP_GENOBJ(glDeleteProgram, m_programs, ProgramObjectMap::Delete);
+    MAP_GENOBJ(glDetachShader, m_programs, ProgramObjectMap::CallOnNamedObject);
 
     MAP_GENOBJ(glGetAttribLocation, m_programs, ProgramObjectMap::CallOnNamedObject);
     MAP_GENOBJ(glGetUniformLocation, m_programs, ProgramObjectMap::CallOnNamedObject);
@@ -815,8 +816,9 @@ FrameTrimmeImpl::register_va_calls()
 
     MAP(glDisableVertexAttribArray, record_required_call);
     MAP(glEnableVertexAttribArray, record_required_call);
-    MAP_GENOBJ_DATAREF(glVertexAttribPointer, m_vertex_attrib_pointers,
-                       VertexAttribObjectMap::BindAVO, m_buffers);
+    MAP_GENOBJ_RRR(glVertexAttribPointer, m_vertex_attrib_pointers,
+                   VertexAttribObjectMap::BindAVO, m_buffers,
+                   m_required_calls, m_recording_frame);
 
     MAP_GENOBJ_RRR(glBindVertexBuffer, m_vertex_buffer_pointers,
                    VertexAttribObjectMap::BindVAOBuf, m_buffers,

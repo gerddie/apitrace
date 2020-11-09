@@ -468,34 +468,38 @@ void BufferObjectMap::add_ssbo_dependencies(UsedObject::Pointer dep)
     }
 }
 
+VertexAttribObjectMap::VertexAttribObjectMap():next_id(1)
+{
+
+}
+
 void
-VertexAttribObjectMap::BindAVO(const trace::Call& call, BufferObjectMap& buffers)
+VertexAttribObjectMap::BindAVO(const trace::Call& call, BufferObjectMap& buffers,
+                               CallSet &out_list, bool emit_dependencies)
 {
     unsigned id = call.arg(0).toUInt();
-    auto obj = get_by_id(id);
-    if (!obj) {
-        obj = std::make_shared<UsedObject>(id);
-        add_object(id, obj);
-    }
-    bind(id, id);
-    obj->set_call(trace2call(call));
+    auto obj = std::make_shared<UsedObject>(next_id);
+    add_object(next_id, obj);
+    bind(id, next_id);
+    obj->add_call(trace2call(call));
 
     auto buf = buffers.bound_to_target(GL_ARRAY_BUFFER);
     if (buf) {
         obj->set_depenency(buf);
+        if (emit_dependencies) {
+            buf->emit_calls_to(out_list);
+        }
     }
+    ++next_id;
 }
 
 void VertexAttribObjectMap::BindVAOBuf(const trace::Call& call, BufferObjectMap& buffers,
                                        CallSet &out_list, bool emit_dependencies)
 {
     unsigned id = call.arg(0).toUInt();
-    auto obj = get_by_id(id);
-    if (!obj) {
-        obj = std::make_shared<UsedObject>(id);
-        add_object(id, obj);
-    }
-    bind(id, id);
+    auto obj = std::make_shared<UsedObject>(next_id);
+    add_object(next_id, obj);
+    bind(id, next_id);
     obj->add_call(trace2call(call));
 
     auto buf = buffers.get_by_id(call.arg(1).toUInt());
@@ -506,6 +510,7 @@ void VertexAttribObjectMap::BindVAOBuf(const trace::Call& call, BufferObjectMap&
             buf->emit_calls_to(out_list);
         }
     }
+    ++next_id;
 }
 
 TextureObjectMap::TextureObjectMap():

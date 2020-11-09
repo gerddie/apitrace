@@ -142,8 +142,11 @@ private:
 
 class VertexAttribObjectMap: public DependecyObjectWithDefaultBindPointMap {
 public:
-    void BindAVO(const trace::Call& call, BufferObjectMap& buffers);
+    VertexAttribObjectMap();
+    void BindAVO(const trace::Call& call, BufferObjectMap& buffers, CallSet &out_list, bool emit_dependencies);
     void BindVAOBuf(const trace::Call& call, BufferObjectMap& buffers, CallSet &out_list, bool emit_dependencies);
+private:
+    unsigned next_id;
 };
 
 class TextureObjectMap: public DependecyObjectMap {
