@@ -999,8 +999,19 @@ void FrameTrimmeImpl::Draw(const trace::Call& call)
         }
     }
 
-    if (buf && m_recording_frame)
-        buf->emit_calls_to(m_required_calls);
+    if (m_recording_frame) {
+        for(auto&& [key, vbo]: m_vertex_attrib_pointers) {
+            if (vbo)
+                vbo->emit_calls_to(m_required_calls);
+
+        }
+        for(auto&& [key, vbo]: m_vertex_buffer_pointers) {
+            if (vbo)
+                vbo->emit_calls_to(m_required_calls);
+        }
+        if (buf)
+            buf->emit_calls_to(m_required_calls);
+    }
 }
 
 void
