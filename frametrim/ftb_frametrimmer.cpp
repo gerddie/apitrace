@@ -975,18 +975,11 @@ void FrameTrimmeImpl::Draw(const trace::Call& call)
 
     auto buf = m_buffers.bound_to_target(GL_ELEMENT_ARRAY_BUFFER);
 
-    if (!strcmp(call.name(), "glDrawElementsBaseVertex")) {
-        if (!call.arg(3).toPointer() && !buf) {
-            std::cerr << call.no << ":" << call.name()
-                      << " no ELEMENT_ARRAY_BUFFER bound\n";
-            assert(0);
-        }
-    }
-
     if (fb->id()) {
-        if (buf)
-            fb->add_dependency(buf);
         fb->add_call(trace2call(call));
+
+        if (buf)
+           fb->add_dependency(buf);
 
         for(auto&& [key, vbo]: m_vertex_attrib_pointers) {
             if (vbo)
