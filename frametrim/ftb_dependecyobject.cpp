@@ -41,18 +41,11 @@ UsedObject::set_call(PTraceCall call)
     add_call(call);
 }
 
-
 void
 UsedObject::add_dependency(Pointer dep)
 {
     m_dependencies.push_back(dep);
     m_emitted = false;
-}
-
-void UsedObject::set_depenency(Pointer dep)
-{
-    m_dependencies.clear();
-    add_dependency(dep);
 }
 
 void
@@ -485,7 +478,7 @@ VertexAttribObjectMap::BindAVO(const trace::Call& call, BufferObjectMap& buffers
 
     auto buf = buffers.bound_to_target(GL_ARRAY_BUFFER);
     if (buf) {
-        obj->set_depenency(buf);
+        obj->add_dependency(buf);
         if (emit_dependencies) {
             buf->emit_calls_to(out_list);
         }
