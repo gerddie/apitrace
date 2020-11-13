@@ -959,8 +959,6 @@ void FrameTrimmeImpl::Draw(const trace::Call& call)
     auto fb = m_fbo.bound_to(GL_DRAW_FRAMEBUFFER);
     auto cur_prog = m_programs.bound_to(0, 0);
     if (cur_prog) {
-        cur_prog->add_call(trace2call(call));
-
         for(auto && [key, buf]: m_buffers) {
             if (buf && ((key % BufferObjectMap::bt_last) == BufferObjectMap::bt_uniform))
                 cur_prog->add_dependency(buf);
