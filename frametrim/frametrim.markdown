@@ -37,25 +37,12 @@ The following types of calls need to be considered:
     texture/renderbuffer needs to keep track of its data source(s)  a circular
     reference is created, this needs to be handled when writing the calls.
 
-## Tricky things:
-
-* sauerbraten doesn't start all frames with a clear, so it is not clear whether
-  one can throw away old ftaw calls
-* in the start screen sauerbraten only updates part of the screen, so one
-  must keep all the calls.
-* Blender 2.79 copies from the default framebuffer (backbuffer), so trimming
-  this is likely hopeless.
-
-## Currently known problems with v2
-
-* In the HL2 startup all text is missing
+## Currently known problems
 
 * in CIV5 the terrain tiles are not retained and some icons are not drawn
   correctly, this is probably a texture attachement problem. One can work
-  around this by selecting a series of frames. The current implementation
-  will put all calls of a continuous series of frames in to the setup frame
-  extept the calls from the last frame of such a series, this will go
-  into an extra frame
+  around this by selecting a series of frames as setup frames. These will
+  all be put into the one setup frame.
 
 * Sauerbraten has some incorrect geometry
 
@@ -63,18 +50,8 @@ The following types of calls need to be considered:
   by specifying a range of frames including the setup frame that can be
   identified by using qapitrace. Setup frames usually ha a significant larger
   number of calls like other frames.
-
-* GolfWithYourFriends uses GL_COPY_WRITE_BUFFER, but apparently only to
-  map the buffer and write data to it, and not for its actual purpouse
-  (glCopyBufferSubData)
-
 ## Notes for optimization
 
 * when mapping with GL_MAP_INVALIDATE_BUFFER_BIT we can drop earlier mapping
   or subdata calls
-
-## TODO
-
-* glBindBufferRange
-* glCopyTexSubImage2D
 
