@@ -2,7 +2,6 @@
 #include "ftb_frametrimmer.hpp"
 #include "ft_tracecall.hpp"
 #include "ft_matrixstate.hpp"
-#include "ft_displaylists.hpp"
 #include "ftb_dependecyobject.hpp"
 
 
@@ -111,8 +110,8 @@ struct FrameTrimmeImpl {
     CallSet m_required_calls;
     std::set<std::string> m_unhandled_calls;
 
-    std::unordered_map<unsigned, DisplayLists::Pointer> m_display_lists;
-    DisplayLists::Pointer m_active_display_list;
+    std::unordered_map<unsigned, UsedObject::Pointer> m_display_lists;
+    UsedObject::Pointer m_active_display_list;
 
     AllMatrisStates m_matrix_states;
 
@@ -142,8 +141,6 @@ struct FrameTrimmeImpl {
 
     bool m_recording_frame;
 
-    std::unordered_map<EStateCaches, PCallSet> m_state_caches;
-    std::bitset<sc_last> m_state_caches_dirty;
     PTraceCall m_last_swap;
     bool m_keep_all_state_calls;
 };
@@ -178,7 +175,6 @@ void FrameTrimmer::finalize()
 FrameTrimmeImpl::FrameTrimmeImpl(bool keep_all_states):
     m_required_calls(true),
     m_recording_frame(false),
-    m_state_caches(sc_last),
     m_keep_all_state_calls(keep_all_states)
 {
     register_state_calls();
@@ -385,9 +381,7 @@ FrameTrimmeImpl::record_state_call(const trace::Call& call,
     m_state_calls[s.str()] = c;
 
     if (m_active_display_list)
-        m_active_display_list->append_call(c);
-
-    m_state_caches_dirty.set(sc_states);
+        m_active_display_list->add_call(c);
 
     return c;
 }
@@ -866,28 +860,28 @@ void
 FrameTrimmeImpl::Begin(const trace::Call& call)
 {
     if (m_active_display_list)
-        m_active_display_list->append_call(trace2call(call));
+        m_active_display_list->add_call(trace2call(call));
 }
 
 void
 FrameTrimmeImpl::End(const trace::Call& call)
 {
     if (m_active_display_list)
-        m_active_display_list->append_call(trace2call(call));
+        m_active_display_list->add_call(trace2call(call));
 }
 
 void
 FrameTrimmeImpl::Vertex(const trace::Call& call)
 {
     if (m_active_display_list)
-        m_active_display_list->append_call(trace2call(call));
+        m_active_display_list->add_call(trace2call(call));
 }
 
 void
 FrameTrimmeImpl::EndList(const trace::Call& call)
 {
     if (!m_recording_frame)
-        m_active_display_list->append_call(trace2call(call));
+        m_active_display_list->add_call(trace2call(call));
 
     m_active_display_list = nullptr;
 }
@@ -898,11 +892,11 @@ FrameTrimmeImpl::GenLists(const trace::Call& call)
     unsigned nlists = call.arg(0).toUInt();
     GLuint origResult = (*call.ret).toUInt();
     for (unsigned i = 0; i < nlists; ++i)
-        m_display_lists[i + origResult] = std::make_shared<DisplayLists>(i + origResult);
+        m_display_lists[i + origResult] = std::make_shared<UsedObject>(i + origResult);
 
     auto c = trace2call(call);
     if (!m_recording_frame)
-        m_display_lists[origResult]->append_call(c);
+        m_display_lists[origResult]->add_call(c);
 }
 
 void
@@ -914,7 +908,7 @@ FrameTrimmeImpl::NewList(const trace::Call& call)
     m_active_display_list = list->second;
 
     if (!m_recording_frame)
-        m_active_display_list->append_call(trace2call(call));
+        m_active_display_list->add_call(trace2call(call));
 }
 
 void
@@ -924,7 +918,7 @@ FrameTrimmeImpl::CallList(const trace::Call& call)
     assert(list != m_display_lists.end());
 
     if (m_recording_frame)
-        list->second->emit_calls_to_list(m_required_calls);
+        list->second->emit_calls_to(m_required_calls);
 }
 
 void
@@ -935,7 +929,7 @@ FrameTrimmeImpl::DeleteLists(const trace::Call& call)
     for(int i = value; i < value_end; ++i) {
         auto list  = m_display_lists.find(call.arg(0).toUInt());
         assert(list != m_display_lists.end());
-        list->second->append_call(trace2call(call));
+        list->second->add_call(trace2call(call));
         m_display_lists.erase(list);
     }
 }

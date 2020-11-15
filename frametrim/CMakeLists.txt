@@ -19,7 +19,6 @@ add_executable(apitrace-frametrim-fast
    ftb_frametrimmer.cpp
    ftb_main.cpp
    ft_matrixstate.cpp
-   ft_objectstate.cpp
    ft_tracecall.cpp
    ft_tracecall.cpp)
 
