@@ -1,8 +1,8 @@
 
-#include "ftb_frametrimmer.hpp"
+#include "ft_frametrimmer.hpp"
 #include "ft_tracecall.hpp"
 #include "ft_matrixstate.hpp"
-#include "ftb_dependecyobject.hpp"
+#include "ft_dependecyobject.hpp"
 
 
 #include "trace_model.hpp"

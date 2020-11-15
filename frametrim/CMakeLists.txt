@@ -15,9 +15,9 @@ include_directories (
 cmake_policy(SET CMP0079 NEW)
 
 add_executable(apitrace-frametrim
-   ftb_dependecyobject.cpp
-   ftb_frametrimmer.cpp
-   ftb_main.cpp
+   ft_dependecyobject.cpp
+   ft_frametrimmer.cpp
+   ft_main.cpp
    ft_matrixstate.cpp
    ft_tracecall.cpp)
 
