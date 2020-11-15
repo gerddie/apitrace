@@ -1,3 +1,30 @@
+/*********************************************************************
+ *
+ * Copyright 2020 Collabora Ltd
+ * All Rights Reserved.
+ *
+ * Permission is hereby granted, free of charge, to any person
+ * obtaining a copy of this software and associated documentation
+ * files (the "Software"), to deal in the Software without
+ * restriction, including without limitation the rights to use, copy,
+ * modify, merge, publish, distribute, sublicense, and/or sell copies
+ * of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ *
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+ * BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ * ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+ * CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ * SOFTWARE.
+ *
+ *********************************************************************/
+
 #ifndef TRACECALL_HPP
 #define TRACECALL_HPP
 
@@ -33,32 +60,13 @@ public:
     unsigned call_no() const { return m_trace_call_no;};
     const std::string& name() const { return m_name;}
     const std::string& name_with_params() const { return m_name_with_params;}
-
-    bool is_recorded_at(unsigned reference_call) const;
-    void record_at(unsigned reference_call);
-
-    void set_flag(ECallFlags flag) { m_flags.set(flag);}
-    bool test_flag(ECallFlags flag) { return m_flags.test(flag);}
-
-    void set_required_call(Pointer call);
-
-    void emit_required_calls(CallSet& out_list);
-
-    void resolve_required_calls_to_bitmap(std::vector<bool>& call_bitmap);
 private:
 
     static std::string name_with_paramsel(const trace::Call& call, unsigned nsel);
 
-    virtual void emit_required_callsets(CallSet& out_list);
-
     unsigned m_trace_call_no;
-    unsigned m_recorded_at;
     std::string m_name;
     std::string m_name_with_params;
-
-    std::bitset<tc_last> m_flags;
-
-    Pointer m_required_call;
 };
 using PTraceCall = TraceCall::Pointer;
 
@@ -80,72 +88,19 @@ public:
 
     using const_iterator = std::unordered_set<PTraceCall, CallHash>::const_iterator;
 
-    enum Flag {
-        attach_calls,
-        last_flag
-    };
-
-    CallSet(bool is_final = false);
-
     void insert(PTraceCall call);
-    void insert(const CallSet& set);
-    void insert(const StateCallMap& map);
     void clear();
     bool empty() const;
     size_t size() const {return m_calls.size(); }
     const_iterator begin() const;
     const_iterator end() const;
 
-    void set(Flag f) {m_flags.set(f);}
-    bool has(Flag f) {return m_flags.test(f);}
-
-    void resolve_to_bitmap(std::vector<bool>& call_bitmap);
-
-    void resolve();
-    void deep_resolve();
-    void insert(unsigned id, Pointer subset);
-
-    unsigned id() const {return m_callset_id;}
-    void update_id();
 protected:
     void insert_into_set(PTraceCall call);
 private:
-    virtual void do_insert(PTraceCall call);
-
     std::unordered_set<PTraceCall, CallHash> m_calls;
-    std::bitset<last_flag> m_flags;
-    std::unordered_map<unsigned, Pointer> m_subsets;
-    std::unordered_set<unsigned> m_merged_sets;
-
-    unsigned m_last_call_no;
-    bool m_is_final_callset;
-
-    unsigned m_callset_id;
-
-    mutable bool m_deep_resolve;
-    static unsigned m_next_callset_id;
 };
 using PCallSet = std::shared_ptr<CallSet>;
-
-class TraceDrawCall : public TraceCall {
-public:
-    using TraceCall::TraceCall;
-
-    void append_callset(PCallSet depends) __attribute__((deprecated));
-private:
-    void emit_required_callsets(CallSet& out_list) override;
-
-    std::vector<PCallSet> m_depends;
-};
-
-class CallSetWithCycleCounter : public CallSet {
-public:
-    CallSetWithCycleCounter();
-    void set_cycle(unsigned cycle);
-private:
-    virtual void do_insert(PTraceCall call);
-    unsigned m_store_cycle;
-};
 
 
 }
