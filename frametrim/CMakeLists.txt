@@ -28,4 +28,6 @@ target_link_libraries (gltrim
     glretrace_common
     )
 
+ install (TARGETS gltrim RUNTIME DESTINATION bin)
+
 add_subdirectory (tests)
