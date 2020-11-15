@@ -48,6 +48,12 @@ UsedObject::add_dependency(Pointer dep)
     m_emitted = false;
 }
 
+void UsedObject::set_dependency(Pointer dep)
+{
+    m_dependencies.clear();
+    add_dependency(dep);
+}
+
 void
 UsedObject::emit_calls_to(CallSet& out_list)
 {

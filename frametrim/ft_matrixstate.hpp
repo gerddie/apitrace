@@ -1,31 +1,26 @@
 #ifndef MATRIXSTATE_HPP
 #define MATRIXSTATE_HPP
 
-#include "ft_objectstate.hpp"
+#include "ftb_dependecyobject.hpp"
 #include <stack>
 
 namespace frametrim {
 
-class MatrixState : public ObjectState
+class MatrixState : public UsedObject
 {
 public:
     using Pointer = std::shared_ptr<MatrixState>;
 
     MatrixState(Pointer parent);
 
-    PTraceCall select_matrixtype(const trace::Call& call);
+    void select_matrixtype(const trace::Call& call);
 
-    PTraceCall set_matrix(const trace::Call& call);
+    void set_matrix(const trace::Call& call);
 
 private:
-    ObjectType type() const override {return bt_matrix;}
-
-    void do_emit_calls_to_list(CallSet& list) const override;
-
     Pointer m_parent;
 
     PTraceCall m_type_select_call;
-
 };
 
 using PMatrixState = std::shared_ptr<MatrixState>;
@@ -34,12 +29,12 @@ class AllMatrisStates {
 public:
     AllMatrisStates();
 
-    PTraceCall LoadIdentity(const trace::Call& call);
-    PTraceCall LoadMatrix(const trace::Call& call);
-    PTraceCall MatrixMode(const trace::Call& call);
-    PTraceCall PopMatrix(const trace::Call& call);
-    PTraceCall PushMatrix(const trace::Call& call);
-    PTraceCall matrix_op(const trace::Call& call);
+    void LoadIdentity(const trace::Call& call);
+    void LoadMatrix(const trace::Call& call);
+    void MatrixMode(const trace::Call& call);
+    void PopMatrix(const trace::Call& call);
+    void PushMatrix(const trace::Call& call);
+    void matrix_op(const trace::Call& call);
 
     void emit_state_to_lists(CallSet& list) const;
 
