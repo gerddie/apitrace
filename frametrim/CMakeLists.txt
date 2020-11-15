@@ -14,16 +14,16 @@ include_directories (
 
 cmake_policy(SET CMP0079 NEW)
 
-add_executable(apitrace-frametrim
+add_executable(gltrim
    ft_dependecyobject.cpp
    ft_frametrimmer.cpp
    ft_main.cpp
    ft_matrixstate.cpp
    ft_tracecall.cpp)
 
-set_target_properties(apitrace-frametrim PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
+set_target_properties(gltrim PROPERTIES COMPILE_FLAGS "${CMAKE_CXX_FLAGS} -std=c++17")
 
-target_link_libraries (apitrace-frametrim
+target_link_libraries (gltrim
     retrace_common
     glretrace_common
     )

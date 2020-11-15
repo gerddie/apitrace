@@ -15,7 +15,6 @@ the objects used in the callaset corresponding to the frame.
 The calls are collected in a std::set so that duplicate calls are
 eliminated, and then the set is sorted based on call number and written.
 
-
 The following types of calls need to be considered:
 
 * State calls: These need to be updated whenever they occure, but only the
@@ -50,8 +49,11 @@ The following types of calls need to be considered:
   by specifying a range of frames including the setup frame that can be
   identified by using qapitrace. Setup frames usually ha a significant larger
   number of calls like other frames.
+
 ## Notes for optimization
 
-* when mapping with GL_MAP_INVALIDATE_BUFFER_BIT we can drop earlier mapping
-  or subdata calls
+* buffer calls could be optimized so that buffer calls that upload data
+  that is overwritten before it is used in the target frame are dropped
+
+* useless binding and texture unit calls could be dropped
 
