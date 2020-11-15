@@ -26,7 +26,7 @@
  *********************************************************************/
 
 
-#include "ftb_frametrimmer.hpp"
+#include "ft_frametrimmer.hpp"
 
 #include "os_time.hpp"
 #include "trace_parser.hpp"
