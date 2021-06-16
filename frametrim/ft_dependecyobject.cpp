@@ -203,7 +203,7 @@ DependecyObjectMap::bind(const trace::Call& call, unsigned obj_id_param)
     }
 
     if (id) {
-        if (!m_objects[id]->extraInfo("valid")) {
+        if (m_objects[id] && !m_objects[id]->extraInfo("valid")) {
             std::cerr << "\n" << call.no << ":" << call.name() << "(...) Object " << id
                       << " not valid, was deleted in "
                       << m_objects[id]->extraInfo("delete_call")
