@@ -139,6 +139,9 @@ struct FrameTrimmeImpl {
 
     bool checkCommonSuffixes(const char *suffix) const;
 
+
+    void createContext(const trace::Call& call);
+    void makeCurrent(const trace::Call& call, unsigned param);
     using CallTable = std::multimap<const char *, ft_callback, string_part_less>;
     CallTable m_call_table;
 
@@ -165,6 +168,9 @@ struct FrameTrimmeImpl {
     VertexArrayMap m_vertex_arrays;
     VertexAttribObjectMap m_vertex_attrib_pointers;
     VertexAttribObjectMap m_vertex_buffer_pointers;
+
+    std::map<void *, std::shared_ptr<PerContextObjects>> m_contexts;
+    std::shared_ptr<PerContextObjects> m_current_context;
     QueryObjectMap m_queries;
 
     std::map<std::string, PTraceCall> m_state_calls;
@@ -904,14 +910,9 @@ void FrameTrimmeImpl::registerRequiredCalls()
     auto required_func = bind(&FrameTrimmeImpl::recordRequiredCall, this, _1);
     const std::vector<const char *> required_calls = {
         "glXChooseVisual",
-        "glXCreateContext",
-        "glXCreateContextAttribs",
-        "glXCreateNewContext",
         "glXCreatePbuffer",
         "glXDestroyContext",
         "glXGetFBConfigAttrib",
-        "glXMakeCurrent",
-        "glXMakeContextCurrent",
         "glXChooseFBConfig",
         "glXQueryExtension",
         "glXQueryExtensionsString",
@@ -921,13 +922,20 @@ void FrameTrimmeImpl::registerRequiredCalls()
         "eglInitialize",
         "eglCreatePlatformWindowSurface",
         "eglBindAPI",
-        "eglCreateContext",
-        "eglMakeCurrent",
 
         "glPixelStorei", /* Being lazy here, we could track the dependency
                             in the relevant calls */
     };
     updateCallTable(required_calls, required_func);
+
+    MAP(glXCreateContext, createContext);
+    MAP(glXCreateContextAttribs, createContext);
+    MAP(glXCreateNewContext, createContext);
+    MAP(eglCreateContext, createContext);
+
+    MAP_V(glXMakeCurrent, makeCurrent, 2);
+    MAP_V(glXMakeContextCurrent, makeCurrent, 3);
+    MAP_V(eglMakeCurrent, makeCurrent, 3);
 }
 
 void FrameTrimmeImpl::registerIgnoreHistoryCalls()
@@ -1445,6 +1453,22 @@ FrameTrimmeImpl::oglBindVertexArray(const trace::Call& call)
             fb->addDependency(vao);
     } else
         m_vertex_arrays.addCall(trace2call(call));
+void FrameTrimmeImpl::createContext(const trace::Call& call)
+{
+    std::cerr << call.no << ": New context = " << call.ret->toPointer() << "\n";
+    m_contexts[call.ret->toPointer()] = make_shared<PerContextObjects>();
+    if (!m_current_context)
+        m_current_context = m_contexts[call.ret->toPointer()];
+    m_required_calls.insert(trace2call(call));
+
+}
+
+void FrameTrimmeImpl::makeCurrent(const trace::Call& call, unsigned param)
+{
+    void *ctx = call.arg(param).toPointer();
+    m_current_context = m_contexts[ctx];
+    assert(!ctx || m_current_context);
+    m_required_calls.insert(trace2call(call));
 }
 
 }
