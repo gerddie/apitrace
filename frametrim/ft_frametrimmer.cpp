@@ -71,6 +71,15 @@ using SyncObjectMap = DependecyObjectWithSingleBindPointMap;
 using ShaderStateMap = DependecyObjectWithDefaultBindPointMap;
 using RenderObjectMap = DependecyObjectWithSingleBindPointMap;
 using VertexArrayMap = DependecyObjectWithDefaultBindPointMap;
+
+enum ePerContext {
+    pc_vertex_array,
+};
+
+struct PerContextObjects {
+    VertexArrayMap m_vertex_arrays;
+};
+
 struct FrameTrimmeImpl {
 
     using ObjectMap = std::unordered_map<unsigned, UsedObject::Pointer>;
@@ -139,6 +148,12 @@ struct FrameTrimmeImpl {
 
     bool checkCommonSuffixes(const char *suffix) const;
 
+    void generate(const trace::Call& call, ePerContext map_type);
+    void destroy(const trace::Call& call, ePerContext map_type);
+    void bindPerContext(const trace::Call& call, ePerContext map_type, unsigned bind_param);
+
+    DependecyObjectMap& getCurrenTmapOfType(ePerContext map_type);
+
 
     void createContext(const trace::Call& call);
     void makeCurrent(const trace::Call& call, unsigned param);
@@ -165,7 +180,6 @@ struct FrameTrimmeImpl {
     RenderObjectMap m_renderbuffers;
     SamplerObjectMap m_samplers;
     SyncObjectMap m_sync_objects;
-    VertexArrayMap m_vertex_arrays;
     VertexAttribObjectMap m_vertex_attrib_pointers;
     VertexAttribObjectMap m_vertex_buffer_pointers;
 
@@ -366,7 +380,7 @@ void FrameTrimmeImpl::startTargetFrame()
     m_renderbuffers.emitBoundObjects(m_required_calls);
     m_samplers.emitBoundObjects(m_required_calls);
     m_sync_objects.emitBoundObjects(m_required_calls);
-    m_vertex_arrays.emitBoundObjects(m_required_calls);
+    m_current_context->m_vertex_arrays.emitBoundObjects(m_required_calls);
     m_vertex_attrib_pointers.emitBoundObjects(m_required_calls);
     m_vertex_buffer_pointers.emitBoundObjects(m_required_calls);
     m_legacy_programs.emitBoundObjects(m_required_calls);
@@ -470,6 +484,10 @@ FrameTrimmeImpl::equalChars(const char *prefix, const char *callname)
 // Additional data is passed by reference (R) or vy value (V)
 
 #define MAP(name, call) m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, this, _1)))
+
+#define MAP_V(name, call, param1) \
+    m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, this, _1, \
+                        param1)))
 
 #define MAP_RV(name, call, data, param1) \
     m_call_table.insert(std::make_pair(#name, bind(&FrameTrimmeImpl:: call, this, _1, \
@@ -997,8 +1015,8 @@ void FrameTrimmeImpl::registerIgnoreHistoryCalls()
 void
 FrameTrimmeImpl::registerVaCalls()
 {
-    MAP_OBJ(glGenVertexArrays, m_vertex_arrays, VertexArrayMap::generate);
-    MAP_OBJ(glDeleteVertexArrays, m_vertex_arrays, VertexArrayMap::destroy);
+    MAP_V(glGenVertexArrays, generate, pc_vertex_array);
+    MAP_V(glDeleteVertexArrays, destroy, pc_vertex_array);
     MAP(glBindVertexArray, oglBindVertexArray);
     //MAP_OBJ(glVertexAttribBinding, m_vertex_buffer_pointers, VertexAttribObjectMap::vaBinding);
 
@@ -1308,7 +1326,7 @@ void FrameTrimmeImpl::oglDraw(const trace::Call& call)
         fb->addCall(trace2call(call));
 
         m_buffers.addBoundAsDependencyTo(*fb);
-        m_vertex_arrays.addBoundAsDependencyTo(*fb);
+        m_current_context->m_vertex_arrays.addBoundAsDependencyTo(*fb);
         m_textures.addBoundAsDependencyTo(*fb);
         m_programs.addBoundAsDependencyTo(*fb);
         m_legacy_programs.addBoundAsDependencyTo(*fb);
@@ -1328,7 +1346,7 @@ void FrameTrimmeImpl::oglDraw(const trace::Call& call)
 
     if (m_recording_frame) {
 
-        for(auto&& [key, vao]: m_vertex_arrays) {
+        for(auto&& [key, vao]: m_current_context->m_vertex_arrays) {
             if (vao)
                 vao->emitCallsTo(m_required_calls);
         }
@@ -1442,7 +1460,7 @@ FrameTrimmeImpl::recordRequiredCall(const trace::Call& call)
 void
 FrameTrimmeImpl::oglBindVertexArray(const trace::Call& call)
 {
-    auto vao = m_vertex_arrays.bind(call, 0);
+    auto vao = m_current_context->m_vertex_arrays.bind(call, 0);
     global_state.current_vao = vao;
     if (vao) {
         vao->addCall(trace2call(call));
@@ -1452,7 +1470,18 @@ FrameTrimmeImpl::oglBindVertexArray(const trace::Call& call)
         if (fb->id())
             fb->addDependency(vao);
     } else
-        m_vertex_arrays.addCall(trace2call(call));
+        m_current_context->m_vertex_arrays.addCall(trace2call(call));
+}
+
+void FrameTrimmeImpl::generate(const trace::Call& call, ePerContext map_type)
+{
+    getCurrenTmapOfType(map_type).generate(call);
+}
+
+void FrameTrimmeImpl::destroy(const trace::Call& call, ePerContext map_type)
+{
+    getCurrenTmapOfType(map_type).destroy(call);
+}
 void FrameTrimmeImpl::createContext(const trace::Call& call)
 {
     std::cerr << call.no << ": New context = " << call.ret->toPointer() << "\n";
@@ -1469,6 +1498,14 @@ void FrameTrimmeImpl::makeCurrent(const trace::Call& call, unsigned param)
     m_current_context = m_contexts[ctx];
     assert(!ctx || m_current_context);
     m_required_calls.insert(trace2call(call));
+}
+
+DependecyObjectMap& FrameTrimmeImpl::getCurrenTmapOfType(ePerContext map_type)
+{
+    switch (map_type) {
+    case pc_vertex_array: return m_current_context->m_vertex_arrays;
+    }
+    assert(0);
 }
 
 }
