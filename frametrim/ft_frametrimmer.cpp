@@ -380,7 +380,10 @@ void FrameTrimmeImpl::startTargetFrame()
     m_renderbuffers.emitBoundObjects(m_required_calls);
     m_samplers.emitBoundObjects(m_required_calls);
     m_sync_objects.emitBoundObjects(m_required_calls);
-    m_current_context->m_vertex_arrays.emitBoundObjects(m_required_calls);
+    for (auto& [dummy, context] : m_contexts) {
+        if (context)
+            context->m_vertex_arrays.emitBoundObjects(m_required_calls);
+    }
     m_vertex_attrib_pointers.emitBoundObjects(m_required_calls);
     m_vertex_buffer_pointers.emitBoundObjects(m_required_calls);
     m_legacy_programs.emitBoundObjects(m_required_calls);
